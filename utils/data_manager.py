@@ -9,9 +9,11 @@ KEY_FILE = ".secret.key"
 
 class DataManager:
     def __init__(self):
-        self.filepath = os.path.join(os.path.dirname(__file__), DATA_FILE)
-        self.settings_path = os.path.join(os.path.dirname(__file__), SETTINGS_FILE)
-        self.key_path = os.path.join(os.path.dirname(__file__), KEY_FILE)
+        # Paths are relative to the project root (one level up from utils)
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        self.filepath = os.path.join(base_dir, DATA_FILE)
+        self.settings_path = os.path.join(base_dir, SETTINGS_FILE)
+        self.key_path = os.path.join(base_dir, KEY_FILE)
         
         self._load_or_create_key()
         self._ensure_files_exist()
