@@ -2,11 +2,13 @@ import customtkinter as ctk
 from PIL import Image
 import os
 from utils.data_manager import DataManager
+from utils.resource_handler import resource_path
 from pages.home_page import HomeFrame
 from pages.create_page import CreateAssistantFrame
 from pages.list_page import ListAssistantsFrame
 from pages.admin_page import AdminFrame
 from pages.detail_page import AssistantDetailFrame
+from pages.chat_page import ChatFrame
 
 # Configuration du thème
 ctk.set_appearance_mode("System")
@@ -18,6 +20,7 @@ class App(ctk.CTk):
 
         self.title("Mon Assistant perso")
         self.geometry("900x700")
+        self.iconbitmap(resource_path("settings_icon.png")) # Use icon if available, fallback handled by OS usually or ignore
 
         self.data_manager = DataManager()
 
@@ -46,7 +49,7 @@ class App(ctk.CTk):
 
     def load_resources(self):
         # Avatar
-        img_path = os.path.join(os.path.dirname(__file__), "assistant_avatar.png")
+        img_path = resource_path("assistant_avatar.png")
         self.avatar_image = None
         if os.path.exists(img_path):
             try:
@@ -57,7 +60,7 @@ class App(ctk.CTk):
                 print(f"Erreur image avatar: {e}")
         
         # Settings Icon
-        settings_path = os.path.join(os.path.dirname(__file__), "settings_icon.png")
+        settings_path = resource_path("settings_icon.png")
         self.settings_icon = None
         if os.path.exists(settings_path):
             try:
@@ -86,6 +89,9 @@ class App(ctk.CTk):
     
     def show_assistant_detail(self, assistant_data):
         self.switch_frame(AssistantDetailFrame, assistant_data=assistant_data)
+    
+    def show_chat(self, assistant_data):
+        self.switch_frame(ChatFrame, assistant_data=assistant_data)
 
 if __name__ == "__main__":
     app = App()

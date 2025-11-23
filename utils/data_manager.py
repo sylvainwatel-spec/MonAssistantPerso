@@ -3,17 +3,18 @@ import os
 import uuid
 from cryptography.fernet import Fernet
 
+from utils.resource_handler import get_writable_path
+
 DATA_FILE = "assistants.json"
 SETTINGS_FILE = "settings.json"
 KEY_FILE = ".secret.key"
 
 class DataManager:
     def __init__(self):
-        # Paths are relative to the project root (one level up from utils)
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        self.filepath = os.path.join(base_dir, DATA_FILE)
-        self.settings_path = os.path.join(base_dir, SETTINGS_FILE)
-        self.key_path = os.path.join(base_dir, KEY_FILE)
+        # Use get_writable_path to ensure files are stored next to the exe or script
+        self.filepath = get_writable_path(DATA_FILE)
+        self.settings_path = get_writable_path(SETTINGS_FILE)
+        self.key_path = get_writable_path(KEY_FILE)
         
         self._load_or_create_key()
         self._ensure_files_exist()
@@ -54,19 +55,85 @@ class DataManager:
         with open(self.filepath, 'r') as f:
             return json.load(f)
 
-    def save_assistant(self, name, description):
+    def save_assistant(self, name, description, role="", context="", objective="", limits="", response_format="", provider=""):
+        """
+        Sauvegarde un nouvel assistant avec tous ses champs.
+        
+        Args:
+            name: Nom de l'assistant
+            description: Description courte
+            role: Rôle de l'assistant
+            context: Contexte d'utilisation
+            objective: Objectif principal
+            limits: Limites et restrictions
+            response_format: Format de réponse souhaité
+            provider: Provider LLM à utiliser
+        """
         assistants = self.get_all_assistants()
         new_assistant = {
             "id": str(uuid.uuid4()),
             "name": name,
             "description": description,
+            "role": role,
+            "context": context,
+            "objective": objective,
+            "limits": limits,
+            "response_format": response_format,
+            "provider": provider,
             "status": "stopped"  # stopped, running
         }
         assistants.append(new_assistant)
         self._save_to_file(assistants)
         return new_assistant
 
+    def update_assistant(self, assistant_id, name=None, description=None, role=None, 
+                        context=None, objective=None, limits=None, response_format=None, provider=None):
+        """
+        Met à jour un assistant existant.
+        
+        Args:
+            assistant_id: ID de l'assistant à modifier
+            name: Nouveau nom (optionnel)
+            description: Nouvelle description (optionnel)
+            role: Nouveau rôle (optionnel)
+            context: Nouveau contexte (optionnel)
+            objective: Nouvel objectif (optionnel)
+            limits: Nouvelles limites (optionnel)
+            response_format: Nouveau format de réponse (optionnel)
+            provider: Nouveau provider (optionnel)
+        """
+        assistants = self.get_all_assistants()
+        for assistant in assistants:
+            if assistant["id"] == assistant_id:
+                if name is not None:
+                    assistant["name"] = name
+                if description is not None:
+                    assistant["description"] = description
+                if role is not None:
+                    assistant["role"] = role
+                if context is not None:
+                    assistant["context"] = context
+                if objective is not None:
+                    assistant["objective"] = objective
+                if limits is not None:
+                    assistant["limits"] = limits
+                if response_format is not None:
+                    assistant["response_format"] = response_format
+                if provider is not None:
+                    assistant["provider"] = provider
+                break
+        self._save_to_file(assistants)
+
+    def get_assistant_by_id(self, assistant_id):
+        """Récupère un assistant par son ID."""
+        assistants = self.get_all_assistants()
+        for assistant in assistants:
+            if assistant["id"] == assistant_id:
+                return assistant
+        return None
+
     def update_status(self, assistant_id, new_status):
+        """Met à jour le statut d'un assistant."""
         assistants = self.get_all_assistants()
         for assistant in assistants:
             if assistant["id"] == assistant_id:
@@ -75,9 +142,11 @@ class DataManager:
         self._save_to_file(assistants)
 
     def delete_assistant(self, assistant_id):
+        """Supprime un assistant."""
         assistants = self.get_all_assistants()
         assistants = [a for a in assistants if a["id"] != assistant_id]
         self._save_to_file(assistants)
+
 
     def _save_to_file(self, data):
         with open(self.filepath, 'w') as f:

@@ -1,3 +1,9 @@
 customtkinter
 Pillow
 cryptography
+pyinstaller
+openai
+google-generativeai
+anthropic
+groq
+mistralai

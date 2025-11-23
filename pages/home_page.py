@@ -25,7 +25,7 @@ class HomeFrame(ctk.CTkFrame):
             label = ctk.CTkLabel(self, text="", image=self.app.avatar_image)
             label.grid(row=1, column=0, pady=(20, 10))
         
-        welcome = ctk.CTkLabel(self, text="Bonjour, Maître.", font=ctk.CTkFont(size=32, weight="bold"))
+        welcome = ctk.CTkLabel(self, text="Bienvenue", font=ctk.CTkFont(size=32, weight="bold"))
         welcome.grid(row=2, column=0, pady=(0, 30))
 
         # Dock d'Actions
