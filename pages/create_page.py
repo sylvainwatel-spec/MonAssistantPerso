@@ -1,5 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
+import threading
+from utils.web_scraper import WebScraper
 
 class CreateAssistantFrame(ctk.CTkFrame):
     def __init__(self, master, app):
@@ -107,7 +109,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
         
         self.text_context = ctk.CTkTextbox(
             self.scrollable_frame,
-            height=80,
+            height=120,
             font=("Arial", 12),
             wrap="word"
         )
@@ -162,6 +164,36 @@ class CreateAssistantFrame(ctk.CTkFrame):
         self.text_response_format.grid(row=16, column=0, pady=(0, 30), sticky="ew")
         self.text_response_format.insert("1.0", "Ex: Réponses structurées avec bullet points et exemples concrets...")
 
+        # URL Analysis Section (Moved to bottom)
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="🌐 URL à analyser (Optionnel)",
+            font=("Arial", 14, "bold")
+        ).grid(row=17, column=0, pady=(0, 5), sticky="w")
+
+        self.url_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
+        self.url_frame.grid(row=18, column=0, pady=(0, 20), sticky="ew")
+        self.url_frame.grid_columnconfigure(0, weight=1)
+
+        self.entry_url = ctk.CTkEntry(
+            self.url_frame,
+            placeholder_text="https://www.exemple.com",
+            height=40,
+            font=("Arial", 12)
+        )
+        self.entry_url.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+
+        self.btn_analyze = ctk.CTkButton(
+            self.url_frame,
+            text="🔍 Analyser",
+            width=100,
+            height=40,
+            fg_color=("#FF9800", "#F57C00"),
+            hover_color=("#FB8C00", "#EF6C00"),
+            command=self.analyze_url
+        )
+        self.btn_analyze.grid(row=0, column=1)
+
         # Bouton de création
         btn_save = ctk.CTkButton(
             self.scrollable_frame,
@@ -174,7 +206,41 @@ class CreateAssistantFrame(ctk.CTkFrame):
             hover_color=("#45A049", "#2E7D32"),
             command=self.save,
         )
-        btn_save.grid(row=17, column=0, pady=(0, 20))
+        btn_save.grid(row=19, column=0, pady=(0, 20))
+
+    def analyze_url(self):
+        """Lance l'analyse de l'URL dans un thread séparé."""
+        url = self.entry_url.get().strip()
+        if not url:
+            messagebox.showwarning("Attention", "Veuillez entrer une URL valide.")
+            return
+        
+        self.btn_analyze.configure(state="disabled", text="Analyse...")
+        threading.Thread(target=self._perform_analysis, args=(url,), daemon=True).start()
+
+    def _perform_analysis(self, url):
+        """Exécute le scraping et met à jour l'interface."""
+        try:
+            scraper = WebScraper()
+            soup = scraper.fetch_page(url)
+            
+            if soup:
+                text_content = scraper.extract_text(soup)
+                # Limiter la taille du texte pour éviter de saturer le contexte
+                max_chars = 5000
+                if len(text_content) > max_chars:
+                    text_content = text_content[:max_chars] + "\n... (Tronqué)"
+                
+                # Mise à jour de l'UI
+                # On n'inclut plus l'URL dans le texte ajouté
+                self.text_context.insert("end", f"\n\n--- Contenu analysé ---\n{text_content}")
+                messagebox.showinfo("Succès", "Analyse terminée ! Le contenu a été ajouté au contexte.")
+            else:
+                messagebox.showerror("Erreur", "Impossible de récupérer le contenu de la page.")
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Une erreur est survenue : {e}")
+        finally:
+            self.btn_analyze.configure(state="normal", text="🔍 Analyser")
 
     def save(self):
         """Sauvegarde l'assistant avec tous les champs."""
@@ -185,7 +251,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
         objective = self.text_objective.get("1.0", "end-1c").strip()
         limits = self.text_limits.get("1.0", "end-1c").strip()
         response_format = self.text_response_format.get("1.0", "end-1c").strip()
-        provider = self.provider_var.get()
+        target_url = self.entry_url.get().strip()
 
         # Validation
         if not name:
@@ -205,6 +271,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             objective=objective,
             limits=limits,
             response_format=response_format,
+            target_url=target_url,
             provider=provider
         )
 

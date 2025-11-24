@@ -1,13 +1,17 @@
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 from utils.llm_connector import LLMConnectionTester
+from utils.web_scraper import WebScraper
 import threading
+import datetime
+import os
 
 class ChatFrame(ctk.CTkFrame):
     def __init__(self, master, app, assistant_data):
         super().__init__(master, fg_color="transparent")
         self.app = app
         self.assistant = assistant_data
+        self.history = [] # Liste pour stocker l'historique des messages
         
         # Header avec bouton retour
         header_frame = ctk.CTkFrame(self, fg_color="transparent", height=60)
@@ -32,6 +36,18 @@ class ChatFrame(ctk.CTkFrame):
         )
         title.pack(side="left", padx=20)
         
+        # Bouton Export Excel
+        btn_export = ctk.CTkButton(
+            header_frame,
+            text="📥 Export Excel",
+            width=120,
+            height=32,
+            fg_color=("#2E7D32", "#1B5E20"), # Vert foncé
+            corner_radius=16,
+            command=self.export_to_excel
+        )
+        btn_export.pack(side="right", padx=10)
+        
         # Indicateur de provider
         provider_label = ctk.CTkLabel(
             header_frame,
@@ -50,18 +66,24 @@ class ChatFrame(ctk.CTkFrame):
         self.chat_area.pack(fill="both", expand=True, padx=20, pady=(0, 10))
         self.chat_area.configure(state="disabled")
         
-        # Message de bienvenue
-        self.add_system_message(f"Bienvenue ! Vous discutez avec {self.assistant.get('name')}.")
-        if self.assistant.get('description'):
-            self.add_system_message(f"Description : {self.assistant.get('description')}")
+        # Barre de progression (cachée par défaut)
+        self.progress_bar = ctk.CTkProgressBar(
+            self,
+            mode="indeterminate",
+            height=8,
+            corner_radius=4,
+            progress_color=("#4CAF50", "#4CAF50"),
+            fg_color=("gray85", "gray25")
+        )
+        self.progress_bar.set(0) # Initialiser à 0
         
         # Zone d'input
-        input_frame = ctk.CTkFrame(self, fg_color="transparent")
-        input_frame.pack(fill="x", padx=20, pady=(0, 20))
-        input_frame.grid_columnconfigure(0, weight=1)
+        self.input_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.input_frame.pack(fill="x", padx=20, pady=(0, 20))
+        self.input_frame.grid_columnconfigure(0, weight=1)
         
         self.entry = ctk.CTkEntry(
-            input_frame,
+            self.input_frame,
             placeholder_text="Tapez votre message...",
             height=50,
             font=("Arial", 13)
@@ -70,7 +92,7 @@ class ChatFrame(ctk.CTkFrame):
         self.entry.bind("<Return>", lambda e: self.send_message())
         
         self.btn_send = ctk.CTkButton(
-            input_frame,
+            self.input_frame,
             text="Envoyer",
             width=100,
             height=50,
@@ -81,9 +103,45 @@ class ChatFrame(ctk.CTkFrame):
             command=self.send_message
         )
         self.btn_send.grid(row=0, column=1)
+        
+        # Message de bienvenue et envoi automatique
+        self.add_system_message(f"Connexion à {self.assistant.get('name')}...")
+        if self.assistant.get('description'):
+            self.add_system_message(f"Description : {self.assistant.get('description')}")
+        
+        # Envoyer automatiquement un message de bienvenue au LLM
+        self.after(500, self.send_welcome_message)
+    
+    
+    def send_welcome_message(self):
+        """Envoie automatiquement un message de bienvenue au LLM."""
+        welcome_msg = "Bonjour ! Peux-tu te présenter brièvement ?"
+        self.add_user_message(welcome_msg)
+        
+        # Afficher l'indicateur de chargement
+        self.show_loading()
+        
+        # Désactiver le bouton d'envoi
+        self.btn_send.configure(state="disabled", text="Envoi...")
+        
+        # Envoyer la requête au LLM dans un thread séparé
+        thread = threading.Thread(target=self._send_to_llm, args=(welcome_msg,))
+        thread.daemon = True
+        thread.start()
+    
+    def show_loading(self):
+        """Affiche l'indicateur de chargement."""
+        self.progress_bar.pack(fill="x", padx=20, pady=(0, 10), before=self.input_frame)
+        self.progress_bar.start()
+    
+    def hide_loading(self):
+        """Cache l'indicateur de chargement."""
+        self.progress_bar.stop()
+        self.progress_bar.pack_forget()
     
     def add_system_message(self, text):
         """Ajoute un message système."""
+        self.history.append({"role": "Système", "content": text, "timestamp": datetime.datetime.now()})
         self.chat_area.configure(state="normal")
         self.chat_area.insert("end", f"ℹ️ {text}\n\n", "system")
         self.chat_area.tag_config("system", foreground="gray")
@@ -92,6 +150,7 @@ class ChatFrame(ctk.CTkFrame):
     
     def add_user_message(self, text):
         """Ajoute un message de l'utilisateur."""
+        self.history.append({"role": "Utilisateur", "content": text, "timestamp": datetime.datetime.now()})
         self.chat_area.configure(state="normal")
         self.chat_area.insert("end", f"Vous : {text}\n\n", "user")
         self.chat_area.tag_config("user", foreground="#2196F3")
@@ -100,6 +159,7 @@ class ChatFrame(ctk.CTkFrame):
     
     def add_assistant_message(self, text):
         """Ajoute un message de l'assistant."""
+        self.history.append({"role": "Assistant", "content": text, "timestamp": datetime.datetime.now()})
         self.chat_area.configure(state="normal")
         self.chat_area.insert("end", f"{self.assistant.get('name')} : {text}\n\n", "assistant")
         self.chat_area.tag_config("assistant", foreground="#4CAF50")
@@ -132,6 +192,22 @@ class ChatFrame(ctk.CTkFrame):
         
         if self.assistant.get('response_format'):
             parts.append(f"Format de réponse : {self.assistant.get('response_format')}")
+            
+        # Instructions pour l'outil de recherche
+        target_url = self.assistant.get('target_url')
+        if target_url:
+            parts.append(f"""
+IMPORTANT : Tu as accès à un outil de recherche sur le site : {target_url}
+Pour effectuer une recherche sur ce site, réponds UNIQUEMENT avec la commande suivante :
+ACTION: SEARCH <ta requête de recherche>
+
+Exemple :
+Utilisateur : "Cherche des chaussures rouges"
+Toi : ACTION: SEARCH chaussures rouges
+
+Je t'enverrai ensuite les résultats de la recherche, et tu pourras formuler ta réponse finale.
+N'utilise cette commande que si c'est pertinent pour répondre à l'utilisateur.
+""")
         
         return "\n\n".join(parts) if parts else "Tu es un assistant utile et serviable."
     
@@ -145,6 +221,9 @@ class ChatFrame(ctk.CTkFrame):
         # Afficher le message de l'utilisateur
         self.add_user_message(user_message)
         self.entry.delete(0, "end")
+        
+        # Afficher l'indicateur de chargement
+        self.show_loading()
         
         # Désactiver le bouton d'envoi
         self.btn_send.configure(state="disabled", text="Envoi...")
@@ -184,15 +263,57 @@ class ChatFrame(ctk.CTkFrame):
             else:
                 response_text = f"Provider {provider} non supporté pour le moment."
             
-            # Afficher la réponse
-            self.add_assistant_message(response_text)
+            # Traiter la réponse (vérifier si action requise)
+            self._process_llm_response(response_text, api_key, system_prompt, user_message)
             
         except Exception as e:
             self.add_error_message(str(e))
         
         finally:
+            # Cacher l'indicateur de chargement
+            self.hide_loading()
+            
             # Réactiver le bouton d'envoi
             self.btn_send.configure(state="normal", text="Envoyer")
+
+    def _process_llm_response(self, response_text, api_key, system_prompt, original_user_message):
+        """Traite la réponse du LLM et gère les actions (outils)."""
+        
+        # Vérifier si le LLM demande une action de recherche
+        if response_text.strip().startswith("ACTION: SEARCH"):
+            query = response_text.replace("ACTION: SEARCH", "").strip()
+            self.add_system_message(f"🔎 Recherche en cours sur {self.assistant.get('target_url')} : '{query}'...")
+            
+            # Exécuter la recherche
+            scraper = WebScraper()
+            search_results = scraper.perform_search(self.assistant.get('target_url'), query)
+            
+            # Limiter la taille des résultats
+            if len(search_results) > 4000:
+                search_results = search_results[:4000] + "... (tronqué)"
+            
+            # Relancer le LLM avec les résultats
+            new_user_message = f"{original_user_message}\n\n[RÉSULTATS DE LA RECHERCHE pour '{query}']:\n{search_results}\n\nUtilise ces informations pour répondre à la demande initiale."
+            
+            # Appel récursif (attention à la boucle infinie, on pourrait ajouter un compteur)
+            # Pour simplifier ici, on refait juste un appel standard
+            if "OpenAI" in self.assistant.get('provider', ''):
+                final_response = self._call_openai(api_key, system_prompt, new_user_message)
+            elif "Gemini" in self.assistant.get('provider', ''):
+                final_response = self._call_gemini(api_key, system_prompt, new_user_message)
+            elif "Claude" in self.assistant.get('provider', ''):
+                final_response = self._call_claude(api_key, system_prompt, new_user_message)
+            elif "Llama" in self.assistant.get('provider', '') or "Groq" in self.assistant.get('provider', ''):
+                final_response = self._call_groq(api_key, system_prompt, new_user_message)
+            elif "Mistral" in self.assistant.get('provider', ''):
+                final_response = self._call_mistral(api_key, system_prompt, new_user_message)
+            else:
+                final_response = "Erreur: Provider non supporté pour la suite de l'action."
+                
+            self.add_assistant_message(final_response)
+        else:
+            # Réponse normale
+            self.add_assistant_message(response_text)
     
     def _call_openai(self, api_key, system_prompt, user_message):
         """Appelle l'API OpenAI."""
@@ -293,3 +414,136 @@ class ChatFrame(ctk.CTkFrame):
         )
         
         return response.choices[0].message.content
+
+    def export_to_excel(self):
+        """Exporte le tableau de la 'Partie 2 : Synthèse à exporter' vers Excel."""
+        if not self.history:
+            messagebox.showinfo("Info", "Aucun message à exporter.")
+            return
+            
+        # Rechercher la "Partie 2" dans les messages de l'assistant
+        target_section = "Partie 2 : Synthèse à exporter"
+        table_data = None
+        
+        # Parcourir l'historique à l'envers pour trouver le dernier message pertinent
+        for msg in reversed(self.history):
+            if msg["role"] == "Assistant" and target_section in msg["content"]:
+                # Extraire le contenu après le titre de la section
+                content = msg["content"]
+                start_index = content.find(target_section) + len(target_section)
+                section_content = content[start_index:]
+                
+                # Chercher un tableau Markdown
+                table_data = self._parse_markdown_table(section_content)
+                if table_data:
+                    break
+        
+        if not table_data:
+            messagebox.showwarning("Attention", f"Aucune table trouvée dans la section '{target_section}'.\nAssurez-vous que l'assistant a généré cette section avec un tableau.")
+            return
+
+        try:
+            from openpyxl import Workbook
+            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+            
+            # Demander l'emplacement de sauvegarde
+            filename = filedialog.asksaveasfilename(
+                defaultextension=".xlsx",
+                filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
+                initialfile=f"synthese_export_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                title="Exporter la synthèse"
+            )
+            
+            if not filename:
+                return
+            
+            # Créer le classeur Excel
+            wb = Workbook()
+            ws = wb.active
+            ws.title = "Synthèse"
+            
+            # Styles
+            header_fill = PatternFill(start_color="4CAF50", end_color="4CAF50", fill_type="solid")
+            header_font = Font(bold=True, color="FFFFFF")
+            center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
+            thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
+            
+            # Écrire les en-têtes
+            if table_data["headers"]:
+                ws.append(table_data["headers"])
+                for col_idx, cell in enumerate(ws[1], 1):
+                    cell.fill = header_fill
+                    cell.font = header_font
+                    cell.alignment = center_align
+                    cell.border = thin_border
+            
+            # Écrire les données
+            for row in table_data["rows"]:
+                ws.append(row)
+                # Appliquer les bordures et l'alignement à la dernière ligne ajoutée
+                for cell in ws[ws.max_row]:
+                    cell.border = thin_border
+                    cell.alignment = Alignment(vertical="center", wrap_text=True)
+            
+            # Ajuster la largeur des colonnes
+            for col in ws.columns:
+                max_length = 0
+                column = col[0].column_letter # Get the column name
+                for cell in col:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = (max_length + 2)
+                # Limiter la largeur max pour éviter des colonnes géantes
+                ws.column_dimensions[column].width = min(adjusted_width, 50)
+            
+            # Sauvegarder
+            wb.save(filename)
+            messagebox.showinfo("Succès", f"Synthèse exportée avec succès vers :\n{filename}")
+            
+        except ImportError:
+            messagebox.showerror("Erreur", "Le module 'openpyxl' est manquant. Veuillez l'installer.")
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Une erreur est survenue lors de l'export :\n{str(e)}")
+
+    def _parse_markdown_table(self, text):
+        """Parse un tableau Markdown dans le texte donné."""
+        lines = text.strip().split('\n')
+        headers = []
+        rows = []
+        in_table = False
+        
+        for i, line in enumerate(lines):
+            line = line.strip()
+            
+            # Détection du début de tableau (ligne avec des |)
+            if "|" in line:
+                # Nettoyer la ligne (enlever les | de début et fin si présents)
+                parts = [p.strip() for p in line.split('|') if p.strip()]
+                
+                if not parts:
+                    continue
+                    
+                if not in_table:
+                    # Potentiellement les en-têtes
+                    # Vérifier si la ligne suivante est une ligne de séparation (---)
+                    if i + 1 < len(lines) and "---" in lines[i+1]:
+                        headers = parts
+                        in_table = True
+                        # Sauter la ligne de séparation
+                        continue
+                elif "---" in line:
+                    # Ligne de séparation, on ignore
+                    continue
+                else:
+                    # Ligne de données
+                    rows.append(parts)
+            elif in_table and not line:
+                # Fin du tableau si ligne vide
+                break
+        
+        if headers or rows:
+            return {"headers": headers, "rows": rows}
+        return None

@@ -158,13 +158,28 @@ class AssistantDetailFrame(ctk.CTkFrame):
         )
         self.text_response_format.insert("1.0", self.assistant.get("response_format", ""))
         self.text_response_format.grid(row=13, column=0, pady=(0, 20), sticky="ew")
+
+        # URL Cible
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="🌐 URL Cible (pour recherche)",
+            font=("Arial", 14, "bold")
+        ).grid(row=14, column=0, pady=(0, 5), sticky="w")
+        
+        self.entry_url = ctk.CTkEntry(
+            self.scrollable_frame,
+            height=40,
+            font=("Arial", 12)
+        )
+        self.entry_url.insert(0, self.assistant.get("target_url", ""))
+        self.entry_url.grid(row=15, column=0, pady=(0, 20), sticky="ew")
         
         # Provider
         ctk.CTkLabel(
             self.scrollable_frame,
             text="🤖 Provider LLM",
             font=("Arial", 14, "bold")
-        ).grid(row=14, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=16, column=0, pady=(0, 5), sticky="w")
         
         settings = self.app.data_manager.get_settings()
         provider_list = list(settings.get("api_keys", {}).keys())
@@ -178,7 +193,7 @@ class AssistantDetailFrame(ctk.CTkFrame):
             variable=self.provider_var,
             width=400
         )
-        self.provider_dropdown.grid(row=15, column=0, pady=(0, 30), sticky="w")
+        self.provider_dropdown.grid(row=17, column=0, pady=(0, 30), sticky="w")
     
     def save_changes(self):
         """Sauvegarde les modifications de l'assistant."""
@@ -189,6 +204,7 @@ class AssistantDetailFrame(ctk.CTkFrame):
         objective = self.text_objective.get("1.0", "end-1c").strip()
         limits = self.text_limits.get("1.0", "end-1c").strip()
         response_format = self.text_response_format.get("1.0", "end-1c").strip()
+        target_url = self.entry_url.get().strip()
         provider = self.provider_var.get()
         
         # Validation
@@ -210,6 +226,7 @@ class AssistantDetailFrame(ctk.CTkFrame):
             objective=objective,
             limits=limits,
             response_format=response_format,
+            target_url=target_url,
             provider=provider
         )
         

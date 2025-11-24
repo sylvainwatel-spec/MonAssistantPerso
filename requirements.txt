@@ -7,3 +7,7 @@ google-generativeai
 anthropic
 groq
 mistralai
+openpyxl
+requests
+beautifulsoup4
+playwright

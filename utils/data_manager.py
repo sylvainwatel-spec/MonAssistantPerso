@@ -55,7 +55,7 @@ class DataManager:
         with open(self.filepath, 'r') as f:
             return json.load(f)
 
-    def save_assistant(self, name, description, role="", context="", objective="", limits="", response_format="", provider=""):
+    def save_assistant(self, name, description, role="", context="", objective="", limits="", response_format="", target_url="", provider=""):
         """
         Sauvegarde un nouvel assistant avec tous ses champs.
         
@@ -67,6 +67,8 @@ class DataManager:
             objective: Objectif principal
             limits: Limites et restrictions
             response_format: Format de réponse souhaité
+            response_format: Format de réponse souhaité
+            target_url: URL cible pour les recherches
             provider: Provider LLM à utiliser
         """
         assistants = self.get_all_assistants()
@@ -79,6 +81,7 @@ class DataManager:
             "objective": objective,
             "limits": limits,
             "response_format": response_format,
+            "target_url": target_url,
             "provider": provider,
             "status": "stopped"  # stopped, running
         }
@@ -87,7 +90,7 @@ class DataManager:
         return new_assistant
 
     def update_assistant(self, assistant_id, name=None, description=None, role=None, 
-                        context=None, objective=None, limits=None, response_format=None, provider=None):
+                        context=None, objective=None, limits=None, response_format=None, target_url=None, provider=None):
         """
         Met à jour un assistant existant.
         
@@ -100,6 +103,8 @@ class DataManager:
             objective: Nouvel objectif (optionnel)
             limits: Nouvelles limites (optionnel)
             response_format: Nouveau format de réponse (optionnel)
+            response_format: Nouveau format de réponse (optionnel)
+            target_url: Nouvelle URL cible (optionnel)
             provider: Nouveau provider (optionnel)
         """
         assistants = self.get_all_assistants()
@@ -119,6 +124,8 @@ class DataManager:
                     assistant["limits"] = limits
                 if response_format is not None:
                     assistant["response_format"] = response_format
+                if target_url is not None:
+                    assistant["target_url"] = target_url
                 if provider is not None:
                     assistant["provider"] = provider
                 break
