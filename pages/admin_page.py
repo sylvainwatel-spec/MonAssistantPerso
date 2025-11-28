@@ -13,10 +13,11 @@ class AdminFrame(ctk.CTkFrame):
             self.settings = self.app.data_manager.get_settings()
         except Exception as e:
             print(f"Error loading settings: {e}")
-            self.settings = {"current_provider": "OpenAI GPT-4o mini", "api_keys": {}}
-
+            self.settings = {"current_provider": "OpenAI GPT-4o mini", "api_keys": {}, "endpoints": {}}
+        
         self.active_provider = self.settings.get("current_provider", "OpenAI GPT-4o mini")
         self.api_keys = self.settings.get("api_keys", {})
+        self.endpoints = self.settings.get("endpoints", {})
 
         # List of supported LLMs
         self.llm_options = [
@@ -24,7 +25,9 @@ class AdminFrame(ctk.CTkFrame):
             "OpenAI GPT-4o mini",
             "Anthropic Claude 3 Haiku",
             "Meta Llama 3 (via Groq)",
-            "Mistral NeMo"
+            "Mistral NeMo",
+            "DeepSeek-V3",
+            "IAKA (Interne)"
         ]
 
         # UI State
@@ -178,6 +181,22 @@ class AdminFrame(ctk.CTkFrame):
         )
         self.btn_show_hide.pack(side="left", padx=(0, 20))
 
+        # Endpoint URL Section (Only for IAKA)
+        self.entry_endpoint = None
+        if self.selected_provider == "IAKA (Interne)":
+            endpoint_frame = ctk.CTkFrame(self.detail_panel)
+            endpoint_frame.pack(fill="x", pady=10)
+            ctk.CTkLabel(
+                endpoint_frame,
+                text="Endpoint URL",
+                font=("Arial", 12, "bold"),
+            ).pack(anchor="w", padx=20, pady=(15, 5))
+
+            current_endpoint = self.endpoints.get(self.selected_provider, "")
+            self.entry_endpoint = ctk.CTkEntry(endpoint_frame, width=400)
+            self.entry_endpoint.insert(0, current_endpoint)
+            self.entry_endpoint.pack(side="left", padx=20, pady=5, fill="x", expand=True)
+
         btn_save_key = ctk.CTkButton(
             key_frame,
             text="Enregistrer la clé",
@@ -274,10 +293,16 @@ class AdminFrame(ctk.CTkFrame):
     def save_current_key(self):
         new_key = self.entry_key.get().strip()
         self.api_keys[self.selected_provider] = new_key
+        
+        # Save endpoint if applicable
+        if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
+            new_endpoint = self.entry_endpoint.get().strip()
+            self.endpoints[self.selected_provider] = new_endpoint
+            
         try:
-            self.app.data_manager.save_configuration(self.active_provider, self.api_keys)
-            messagebox.showinfo("Succès", f"Clé API pour {self.selected_provider} enregistrée.")
-            self.add_log(f"Clé API enregistrée pour {self.selected_provider}", "success")
+            self.app.data_manager.save_configuration(self.active_provider, self.api_keys, self.endpoints)
+            messagebox.showinfo("Succès", f"Configuration pour {self.selected_provider} enregistrée.")
+            self.add_log(f"Configuration enregistrée pour {self.selected_provider}", "success")
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors de la sauvegarde : {e}")
             self.add_log(f"Erreur sauvegarde: {str(e)}", "error")
@@ -287,9 +312,16 @@ class AdminFrame(ctk.CTkFrame):
         current_input_key = self.entry_key.get().strip()
         if current_input_key != self.api_keys.get(self.selected_provider, ""):
             self.api_keys[self.selected_provider] = current_input_key
+            
+        # Save endpoint if changed (for IAKA)
+        if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
+            current_input_endpoint = self.entry_endpoint.get().strip()
+            if current_input_endpoint != self.endpoints.get(self.selected_provider, ""):
+                self.endpoints[self.selected_provider] = current_input_endpoint
+
         self.active_provider = self.selected_provider
         try:
-            self.app.data_manager.save_configuration(self.active_provider, self.api_keys)
+            self.app.data_manager.save_configuration(self.active_provider, self.api_keys, self.endpoints)
             self.refresh_sidebar()
             self.refresh_detail_panel()
             messagebox.showinfo("Succès", f"{self.active_provider} est maintenant le modèle par défaut.")
@@ -314,8 +346,13 @@ class AdminFrame(ctk.CTkFrame):
         # Log de début de test
         self.add_log(f"Test de connexion en cours pour {self.selected_provider}...", "info")
         
+        # Récupération de l'endpoint si nécessaire
+        endpoint = None
+        if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
+            endpoint = self.entry_endpoint.get().strip()
+        
         # Test de connexion via le module LLMConnectionTester
-        success, message = LLMConnectionTester.test_provider(self.selected_provider, api_key)
+        success, message = LLMConnectionTester.test_provider(self.selected_provider, api_key, base_url=endpoint)
         
         if success:
             # Connexion réussie

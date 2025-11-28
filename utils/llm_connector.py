@@ -162,13 +162,13 @@ class LLMConnectionTester:
             
             # Requête minimale pour vérifier la clé
             response = client.chat.completions.create(
-                model="llama3-8b-8192",
+                model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=5,
                 temperature=0,
             )
             
-            return True, f"Connexion réussie à Groq (Llama 3) !\nModèle: llama3-8b-8192\nRéponse: {response.choices[0].message.content}"
+            return True, f"Connexion réussie à Groq (Llama 3) !\nModèle: llama-3.1-8b-instant\nRéponse: {response.choices[0].message.content}"
             
         except Exception as e:
             return False, f"Erreur Groq/Llama: {str(e)}"
@@ -201,8 +201,99 @@ class LLMConnectionTester:
         except Exception as e:
             return False, f"Erreur Mistral AI: {str(e)}"
     
+    @staticmethod
+    def test_deepseek(api_key: str) -> Tuple[bool, str]:
+        """
+        Test de connexion à DeepSeek.
+        
+        Args:
+            api_key: Clé API DeepSeek
+            
+        Returns:
+            Tuple (succès: bool, message: str)
+        """
+        try:
+            from openai import OpenAI
+            
+            # DeepSeek est compatible avec l'API OpenAI
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.deepseek.com"
+            )
+            
+            # Requête minimale pour vérifier la clé
+            response = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=5,
+                temperature=0,
+            )
+            
+            return True, f"Connexion réussie à DeepSeek !\nModèle: deepseek-chat\nRéponse: {response.choices[0].message.content}"
+            
+        except Exception as e:
+            return False, f"Erreur DeepSeek: {str(e)}"
+
+    @staticmethod
+    def test_openai_compatible(api_key: str, base_url: str) -> Tuple[bool, str]:
+        """
+        Test de connexion à un provider compatible OpenAI (ex: IAKA).
+        
+        Args:
+            api_key: Clé API
+            base_url: URL de base de l'API
+            
+        Returns:
+            Tuple (succès: bool, message: str)
+        """
+        try:
+            from openai import OpenAI
+            
+            if not base_url:
+                return False, "URL de base (Endpoint) manquante."
+            
+            client = OpenAI(
+                api_key=api_key,
+                base_url=base_url
+            )
+            
+            # Requête minimale pour vérifier la clé
+            # On utilise un modèle générique souvent supporté ou on essaie de lister les modèles
+            try:
+                response = client.chat.completions.create(
+                    model="gpt-3.5-turbo", # Souvent mappé par défaut, sinon on peut essayer "default"
+                    messages=[{"role": "user", "content": "Hello"}],
+                    max_tokens=5,
+                    temperature=0,
+                )
+                model_used = "gpt-3.5-turbo (défaut)"
+                content = response.choices[0].message.content
+            except Exception as e:
+                # Si le modèle n'existe pas, on essaie de lister les modèles pour en trouver un valide
+                try:
+                    models = client.models.list()
+                    if models.data:
+                        first_model = models.data[0].id
+                        response = client.chat.completions.create(
+                            model=first_model,
+                            messages=[{"role": "user", "content": "Hello"}],
+                            max_tokens=5,
+                            temperature=0,
+                        )
+                        model_used = first_model
+                        content = response.choices[0].message.content
+                    else:
+                        raise e
+                except:
+                    raise e
+            
+            return True, f"Connexion réussie au provider compatible OpenAI !\nEndpoint: {base_url}\nModèle: {model_used}\nRéponse: {content}"
+            
+        except Exception as e:
+            return False, f"Erreur Provider Compatible: {str(e)}"
+
     @classmethod
-    def test_provider(cls, provider_name: str, api_key: str) -> Tuple[bool, str]:
+    def test_provider(cls, provider_name: str, api_key: str, **kwargs) -> Tuple[bool, str]:
         """
         Test de connexion pour n'importe quel provider.
         Détecte automatiquement le provider et utilise la bonne méthode.
@@ -210,6 +301,7 @@ class LLMConnectionTester:
         Args:
             provider_name: Nom du provider (ex: "OpenAI GPT-4o mini")
             api_key: Clé API du provider
+            **kwargs: Arguments supplémentaires (ex: base_url)
             
         Returns:
             Tuple (succès: bool, message: str)
@@ -221,6 +313,8 @@ class LLMConnectionTester:
             "Anthropic Claude 3 Haiku": cls.test_anthropic_claude,
             "Meta Llama 3 (via Groq)": cls.test_groq_llama,
             "Mistral NeMo": cls.test_mistral,
+            "DeepSeek-V3": cls.test_deepseek,
+            "IAKA (Interne)": lambda k: cls.test_openai_compatible(k, kwargs.get('base_url', ''))
         }
         
         # Récupération de la méthode appropriée

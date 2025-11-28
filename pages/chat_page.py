@@ -278,6 +278,7 @@ IMPORTANT :
             system_prompt = self.build_system_prompt()
             
             # Appeler le LLM selon le provider
+            # Appeler le LLM selon le provider
             if "OpenAI" in provider:
                 response_text = self._call_openai(api_key, system_prompt, user_message)
             elif "Gemini" in provider:
@@ -288,6 +289,14 @@ IMPORTANT :
                 response_text = self._call_groq(api_key, system_prompt, user_message)
             elif "Mistral" in provider:
                 response_text = self._call_mistral(api_key, system_prompt, user_message)
+            elif "DeepSeek" in provider:
+                 # DeepSeek utilise l'API OpenAI avec une base_url spécifique
+                 response_text = self._call_openai_compatible(api_key, "https://api.deepseek.com", system_prompt, user_message)
+            elif "IAKA" in provider:
+                endpoint = settings.get('endpoints', {}).get(provider)
+                if not endpoint:
+                    raise Exception(f"Endpoint URL non configuré pour {provider}.")
+                response_text = self._call_openai_compatible(api_key, endpoint, system_prompt, user_message)
             else:
                 response_text = f"Provider {provider} non supporté pour le moment."
             
@@ -402,6 +411,12 @@ IMPORTANT :
                 final_response = self._call_groq(api_key, system_prompt, new_user_message)
             elif "Mistral" in self.assistant.get('provider', ''):
                 final_response = self._call_mistral(api_key, system_prompt, new_user_message)
+            elif "DeepSeek" in self.assistant.get('provider', ''):
+                 final_response = self._call_openai_compatible(api_key, "https://api.deepseek.com", system_prompt, new_user_message)
+            elif "IAKA" in self.assistant.get('provider', ''):
+                settings = self.app.data_manager.get_settings()
+                endpoint = settings.get('endpoints', {}).get(self.assistant.get('provider', ''))
+                final_response = self._call_openai_compatible(api_key, endpoint, system_prompt, new_user_message)
             else:
                 final_response = "Erreur: Provider non supporté pour la suite de l'action."
                 
@@ -427,6 +442,38 @@ IMPORTANT :
         
         return response.choices[0].message.content
     
+    def _call_openai_compatible(self, api_key, base_url, system_prompt, user_message):
+        """Appelle une API compatible OpenAI (ex: IAKA)."""
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key, base_url=base_url)
+        
+        # Essayer de déterminer le modèle à utiliser
+        # Pour IAKA, on peut essayer un modèle par défaut ou lister
+        try:
+            # On tente d'abord avec un nom générique
+            model_to_use = "gpt-3.5-turbo"
+            
+            # Si on peut lister les modèles, on prend le premier
+            try:
+                models = client.models.list()
+                if models.data:
+                    model_to_use = models.data[0].id
+            except:
+                pass
+                
+            response = client.chat.completions.create(
+                model=model_to_use,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message}
+                ],
+                max_tokens=500,
+                temperature=0.7
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"Erreur lors de l'appel à l'API compatible : {str(e)}"
+
     def _call_gemini(self, api_key, system_prompt, user_message):
         """Appelle l'API Google Gemini."""
         import google.generativeai as genai
@@ -480,7 +527,7 @@ IMPORTANT :
         client = Groq(api_key=api_key)
         
         response = client.chat.completions.create(
-            model="llama3-8b-8192",
+            model="llama-3.1-8b-instant",
             messages=[
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}

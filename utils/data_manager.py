@@ -171,9 +171,10 @@ class DataManager:
             # et on force une sauvegarde pour réparer le fichier
             data = {
                 "current_provider": "OpenAI GPT-4o mini",
-                "api_keys": {}
+                "api_keys": {},
+                "endpoints": {}
             }
-            self.save_configuration(data["current_provider"], data["api_keys"])
+            self.save_configuration(data["current_provider"], data["api_keys"], data["endpoints"])
             
         # Décrypter les clés
         if "api_keys" in data:
@@ -181,10 +182,11 @@ class DataManager:
                 data["api_keys"][provider] = self._decrypt(encrypted_key)
         return data
 
-    def save_configuration(self, active_provider, api_keys):
+    def save_configuration(self, active_provider, api_keys, endpoints=None):
         """
-        Sauvegarde la configuration complète : provider actif et toutes les clés API.
+        Sauvegarde la configuration complète : provider actif, clés API et endpoints.
         api_keys est un dictionnaire {provider_name: clear_text_key}
+        endpoints est un dictionnaire {provider_name: url} (optionnel)
         """
         # Charger l'existant pour ne pas perdre d'autres infos potentielles
         current = self.get_settings()
@@ -192,18 +194,26 @@ class DataManager:
         # Mise à jour
         current["current_provider"] = active_provider
         
-        # On s'assure que la section api_keys existe
+        # On s'assure que les sections existent
         if "api_keys" not in current:
             current["api_keys"] = {}
+        if "endpoints" not in current:
+            current["endpoints"] = {}
 
         # Mise à jour des clés (en mémoire)
         for provider, key in api_keys.items():
             current["api_keys"][provider] = key
             
-        # Préparation sauvegarde (Encryption)
+        # Mise à jour des endpoints
+        if endpoints:
+            for provider, url in endpoints.items():
+                current["endpoints"][provider] = url
+            
+        # Préparation sauvegarde (Encryption pour les clés uniquement)
         to_save = {
             "current_provider": current["current_provider"],
-            "api_keys": {}
+            "api_keys": {},
+            "endpoints": current["endpoints"]
         }
         
         for prov, key in current["api_keys"].items():
