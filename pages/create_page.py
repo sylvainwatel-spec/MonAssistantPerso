@@ -194,6 +194,39 @@ class CreateAssistantFrame(ctk.CTkFrame):
         )
         self.btn_analyze.grid(row=0, column=1)
 
+        # Instructions URL
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="📖 Instructions pour l'URL (Comment se connecter et naviguer sur le site)",
+            font=("Arial", 12),
+            text_color="gray"
+        ).grid(row=19, column=0, pady=(5, 5), sticky="w")
+        
+        self.text_url_instructions = ctk.CTkTextbox(
+            self.scrollable_frame,
+            height=100,
+            font=("Arial", 12),
+            wrap="word"
+        )
+        self.text_url_instructions.grid(row=20, column=0, pady=(0, 20), sticky="ew")
+        self.text_url_instructions.insert("1.0", """Format des instructions (optionnel) :
+
+SEARCH_INPUT: input[name='q']
+SEARCH_BUTTON: button.search-btn
+WAIT_FOR: .results-list
+
+BEFORE_SEARCH:
+  - CLICK: #accept-cookies
+  - WAIT: 2s
+
+RESULTS: .result-card
+EXTRACT:
+  - title: h2.title
+  - price: span.price
+  - location: .location
+
+Note: Si vous ne connaissez pas les sélecteurs CSS, laissez vide et le système utilisera la détection automatique.""")
+
         # Bouton de création
         btn_save = ctk.CTkButton(
             self.scrollable_frame,
@@ -206,7 +239,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             hover_color=("#45A049", "#2E7D32"),
             command=self.save,
         )
-        btn_save.grid(row=19, column=0, pady=(0, 20))
+        btn_save.grid(row=21, column=0, pady=(0, 20))
 
     def analyze_url(self):
         """Lance l'analyse de l'URL dans un thread séparé."""
@@ -252,6 +285,8 @@ class CreateAssistantFrame(ctk.CTkFrame):
         limits = self.text_limits.get("1.0", "end-1c").strip()
         response_format = self.text_response_format.get("1.0", "end-1c").strip()
         target_url = self.entry_url.get().strip()
+        url_instructions = self.text_url_instructions.get("1.0", "end-1c").strip()
+        provider = self.provider_var.get()
 
         # Validation
         if not name:
@@ -272,6 +307,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             limits=limits,
             response_format=response_format,
             target_url=target_url,
+            url_instructions=url_instructions,
             provider=provider
         )
 

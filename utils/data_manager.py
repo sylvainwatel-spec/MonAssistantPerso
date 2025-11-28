@@ -55,7 +55,7 @@ class DataManager:
         with open(self.filepath, 'r') as f:
             return json.load(f)
 
-    def save_assistant(self, name, description, role="", context="", objective="", limits="", response_format="", target_url="", provider=""):
+    def save_assistant(self, name, description, role="", context="", objective="", limits="", response_format="", target_url="", url_instructions="", provider=""):
         """
         Sauvegarde un nouvel assistant avec tous ses champs.
         
@@ -67,8 +67,8 @@ class DataManager:
             objective: Objectif principal
             limits: Limites et restrictions
             response_format: Format de réponse souhaité
-            response_format: Format de réponse souhaité
             target_url: URL cible pour les recherches
+            url_instructions: Instructions pour se connecter et naviguer sur le site cible
             provider: Provider LLM à utiliser
         """
         assistants = self.get_all_assistants()
@@ -82,6 +82,7 @@ class DataManager:
             "limits": limits,
             "response_format": response_format,
             "target_url": target_url,
+            "url_instructions": url_instructions,
             "provider": provider,
             "status": "stopped"  # stopped, running
         }
@@ -90,7 +91,7 @@ class DataManager:
         return new_assistant
 
     def update_assistant(self, assistant_id, name=None, description=None, role=None, 
-                        context=None, objective=None, limits=None, response_format=None, target_url=None, provider=None):
+                        context=None, objective=None, limits=None, response_format=None, target_url=None, url_instructions=None, provider=None):
         """
         Met à jour un assistant existant.
         
@@ -103,8 +104,8 @@ class DataManager:
             objective: Nouvel objectif (optionnel)
             limits: Nouvelles limites (optionnel)
             response_format: Nouveau format de réponse (optionnel)
-            response_format: Nouveau format de réponse (optionnel)
             target_url: Nouvelle URL cible (optionnel)
+            url_instructions: Nouvelles instructions URL (optionnel)
             provider: Nouveau provider (optionnel)
         """
         assistants = self.get_all_assistants()
@@ -126,6 +127,8 @@ class DataManager:
                     assistant["response_format"] = response_format
                 if target_url is not None:
                     assistant["target_url"] = target_url
+                if url_instructions is not None:
+                    assistant["url_instructions"] = url_instructions
                 if provider is not None:
                     assistant["provider"] = provider
                 break

@@ -174,12 +174,29 @@ class AssistantDetailFrame(ctk.CTkFrame):
         self.entry_url.insert(0, self.assistant.get("target_url", ""))
         self.entry_url.grid(row=15, column=0, pady=(0, 20), sticky="ew")
         
+        # Instructions URL
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="📖 Instructions pour l'URL (Comment se connecter et naviguer sur le site)",
+            font=("Arial", 12),
+            text_color="gray"
+        ).grid(row=16, column=0, pady=(0, 5), sticky="w")
+        
+        self.text_url_instructions = ctk.CTkTextbox(
+            self.scrollable_frame,
+            height=100,
+            font=("Arial", 12),
+            wrap="word"
+        )
+        self.text_url_instructions.insert("1.0", self.assistant.get("url_instructions", ""))
+        self.text_url_instructions.grid(row=17, column=0, pady=(0, 20), sticky="ew")
+        
         # Provider
         ctk.CTkLabel(
             self.scrollable_frame,
             text="🤖 Provider LLM",
             font=("Arial", 14, "bold")
-        ).grid(row=16, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=18, column=0, pady=(0, 5), sticky="w")
         
         settings = self.app.data_manager.get_settings()
         provider_list = list(settings.get("api_keys", {}).keys())
@@ -193,7 +210,7 @@ class AssistantDetailFrame(ctk.CTkFrame):
             variable=self.provider_var,
             width=400
         )
-        self.provider_dropdown.grid(row=17, column=0, pady=(0, 30), sticky="w")
+        self.provider_dropdown.grid(row=19, column=0, pady=(0, 30), sticky="w")
     
     def save_changes(self):
         """Sauvegarde les modifications de l'assistant."""
@@ -205,6 +222,7 @@ class AssistantDetailFrame(ctk.CTkFrame):
         limits = self.text_limits.get("1.0", "end-1c").strip()
         response_format = self.text_response_format.get("1.0", "end-1c").strip()
         target_url = self.entry_url.get().strip()
+        url_instructions = self.text_url_instructions.get("1.0", "end-1c").strip()
         provider = self.provider_var.get()
         
         # Validation
@@ -227,6 +245,7 @@ class AssistantDetailFrame(ctk.CTkFrame):
             limits=limits,
             response_format=response_format,
             target_url=target_url,
+            url_instructions=url_instructions,
             provider=provider
         )
         

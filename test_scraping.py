@@ -23,5 +23,16 @@ def test_leboncoin():
     else:
         print("Failed to fetch page.")
 
+def test_search():
+    scraper = WebScraper()
+    url = "https://www.leboncoin.fr/"
+    query = "iphone"
+    print(f"Testing search on {url} with query '{query}'...")
+    
+    result = scraper.perform_search(url, query)
+    print("Search Result Preview:")
+    print(result[:500] if result else "No result")
+
 if __name__ == "__main__":
     test_leboncoin()
+    test_search()
