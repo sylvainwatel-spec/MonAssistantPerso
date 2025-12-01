@@ -218,13 +218,10 @@ N'utilise cette commande que si c'est pertinent pour répondre à l'utilisateur.
             if url_instructions:
                 parts.append(f"""
 INSTRUCTIONS POUR LE SITE {target_url} :
-Ces instructions sont automatiquement utilisées par le système de recherche pour :
-- Localiser le champ de recherche correct
-- Exécuter des actions préliminaires (ex: accepter les cookies)
-- Extraire les résultats de manière structurée
+Le système utilise l'IA pour extraire automatiquement les données selon ces instructions :
+{url_instructions}
 
-Tu n'as pas besoin d'interpréter les commandes techniques (SEARCH_INPUT, etc.) manuellement car elles sont gérées par le système.
-Cependant, si les instructions contiennent du texte explicatif ou des conseils de navigation, utilise-les pour mieux comprendre le contexte du site.
+Tu n'as pas besoin de gérer l'extraction toi-même - l'IA s'en charge.
 Concentre-toi sur la formulation de requêtes de recherche pertinentes et l'analyse des résultats retournés.
 """)
 
@@ -304,7 +301,25 @@ IMPORTANT :
             self._process_llm_response(response_text, api_key, system_prompt, user_message)
             
         except Exception as e:
-            self.add_error_message(str(e))
+            error_msg = str(e)
+            
+            # Détection des erreurs courantes pour un message plus clair
+            if "429" in error_msg or "quota" in error_msg.lower():
+                friendly_msg = (
+                    "⚠️ **Quota API dépassé**\n"
+                    "La clé API utilisée a atteint sa limite.\n"
+                    "Solution : Changez de modèle (ex: Groq, Gemini) dans la modification de l'assistant."
+                )
+                self.add_error_message(friendly_msg)
+            elif "401" in error_msg or "invalid" in error_msg.lower():
+                friendly_msg = (
+                    "⚠️ **Clé API invalide**\n"
+                    "La clé API est incorrecte ou a expiré.\n"
+                    "Solution : Vérifiez la clé dans la page Administration."
+                )
+                self.add_error_message(friendly_msg)
+            else:
+                self.add_error_message(f"Erreur technique : {error_msg}")
         
         finally:
             # Cacher l'indicateur de chargement
@@ -329,68 +344,63 @@ IMPORTANT :
             
             self.add_system_message(f"🔎 Recherche en cours sur {self.assistant.get('target_url')} : '{query}'...")
             
-            # Parser et afficher les instructions avant exécution
+            # Utiliser l'AI Scraper (simple et intelligent)
             url_instructions = self.assistant.get('url_instructions', '')
-            scraper = WebScraper()
             
-            if url_instructions:
-                # Parser les instructions pour les afficher
-                from utils.instruction_parser import InstructionParser
-                parser = InstructionParser()
-                try:
-                    parsed = parser.parse(url_instructions)
-                    is_valid, errors = parser.validate(parsed)
-                    
-                    if is_valid and parsed:
-                        # Afficher les instructions parsées
-                        instructions_summary = "📋 Instructions détectées et qui seront appliquées :\n"
-                        
-                        if 'search_input' in parsed:
-                            instructions_summary += f"  ✓ Champ de recherche : {parsed['search_input']}\n"
-                        else:
-                            instructions_summary += f"  ⚙️ Champ de recherche : détection automatique\n"
-                        
-                        if 'search_button' in parsed:
-                            instructions_summary += f"  ✓ Bouton de recherche : {parsed['search_button']}\n"
-                        
-                        if 'before_search' in parsed and parsed['before_search']:
-                            instructions_summary += f"  ✓ Actions préliminaires :\n"
-                            for action in parsed['before_search']:
-                                if action['type'] == 'click':
-                                    instructions_summary += f"    - Cliquer sur : {action['selector']}\n"
-                                elif action['type'] == 'wait':
-                                    instructions_summary += f"    - Attendre : {action['duration']}ms\n"
-                                elif action['type'] == 'type':
-                                    instructions_summary += f"    - Taper '{action['text']}' dans : {action['selector']}\n"
-                        
-                        if 'wait_for' in parsed:
-                            instructions_summary += f"  ✓ Attendre l'élément : {parsed['wait_for']}\n"
-                        
-                        if 'results' in parsed:
-                            instructions_summary += f"  ✓ Sélecteur de résultats : {parsed['results']}\n"
-                        
-                        if 'extract' in parsed and parsed['extract']:
-                            instructions_summary += f"  ✓ Extraction structurée :\n"
-                            for field, selector in parsed['extract'].items():
-                                instructions_summary += f"    - {field} : {selector}\n"
-                        
-                        self.add_system_message(instructions_summary.strip())
-                    elif errors:
-                        self.add_system_message(f"⚠️ Instructions invalides (utilisation de la détection automatique) : {', '.join(errors)}")
-                    else:
-                        # Pas d'instructions structurées trouvées, mais du texte est présent
-                        self.add_system_message(f"ℹ️ Instructions textuelles (non structurées) détectées :\n{url_instructions}\n\n⚙️ Le système utilisera la détection automatique pour la recherche, mais ces notes peuvent aider à comprendre le contexte.")
-                except Exception as e:
-                    self.add_system_message(f"⚠️ Erreur lors du parsing des instructions : {e}\n⚙️ Utilisation de la détection automatique")
-            else:
-                self.add_system_message("⚙️ Aucune instruction configurée, utilisation de la détection automatique")
+            if not url_instructions:
+                self.add_system_message("⚠️ Aucune instruction d'extraction configurée. Veuillez configurer le champ 'Données à extraire' dans les paramètres de l'assistant.")
+                return
             
-            # Exécuter la recherche avec les instructions URL
-            search_results = scraper.perform_search(
-                self.assistant.get('target_url'), 
-                query,
-                instructions=url_instructions if url_instructions else None
-            )
+            # Afficher les instructions qui seront utilisées
+            self.add_system_message(f"📝 Instructions d'extraction:\n{url_instructions}")
+            
+            # Importer et utiliser l'AI Scraper
+            from utils.ai_scraper import AIScraper
+            
+            try:
+                # Récupérer la configuration ScrapeGraphAI
+                settings = self.app.data_manager.get_settings()
+                sg_provider = settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
+                sg_api_key = settings.get("api_keys", {}).get(sg_provider)
+                
+                if not sg_api_key:
+                    self.add_system_message(f"⚠️ Aucune clé API configurée pour le scraping ({sg_provider}). Veuillez vérifier la configuration dans Administration.")
+                    return
+
+                # Mapper le nom du provider pour AIScraper
+                provider_code = "openai"
+                if "Gemini" in sg_provider:
+                    provider_code = "google"
+                elif "Groq" in sg_provider:
+                    provider_code = "groq"
+                
+                # Mapper le modèle (simplifié)
+                model_code = "gpt-4o-mini"
+                if "Gemini" in sg_provider:
+                    model_code = "gemini-1.5-flash"
+                elif "Llama" in sg_provider:
+                    model_code = "llama-3.1-8b-instant"
+                
+                self.add_system_message(f"🤖 Scraping avec {sg_provider}...")
+
+                # Créer le scraper IA
+                ai_scraper = AIScraper(
+                    api_key=sg_api_key,
+                    model=model_code,
+                    provider=provider_code
+                )
+                
+                # Exécuter la recherche avec l'IA
+                search_results = ai_scraper.search(
+                    url=self.assistant.get('target_url'),
+                    query=query,
+                    extraction_prompt=url_instructions
+                )
+                
+            except Exception as e:
+                self.add_system_message(f"❌ Erreur lors du scraping IA: {str(e)}")
+                logging.error(f"Erreur AI Scraper: {e}")
+                return
             
             # Limiter la taille des résultats
             if len(search_results) > 4000:

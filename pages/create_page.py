@@ -194,10 +194,10 @@ class CreateAssistantFrame(ctk.CTkFrame):
         )
         self.btn_analyze.grid(row=0, column=1)
 
-        # Instructions URL
+        # Instructions URL (simplifié avec IA)
         ctk.CTkLabel(
             self.scrollable_frame,
-            text="📖 Instructions pour l'URL (Comment se connecter et naviguer sur le site)",
+            text="📝 Données à extraire (décrivez en français ce que vous voulez)",
             font=("Arial", 12),
             text_color="gray"
         ).grid(row=19, column=0, pady=(5, 5), sticky="w")
@@ -209,23 +209,15 @@ class CreateAssistantFrame(ctk.CTkFrame):
             wrap="word"
         )
         self.text_url_instructions.grid(row=20, column=0, pady=(0, 20), sticky="ew")
-        self.text_url_instructions.insert("1.0", """Format des instructions (optionnel) :
+        self.text_url_instructions.insert("1.0", """Décrivez simplement ce que vous voulez extraire, par exemple:
 
-SEARCH_INPUT: input[name='q']
-SEARCH_BUTTON: button.search-btn
-WAIT_FOR: .results-list
+"Trouve les annonces avec le titre, le prix et la localisation"
 
-BEFORE_SEARCH:
-  - CLICK: #accept-cookies
-  - WAIT: 2s
+ou
 
-RESULTS: .result-card
-EXTRACT:
-  - title: h2.title
-  - price: span.price
-  - location: .location
+"Extrait les articles avec leur titre, auteur, date de publication et résumé"
 
-Note: Si vous ne connaissez pas les sélecteurs CSS, laissez vide et le système utilisera la détection automatique.""")
+L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteurs CSS !""")
 
         # Bouton de création
         btn_save = ctk.CTkButton(

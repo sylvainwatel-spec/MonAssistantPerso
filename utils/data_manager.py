@@ -163,18 +163,43 @@ class DataManager:
             json.dump(data, f, indent=4)
 
     def get_settings(self):
+        """Load settings from settings.json and decrypt stored API keys.
+        
+        Automatically migrates old format (current_provider) to new format 
+        (chat_provider, scrapegraph_provider).
+        """
         try:
             with open(self.settings_path, 'r') as f:
                 data = json.load(f)
         except (json.JSONDecodeError, FileNotFoundError):
             # Si le fichier est corrompu ou absent, on retourne les valeurs par défaut
-            # et on force une sauvegarde pour réparer le fichier
             data = {
-                "current_provider": "OpenAI GPT-4o mini",
+                "chat_provider": "OpenAI GPT-4o mini",
+                "scrapegraph_provider": "OpenAI GPT-4o mini",
                 "api_keys": {},
                 "endpoints": {}
             }
-            self.save_configuration(data["current_provider"], data["api_keys"], data["endpoints"])
+            self.save_configuration(
+                data["chat_provider"], 
+                data["scrapegraph_provider"],
+                data["api_keys"], 
+                data["endpoints"]
+            )
+            
+        # Migration from old format to new format
+        if "current_provider" in data and "chat_provider" not in data:
+            old_provider = data.pop("current_provider")
+            data["chat_provider"] = old_provider
+            # Set scrapegraph_provider from old value or default to OpenAI
+            if "scrapegraph_provider" not in data:
+                data["scrapegraph_provider"] = "OpenAI GPT-4o mini"
+            # Save migrated settings
+            self.save_configuration(
+                data["chat_provider"],
+                data["scrapegraph_provider"],
+                data.get("api_keys", {}),
+                data.get("endpoints", {})
+            )
             
         # Décrypter les clés
         if "api_keys" in data:
@@ -182,17 +207,22 @@ class DataManager:
                 data["api_keys"][provider] = self._decrypt(encrypted_key)
         return data
 
-    def save_configuration(self, active_provider, api_keys, endpoints=None):
+    def save_configuration(self, chat_provider, scrapegraph_provider, api_keys, endpoints=None):
         """
-        Sauvegarde la configuration complète : provider actif, clés API et endpoints.
+        Sauvegarde la configuration complète : providers (chat et scrapegraph), clés API et endpoints.
         api_keys est un dictionnaire {provider_name: clear_text_key}
         endpoints est un dictionnaire {provider_name: url} (optionnel)
         """
-        # Charger l'existant pour ne pas perdre d'autres infos potentielles
-        current = self.get_settings()
+        # Charger l'existant sans déclencher de récursion
+        try:
+            with open(self.settings_path, 'r') as f:
+                current = json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            current = {"api_keys": {}, "endpoints": {}}
         
-        # Mise à jour
-        current["current_provider"] = active_provider
+        # Mise à jour des providers
+        current["chat_provider"] = chat_provider
+        current["scrapegraph_provider"] = scrapegraph_provider
         
         # On s'assure que les sections existent
         if "api_keys" not in current:
@@ -200,9 +230,14 @@ class DataManager:
         if "endpoints" not in current:
             current["endpoints"] = {}
 
-        # Mise à jour des clés (en mémoire)
+        # Décrypter les clés existantes d'abord
+        decrypted_keys = {}
+        for provider, encrypted_key in current["api_keys"].items():
+            decrypted_keys[provider] = self._decrypt(encrypted_key)
+        
+        # Mise à jour des clés (en mémoire) - fusionner avec les nouvelles
         for provider, key in api_keys.items():
-            current["api_keys"][provider] = key
+            decrypted_keys[provider] = key
             
         # Mise à jour des endpoints
         if endpoints:
@@ -211,21 +246,27 @@ class DataManager:
             
         # Préparation sauvegarde (Encryption pour les clés uniquement)
         to_save = {
-            "current_provider": current["current_provider"],
+            "chat_provider": chat_provider,
+            "scrapegraph_provider": scrapegraph_provider,
             "api_keys": {},
             "endpoints": current["endpoints"]
         }
         
-        for prov, key in current["api_keys"].items():
+        for prov, key in decrypted_keys.items():
             to_save["api_keys"][prov] = self._encrypt(key)
             
         with open(self.settings_path, 'w') as f:
             json.dump(to_save, f, indent=4)
 
     def save_settings(self, provider, api_key):
-        # Deprecated but kept for compatibility if needed, redirects to save_configuration
-        # Note: This only saves one key at a time.
+        """Deprecated but kept for compatibility if needed, redirects to save_configuration.
+        
+        Note: This only saves one key at a time and sets the provider as chat_provider.
+        """
         current = self.get_settings()
         api_keys = current.get("api_keys", {})
         api_keys[provider] = api_key
-        self.save_configuration(provider, api_keys)
+        # Keep existing providers or use the new one as chat_provider
+        chat_provider = current.get("chat_provider", provider)
+        scrapegraph_provider = current.get("scrapegraph_provider", "OpenAI GPT-4o mini")
+        self.save_configuration(chat_provider, scrapegraph_provider, api_keys)

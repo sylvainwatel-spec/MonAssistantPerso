@@ -174,10 +174,10 @@ class AssistantDetailFrame(ctk.CTkFrame):
         self.entry_url.insert(0, self.assistant.get("target_url", ""))
         self.entry_url.grid(row=15, column=0, pady=(0, 20), sticky="ew")
         
-        # Instructions URL
+        # Instructions URL (simplifié avec IA)
         ctk.CTkLabel(
             self.scrollable_frame,
-            text="📖 Instructions pour l'URL (Comment se connecter et naviguer sur le site)",
+            text="📝 Données à extraire (décrivez en français ce que vous voulez)",
             font=("Arial", 12),
             text_color="gray"
         ).grid(row=16, column=0, pady=(0, 5), sticky="w")

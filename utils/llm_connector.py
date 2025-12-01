@@ -3,8 +3,7 @@ Module de connexion aux différents LLM providers.
 Chaque provider a sa propre méthode de test de connexion.
 """
 
-from typing import Tuple
-
+from typing import Tuple, Optional, Any, Dict
 
 class LLMConnectionTester:
     """Classe pour tester les connexions aux différents LLM providers."""
@@ -34,7 +33,8 @@ class LLMConnectionTester:
                 temperature=0,
             )
             
-            return True, f"Connexion réussie à OpenAI !\nModèle: gpt-3.5-turbo\nRéponse: {response.choices[0].message.content}"
+            content = response.choices[0].message.content if response.choices else ""
+            return True, f"Connexion réussie à OpenAI !\nModèle: gpt-3.5-turbo\nRéponse: {content}"
             
         except Exception as e:
             return False, f"Erreur OpenAI: {str(e)}"
@@ -56,62 +56,56 @@ class LLMConnectionTester:
             # Configuration de l'API
             genai.configure(api_key=api_key)
             
-            # Lister les modèles disponibles
-            available_models = []
-            try:
-                for m in genai.list_models():
-                    if 'generateContent' in m.supported_generation_methods:
-                        # Filtrer les modèles expérimentaux/preview qui ont des quotas limités
-                        model_name = m.name.lower()
-                        if 'preview' not in model_name and 'exp' not in model_name and 'experimental' not in model_name:
-                            available_models.append(m.name)
-            except Exception as e:
-                return False, f"Erreur lors de la récupération des modèles Gemini.\n\nVérifiez votre clé API sur https://aistudio.google.com/app/apikey\n\nDétails: {str(e)}"
+            # Liste des modèles à tester (noms corrects pour API v1)
+            models_to_test = [
+                "models/gemini-1.5-flash",
+                "models/gemini-1.5-flash-latest",
+                "models/gemini-1.5-pro",
+                "models/gemini-1.5-pro-latest",
+                "gemini-1.5-flash",
+                "gemini-pro"
+            ]
             
-            if not available_models:
-                return False, "Aucun modèle Gemini stable disponible avec cette clé API.\n\nLes modèles expérimentaux ont été exclus car ils ont des quotas très limités.\n\nVérifiez que votre clé API est valide et active."
+            last_error = None
             
-            # Prioriser les modèles flash (plus rapides et quotas généreux)
-            flash_models = [m for m in available_models if 'flash' in m.lower()]
-            if flash_models:
-                model_full_name = flash_models[0]
-            else:
-                model_full_name = available_models[0]
-            
-            try:
-                # Créer le modèle en utilisant le nom complet
-                model = genai.GenerativeModel(model_full_name)
-                
-                # Test avec une requête simple
-                response = model.generate_content("Hello")
-                
-                # Extraire la réponse
-                response_text = response.text if hasattr(response, 'text') else str(response)
-                
-                # Extraire juste le nom du modèle (sans "models/")
-                model_name = model_full_name.replace('models/', '')
-                
-                return True, f"Connexion réussie à Google Gemini !\nModèle: {model_name}\nModèles stables disponibles: {len(available_models)}\nRéponse: {response_text[:50]}..."
-                
-            except Exception as e:
-                error_msg = str(e)
-                
-                # Si c'est une erreur de quota, essayer le modèle suivant
-                if '429' in error_msg or 'quota' in error_msg.lower():
-                    # Essayer les autres modèles disponibles
-                    for alt_model in available_models[1:]:
-                        try:
-                            model = genai.GenerativeModel(alt_model)
-                            response = model.generate_content("Hello")
-                            response_text = response.text if hasattr(response, 'text') else str(response)
-                            model_name = alt_model.replace('models/', '')
-                            return True, f"Connexion réussie à Google Gemini !\nModèle: {model_name} (fallback)\nRéponse: {response_text[:50]}..."
-                        except:
-                            continue
+            # Essayer chaque modèle jusqu'à ce qu'un fonctionne
+            for model_name in models_to_test:
+                try:
+                    # Créer le modèle
+                    model = genai.GenerativeModel(model_name)
                     
-                    return False, f"Quota dépassé pour tous les modèles Gemini disponibles.\n\nAttendez quelques minutes ou utilisez un autre provider.\n\nConsultez vos quotas: https://ai.dev/usage?tab=rate-limit"
-                
-                return False, f"Erreur lors du test avec le modèle {model_full_name}:\n\n{error_msg}"
+                    # Test avec une requête simple
+                    response = model.generate_content("Hello")
+                    
+                    # Extraire la réponse
+                    response_text = response.text if hasattr(response, 'text') else str(response)
+                    
+                    # Nettoyer le nom du modèle pour l'affichage
+                    display_name = model_name.replace('models/', '')
+                    
+                    return True, f"Connexion réussie à Google Gemini !\nModèle: {display_name}\nRéponse: {response_text[:50]}..."
+                    
+                except Exception as e:
+                    error_msg = str(e)
+                    last_error = error_msg
+                    
+                    # Si c'est une erreur de quota, on arrête d'essayer
+                    if '429' in error_msg or 'quota' in error_msg.lower() or 'resource_exhausted' in error_msg.lower():
+                        return False, f"Quota dépassé pour Google Gemini.\n\nAttendez quelques minutes ou utilisez un autre provider.\n\nConsultez vos quotas: https://aistudio.google.com/apikey"
+                    
+                    # Si c'est une erreur d'authentification, on arrête
+                    if '401' in error_msg or '403' in error_msg or 'invalid api key' in error_msg.lower():
+                        return False, f"Clé API invalide ou non autorisée.\n\nVérifiez votre clé API sur https://aistudio.google.com/apikey\n\nDétails: {error_msg}"
+                    
+                    # Pour les erreurs 404, on continue avec le modèle suivant
+                    if '404' in error_msg:
+                        continue
+                    
+                    # Pour les autres erreurs, on continue aussi
+                    continue
+            
+            # Si aucun modèle n'a fonctionné
+            return False, f"Impossible de se connecter à Google Gemini.\n\nLa clé API semble valide mais aucun modèle n'est accessible.\n\nVérifiez que votre clé a les bonnes permissions sur:\nhttps://aistudio.google.com/apikey\n\nDernière erreur: {last_error[:200]}"
             
         except Exception as e:
             return False, f"Erreur Google Gemini: {str(e)}"
@@ -139,7 +133,8 @@ class LLMConnectionTester:
                 messages=[{"role": "user", "content": "Hello"}]
             )
             
-            return True, f"Connexion réussie à Anthropic Claude !\nModèle: claude-3-haiku\nRéponse: {response.content[0].text}"
+            content = response.content[0].text if response.content else ""
+            return True, f"Connexion réussie à Anthropic Claude !\nModèle: claude-3-haiku\nRéponse: {content}"
             
         except Exception as e:
             return False, f"Erreur Anthropic Claude: {str(e)}"
@@ -165,10 +160,10 @@ class LLMConnectionTester:
                 model="llama-3.1-8b-instant",
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=5,
-                temperature=0,
             )
             
-            return True, f"Connexion réussie à Groq (Llama 3) !\nModèle: llama-3.1-8b-instant\nRéponse: {response.choices[0].message.content}"
+            content = response.choices[0].message.content if response.choices else ""
+            return True, f"Connexion réussie à Groq (Llama 3) !\nModèle: llama-3.1-8b-instant\nRéponse: {content}"
             
         except Exception as e:
             return False, f"Erreur Groq/Llama: {str(e)}"
@@ -196,7 +191,8 @@ class LLMConnectionTester:
                 max_tokens=5,
             )
             
-            return True, f"Connexion réussie à Mistral AI !\nModèle: mistral-small\nRéponse: {response.choices[0].message.content}"
+            content = response.choices[0].message.content if response.choices else ""
+            return True, f"Connexion réussie à Mistral AI !\nModèle: mistral-small\nRéponse: {content}"
             
         except Exception as e:
             return False, f"Erreur Mistral AI: {str(e)}"
@@ -226,10 +222,10 @@ class LLMConnectionTester:
                 model="deepseek-chat",
                 messages=[{"role": "user", "content": "Hello"}],
                 max_tokens=5,
-                temperature=0,
             )
             
-            return True, f"Connexion réussie à DeepSeek !\nModèle: deepseek-chat\nRéponse: {response.choices[0].message.content}"
+            content = response.choices[0].message.content if response.choices else ""
+            return True, f"Connexion réussie à DeepSeek !\nModèle: deepseek-chat\nRéponse: {content}"
             
         except Exception as e:
             return False, f"Erreur DeepSeek: {str(e)}"
@@ -267,7 +263,7 @@ class LLMConnectionTester:
                     temperature=0,
                 )
                 model_used = "gpt-3.5-turbo (défaut)"
-                content = response.choices[0].message.content
+                content = response.choices[0].message.content if response.choices else ""
             except Exception as e:
                 # Si le modèle n'existe pas, on essaie de lister les modèles pour en trouver un valide
                 try:
@@ -281,7 +277,7 @@ class LLMConnectionTester:
                             temperature=0,
                         )
                         model_used = first_model
-                        content = response.choices[0].message.content
+                        content = response.choices[0].message.content if response.choices else ""
                     else:
                         raise e
                 except:
@@ -293,7 +289,7 @@ class LLMConnectionTester:
             return False, f"Erreur Provider Compatible: {str(e)}"
 
     @classmethod
-    def test_provider(cls, provider_name: str, api_key: str, **kwargs) -> Tuple[bool, str]:
+    def test_provider(cls, provider_name: str, api_key: str, **kwargs: Any) -> Tuple[bool, str]:
         """
         Test de connexion pour n'importe quel provider.
         Détecte automatiquement le provider et utilise la bonne méthode.
