@@ -104,13 +104,89 @@ class ChatFrame(ctk.CTkFrame):
         )
         self.btn_send.grid(row=0, column=1)
         
-        # Message de bienvenue et envoi automatique
+        # Message de bienvenue et tests de connexion
         self.add_system_message(f"Connexion à {self.assistant.get('name')}...")
         if self.assistant.get('description'):
             self.add_system_message(f"Description : {self.assistant.get('description')}")
         
-        # Envoyer automatiquement un message de bienvenue au LLM
-        self.after(500, self.send_welcome_message)
+        # Tester les connexions LLM
+        self.after(100, self.test_llm_connections)
+        
+        # Envoyer automatiquement un message de bienvenue au LLM après les tests
+        self.after(2000, self.send_welcome_message)
+    
+    def test_llm_connections(self):
+        """Teste les connexions aux LLM providers (chat et scraping) au lancement."""
+        try:
+            settings = self.app.data_manager.get_settings()
+            
+            # Test 1: Provider Chat
+            chat_provider = self.assistant.get('provider', 'OpenAI GPT-4o mini')
+            chat_api_key = settings.get('api_keys', {}).get(chat_provider)
+            
+            self.add_system_message(f"🔍 Test de connexion au LLM Chat ({chat_provider})...")
+            
+            if not chat_api_key:
+                self.add_system_message(f"⚠️ Aucune clé API configurée pour {chat_provider}")
+            else:
+                # Test de connexion
+                endpoint = None
+                if "IAKA" in chat_provider:
+                    endpoint = settings.get('endpoints', {}).get(chat_provider)
+                
+                success, message = LLMConnectionTester.test_provider(chat_provider, chat_api_key, base_url=endpoint)
+                
+                if success:
+                    self.add_system_message(f"✅ LLM Chat: Connexion réussie à {chat_provider}")
+                else:
+                    # Extraire un résumé de l'erreur
+                    if "quota" in message.lower() or "429" in message:
+                        error_summary = "Quota dépassé"
+                    elif "401" in message or "403" in message or "invalid" in message.lower():
+                        error_summary = "Clé API invalide"
+                    elif "404" in message or "not found" in message.lower():
+                        error_summary = "Modèle non disponible"
+                    else:
+                        error_summary = "Erreur de connexion"
+                    
+                    self.add_system_message(f"❌ LLM Chat: {error_summary} ({chat_provider})")
+            
+            # Test 2: Provider ScrapeGraph (si URL cible configurée)
+            if self.assistant.get('target_url'):
+                sg_provider = settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
+                sg_api_key = settings.get("api_keys", {}).get(sg_provider)
+                
+                self.add_system_message(f"🔍 Test de connexion au LLM Scraping ({sg_provider})...")
+                
+                if not sg_api_key:
+                    self.add_system_message(f"⚠️ Aucune clé API configurée pour {sg_provider}")
+                else:
+                    # Test de connexion
+                    endpoint = None
+                    if "IAKA" in sg_provider:
+                        endpoint = settings.get('endpoints', {}).get(sg_provider)
+                    
+                    success, message = LLMConnectionTester.test_provider(sg_provider, sg_api_key, base_url=endpoint)
+                    
+                    if success:
+                        self.add_system_message(f"✅ LLM Scraping: Connexion réussie à {sg_provider}")
+                    else:
+                        # Extraire un résumé de l'erreur
+                        if "quota" in message.lower() or "429" in message:
+                            error_summary = "Quota dépassé"
+                        elif "401" in message or "403" in message or "invalid" in message.lower():
+                            error_summary = "Clé API invalide"
+                        elif "404" in message or "not found" in message.lower():
+                            error_summary = "Modèle non disponible"
+                        else:
+                            error_summary = "Erreur de connexion"
+                        
+                        self.add_system_message(f"❌ LLM Scraping: {error_summary} ({sg_provider})")
+            
+            self.add_system_message("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+            
+        except Exception as e:
+            self.add_system_message(f"⚠️ Erreur lors des tests de connexion: {str(e)}")
     
     
     def send_welcome_message(self):
