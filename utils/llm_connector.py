@@ -56,13 +56,12 @@ class LLMConnectionTester:
             # Configuration de l'API
             genai.configure(api_key=api_key)
             
-            # Liste des modèles à tester (noms corrects pour API v1)
+            # Liste des modèles à tester
+            # On privilégie les modèles 1.5 et 2.0 qui sont les plus récents et performants
             models_to_test = [
-                "models/gemini-1.5-flash",
-                "models/gemini-1.5-flash-latest",
-                "models/gemini-1.5-pro",
-                "models/gemini-1.5-pro-latest",
+                "gemini-2.0-flash-exp",
                 "gemini-1.5-flash",
+                "gemini-1.5-pro",
                 "gemini-pro"
             ]
             
@@ -89,23 +88,22 @@ class LLMConnectionTester:
                     error_msg = str(e)
                     last_error = error_msg
                     
-                    # Si c'est une erreur de quota, on arrête d'essayer
+                    # Si c'est une erreur de quota, on arrête d'essayer immédiatement
                     if '429' in error_msg or 'quota' in error_msg.lower() or 'resource_exhausted' in error_msg.lower():
                         return False, f"Quota dépassé pour Google Gemini.\n\nAttendez quelques minutes ou utilisez un autre provider.\n\nConsultez vos quotas: https://aistudio.google.com/apikey"
                     
-                    # Si c'est une erreur d'authentification, on arrête
+                    # Si c'est une erreur d'authentification, on arrête immédiatement
                     if '401' in error_msg or '403' in error_msg or 'invalid api key' in error_msg.lower():
                         return False, f"Clé API invalide ou non autorisée.\n\nVérifiez votre clé API sur https://aistudio.google.com/apikey\n\nDétails: {error_msg}"
                     
-                    # Pour les erreurs 404, on continue avec le modèle suivant
-                    if '404' in error_msg:
-                        continue
-                    
-                    # Pour les autres erreurs, on continue aussi
+                    # Pour les autres erreurs, on continue avec le modèle suivant
                     continue
             
             # Si aucun modèle n'a fonctionné
-            return False, f"Impossible de se connecter à Google Gemini.\n\nLa clé API semble valide mais aucun modèle n'est accessible.\n\nVérifiez que votre clé a les bonnes permissions sur:\nhttps://aistudio.google.com/apikey\n\nDernière erreur: {last_error[:200]}"
+            import google.generativeai as genai_pkg
+            version_info = getattr(genai_pkg, '__version__', 'inconnue')
+            
+            return False, f"Impossible de se connecter à Google Gemini.\n\nLa clé API semble valide mais aucun des modèles testés ({', '.join(models_to_test)}) n'est accessible.\n\nVersion librairie: {version_info}\n\nDernière erreur: {last_error[:200]}\n\nVérifiez que votre clé a les bonnes permissions sur:\nhttps://aistudio.google.com/apikey"
             
         except Exception as e:
             return False, f"Erreur Google Gemini: {str(e)}"

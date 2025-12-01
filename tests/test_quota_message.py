@@ -1,6 +1,10 @@
 """
 Test pour vérifier que le message d'erreur de quota est clair.
 """
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from utils.data_manager import DataManager
 from utils.ai_scraper import AIScraper
 

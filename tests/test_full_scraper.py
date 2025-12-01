@@ -1,6 +1,10 @@
 """
 Test complet de ScrapeGraphAI avec la vraie clé API décryptée.
 """
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from utils.data_manager import DataManager
 from utils.ai_scraper import AIScraper
 

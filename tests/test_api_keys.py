@@ -1,6 +1,10 @@
 """
 Test pour vérifier que les clés API sont correctement décryptées et disponibles.
 """
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from utils.data_manager import DataManager
 
 def test_api_key_decryption():

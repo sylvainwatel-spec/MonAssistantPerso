@@ -1,6 +1,10 @@
 """
 Test spécifique pour ScrapeGraphAI avec Anthropic.
 """
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from utils.ai_scraper import AIScraper
 import traceback
 

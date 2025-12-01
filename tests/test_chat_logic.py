@@ -2,6 +2,10 @@
 Test de la logique de connexion du Chat (ChatFrame).
 Simule les appels aux différents providers comme le fait chat_page.py.
 """
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from utils.data_manager import DataManager
 import traceback
 import sys

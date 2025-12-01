@@ -1,5 +1,9 @@
 # NOTE: Ce fichier a été déplacé vers le répertoire tests/. Le code original se trouve désormais dans tests/test_admin_connection.py
 
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import io
 import traceback
 from utils.data_manager import DataManager
