@@ -2,9 +2,11 @@ import customtkinter as ctk
 from tkinter import messagebox, filedialog
 from utils.llm_connector import LLMConnectionTester
 from utils.web_scraper import WebScraper
+from utils.results_manager import ResultsManager
 import threading
 import datetime
 import os
+import logging
 
 class ChatFrame(ctk.CTkFrame):
     def __init__(self, master, app, assistant_data):
@@ -254,6 +256,24 @@ class ChatFrame(ctk.CTkFrame):
         self.chat_area.configure(state="disabled")
         self.chat_area.see("end")
     
+    def _truncate_results_for_llm(self, results_text, max_chars=5000):
+        """
+        Tronque les résultats s'ils sont trop longs pour le contexte du LLM.
+        
+        Args:
+            results_text: Le texte complet des résultats
+            max_chars: Nombre maximum de caractères à conserver
+            
+        Returns:
+            Texte tronqué avec une note si nécessaire
+        """
+        if len(results_text) <= max_chars:
+            return results_text
+        
+        truncated = results_text[:max_chars]
+        total_chars = len(results_text)
+        return f"{truncated}\n\n[... Résultats tronqués - {total_chars} caractères au total, montrant les {max_chars} premiers caractères ...]"
+
     def build_system_prompt(self):
         """Construit le prompt système avec toutes les informations de l'assistant."""
         parts = []
@@ -459,31 +479,78 @@ IMPORTANT :
                 
                 self.add_system_message(f"🤖 Scraping avec {sg_provider}...")
 
-                # Créer le scraper IA
+                # Créer le scraper IA avec les infos de l'assistant
                 ai_scraper = AIScraper(
                     api_key=sg_api_key,
                     model=model_code,
-                    provider=provider_code
+                    provider=provider_code,
+                    assistant_id=str(self.assistant.get('id', 'unknown')),
+                    assistant_name=self.assistant.get('name', 'Unknown')
                 )
                 
-                # Exécuter la recherche avec l'IA
-                search_results = ai_scraper.search(
+                # Exécuter la recherche avec l'IA (retourne tuple: results, filepath)
+                search_results, results_filepath = ai_scraper.search(
                     url=self.assistant.get('target_url'),
                     query=query,
                     extraction_prompt=url_instructions
                 )
+                
+                # Afficher le chemin du fichier de résultats
+                if results_filepath:
+                    filename = os.path.basename(results_filepath)
+                    self.add_system_message(f"✅ Résultats sauvegardés: {filename}")
+                    
+                    # Charger les résultats depuis le fichier pour analyse par le LLM
+                    rm = ResultsManager()
+                    loaded_results = rm.load_result(results_filepath)
+                    
+                    if loaded_results:
+                        # Extraire les données importantes
+                        results_text = loaded_results.get('results', 'Aucun résultat')
+                        
+                        # Tronquer si trop long
+                        results_text = self._truncate_results_for_llm(results_text)
+                        
+                        # Message système pour informer l'utilisateur
+                        self.add_system_message("🤖 Analyse des résultats en cours...")
+                        
+                        # Créer un prompt d'analyse structuré pour le LLM
+                        analysis_prompt = f"""Les résultats du scraping ont été récupérés avec succès.
+
+REQUÊTE DE RECHERCHE : {query}
+URL CIBLE : {self.assistant.get('target_url')}
+
+RÉSULTATS TROUVÉS :
+{results_text}
+
+INSTRUCTIONS :
+Analyse ces résultats et présente-les de manière claire, structurée et utile pour l'utilisateur.
+- Si ce sont des annonces/produits, résume les points principaux de chaque élément
+- Si ce sont des données structurées, organise-les en liste ou tableau
+- Mets en évidence les informations les plus pertinentes
+- Si aucun résultat n'a été trouvé, explique-le clairement et suggère des alternatives
+"""
+                        
+                        # Utiliser le prompt d'analyse au lieu des résultats bruts
+                        search_results = results_text
+                        new_user_message = analysis_prompt
+                    else:
+                        # Fallback si le chargement échoue
+                        if len(search_results) > 4000:
+                            search_results = search_results[:4000] + "... (tronqué)"
+                        new_user_message = f"{original_user_message}\n\n[RÉSULTATS DE LA RECHERCHE pour '{query}']:\n{search_results}\n\nUtilise ces informations pour répondre à la demande initiale."
+                else:
+                    # Pas de fichier de résultats - utiliser les résultats bruts
+                    if len(search_results) > 4000:
+                        search_results = search_results[:4000] + "... (tronqué)"
+                    new_user_message = f"{original_user_message}\n\n[RÉSULTATS DE LA RECHERCHE pour '{query}']:\n{search_results}\n\nUtilise ces informations pour répondre à la demande initiale."
                 
             except Exception as e:
                 self.add_system_message(f"❌ Erreur lors du scraping IA: {str(e)}")
                 logging.error(f"Erreur AI Scraper: {e}")
                 return
             
-            # Limiter la taille des résultats
-            if len(search_results) > 4000:
-                search_results = search_results[:4000] + "... (tronqué)"
-            
-            # Relancer le LLM avec les résultats
-            new_user_message = f"{original_user_message}\n\n[RÉSULTATS DE LA RECHERCHE pour '{query}']:\n{search_results}\n\nUtilise ces informations pour répondre à la demande initiale."
+            # Relancer le LLM avec les résultats pour analyse
             
             # Appel récursif (attention à la boucle infinie, on pourrait ajouter un compteur)
             # Pour simplifier ici, on refait juste un appel standard
