@@ -1,0 +1,12 @@
+{
+  "assistant_id": "9da85ada-42d0-4dfa-a4d8-791bcc790da9",
+  "assistant_name": "Recherche internet simplifiée",
+  "url": "https://www.leboncoin.fr/recherche?category=9&locations=Bordeaux&price=min-130000&square=28-max&real_estate_type=2&outside_access=terrace&energy_rate=a,b,c,d,n,v&q=appartement Bordeaux prix 130 000€-200 000€ pièce de 28m² terrasse énergies renouvelables",
+  "query": "appartement Bordeaux prix 130 000€-200 000€ pièce de 28m² terrasse énergies renouvelables",
+  "extraction_prompt": "appartement",
+  "results": "Aucun résultat trouvé.",
+  "raw_results": {},
+  "provider": "groq",
+  "model": "llama-3.1-8b-instant",
+  "timestamp": "2025-12-02T19:33:09.113140"
+}

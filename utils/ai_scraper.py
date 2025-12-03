@@ -5,7 +5,8 @@ Simplifie le scraping en utilisant des prompts en langage naturel au lieu de sé
 
 import logging
 import traceback
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, Tuple
+from utils.results_manager import ResultsManager
 
 # Patch for ScrapeGraphAI compatibility
 try:
@@ -22,7 +23,7 @@ class AIScraper:
     Pas besoin de sélecteurs CSS - décrivez simplement ce que vous voulez en français.
     """
     
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini", provider: str = "openai") -> None:
+    def __init__(self, api_key: str, model: str = "gpt-4o-mini", provider: str = "openai", assistant_id: str = None, assistant_name: str = None) -> None:
         """
         Initialise le scraper IA.
         
@@ -30,13 +31,18 @@ class AIScraper:
             api_key: Clé API pour le LLM
             model: Modèle à utiliser (gpt-4o-mini, gemini-pro, etc.)
             provider: Fournisseur LLM (openai, google, groq, etc.)
+            assistant_id: ID de l'assistant (pour sauvegarder les résultats)
+            assistant_name: Nom de l'assistant (pour sauvegarder les résultats)
         """
         self.api_key = api_key
         self.model = model
         self.provider = provider
+        self.assistant_id = assistant_id
+        self.assistant_name = assistant_name
         self.logger = logging.getLogger(__name__)
+        self.results_manager = ResultsManager()
     
-    def search(self, url: str, query: str, extraction_prompt: str) -> Union[str, Dict[str, Any]]:
+    def search(self, url: str, query: str, extraction_prompt: str) -> Tuple[Union[str, Dict[str, Any]], Optional[str]]:
         """
         Effectue une recherche intelligente sur un site web.
         
@@ -46,7 +52,7 @@ class AIScraper:
             extraction_prompt: Description de ce qu'on veut extraire
         
         Returns:
-            Données extraites en format structuré ou message d'erreur.
+            Tuple (résultats formatés, chemin du fichier de sauvegarde)
         """
         try:
             # Construire l'URL de recherche
@@ -92,17 +98,40 @@ class AIScraper:
             
             # Formater le résultat pour l'affichage
             if isinstance(result, dict):
-                return self._format_result(result)
+                formatted_result = self._format_result(result)
             else:
-                return str(result)
+                formatted_result = str(result)
+            
+            # Sauvegarder les résultats
+            filepath = self._save_scraping_result(
+                url=search_url,
+                query=query,
+                extraction_prompt=extraction_prompt,
+                raw_results=result,
+                formatted_results=formatted_result
+            )
+            
+            return formatted_result, filepath
                 
         except Exception as e:
             error_str = str(e)
             self.logger.error(f"Erreur lors du scraping IA: {e}")
             traceback.print_exc()
             
+            # Détection spécifique des erreurs de limite de tokens (413)
+            if "413" in error_str or "rate_limit_exceeded" in error_str.lower() or "request too large" in error_str.lower():
+                return (
+                    "❌ **Requête trop volumineuse**\n\n"
+                    "Le contenu de la page dépasse la limite de tokens du modèle.\n\n"
+                    "**Solutions** :\n"
+                    "1. Utilisez un modèle avec une limite plus élevée (ex: GPT-4o mini)\n"
+                    "2. Réduisez la taille de votre prompt d'extraction\n"
+                    "3. Ciblez une URL plus spécifique avec moins de contenu\n\n"
+                    f"Détails : {error_str}"
+                )
+            
             # Détection spécifique des erreurs de quota
-            if "quota" in error_str.lower() or "429" in error_str:
+            elif "quota" in error_str.lower() or "429" in error_str:
                 return (
                     "❌ **Quota API dépassé**\n\n"
                     "Votre clé OpenAI a atteint sa limite de quota.\n\n"
@@ -122,13 +151,14 @@ class AIScraper:
                 )
             
             # Erreur générique
-            return (
+            error_message = (
                 f"❌ **Erreur lors du scraping** : {error_str}\n\n"
                 "**Vérifiez que** :\n"
                 "- L'URL est accessible et correcte\n"
                 "- Le prompt d'extraction est clair et précis\n"
                 "- Votre clé API est valide et a du crédit disponible"
             )
+            return error_message, None
     
     def _format_result(self, result: Union[Dict[str, Any], str]) -> str:
         """
@@ -174,7 +204,43 @@ class AIScraper:
         # Sinon, retourner tel quel
         return str(result)
     
-    def simple_scrape(self, url: str, extraction_prompt: str) -> Union[str, Dict[str, Any]]:
+    def _save_scraping_result(self, url: str, query: str, extraction_prompt: str, 
+                              raw_results: Any, formatted_results: str) -> Optional[str]:
+        """
+        Sauvegarde les résultats de scraping dans un fichier JSON.
+        
+        Args:
+            url: URL scrapée
+            query: Requête de recherche
+            extraction_prompt: Prompt d'extraction utilisé
+            raw_results: Résultats bruts du scraper
+            formatted_results: Résultats formatés pour affichage
+        
+        Returns:
+            Chemin du fichier créé, ou None si erreur
+        """
+        try:
+            data = {
+                "assistant_id": self.assistant_id or "unknown",
+                "assistant_name": self.assistant_name or "Unknown Assistant",
+                "url": url,
+                "query": query,
+                "extraction_prompt": extraction_prompt,
+                "results": formatted_results,
+                "raw_results": raw_results,
+                "provider": self.provider,
+                "model": self.model
+            }
+            
+            filepath = self.results_manager.save_result(data)
+            self.logger.info(f"Résultats sauvegardés dans: {filepath}")
+            return filepath
+            
+        except Exception as e:
+            self.logger.error(f"Erreur lors de la sauvegarde des résultats: {e}")
+            return None
+    
+    def simple_scrape(self, url: str, extraction_prompt: str) -> Tuple[Union[str, Dict[str, Any]], Optional[str]]:
         """
         Scrape simple d'une page sans recherche.
         
@@ -183,7 +249,7 @@ class AIScraper:
             extraction_prompt: Description de ce qu'on veut extraire
             
         Returns:
-            Données extraites
+            Tuple (résultats formatés, chemin du fichier de sauvegarde)
         """
         try:
             self.logger.info(f"Scraping simple de: {url}")
@@ -216,18 +282,42 @@ class AIScraper:
             
             result = scraper.run()
             
+            # Formater le résultat
             if isinstance(result, dict):
-                return self._format_result(result)
+                formatted_result = self._format_result(result)
             else:
-                return str(result)
+                formatted_result = str(result)
+            
+            # Sauvegarder les résultats
+            filepath = self._save_scraping_result(
+                url=url,
+                query="",  # Pas de query pour simple_scrape
+                extraction_prompt=extraction_prompt,
+                raw_results=result,
+                formatted_results=formatted_result
+            )
+            
+            return formatted_result, filepath
                 
         except Exception as e:
             error_str = str(e)
             self.logger.error(f"Erreur lors du scraping simple: {e}")
             traceback.print_exc()
             
+            # Détection spécifique des erreurs de limite de tokens (413)
+            if "413" in error_str or "rate_limit_exceeded" in error_str.lower() or "request too large" in error_str.lower():
+                return (
+                    "❌ **Requête trop volumineuse**\n\n"
+                    "Le contenu de la page dépasse la limite de tokens du modèle.\n\n"
+                    "**Solutions** :\n"
+                    "1. Utilisez un modèle avec une limite plus élevée (ex: GPT-4o mini)\n"
+                    "2. Réduisez la taille de votre prompt d'extraction\n"
+                    "3. Ciblez une URL plus spécifique avec moins de contenu\n\n"
+                    f"Détails : {error_str}"
+                )
+            
             # Détection spécifique des erreurs de quota
-            if "quota" in error_str.lower() or "429" in error_str:
+            elif "quota" in error_str.lower() or "429" in error_str:
                 return (
                     "❌ **Quota API dépassé**\n\n"
                     "Votre clé OpenAI a atteint sa limite de quota.\n\n"
@@ -247,10 +337,11 @@ class AIScraper:
                 )
             
             # Erreur générique
-            return (
+            error_message = (
                 f"❌ **Erreur lors du scraping** : {error_str}\n\n"
                 "**Vérifiez que** :\n"
                 "- L'URL est accessible et correcte\n"
                 "- Le prompt d'extraction est clair et précis\n"
                 "- Votre clé API est valide et a du crédit disponible"
             )
+            return error_message, None

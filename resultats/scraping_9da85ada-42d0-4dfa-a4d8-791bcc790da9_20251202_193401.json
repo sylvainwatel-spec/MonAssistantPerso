@@ -1,0 +1,14 @@
+{
+  "assistant_id": "9da85ada-42d0-4dfa-a4d8-791bcc790da9",
+  "assistant_name": "Recherche internet simplifiée",
+  "url": "https://www.leboncoin.fr/recherche?category=9&locations=Bordeaux&price=min-130000&square=28-max&real_estate_type=2&outside_access=terrace&energy_rate=a,b,c,d,n,v&q=appartement à Bordeaux prix 130 000 € - 100 000 000 € superficie 28 m² - 150 m²",
+  "query": "appartement à Bordeaux prix 130 000 € - 100 000 000 € superficie 28 m² - 150 m²",
+  "extraction_prompt": "appartement",
+  "results": "📊 Résultat extrait:\n\n**content**: No information found for the query 'appartement'",
+  "raw_results": {
+    "content": "No information found for the query 'appartement'"
+  },
+  "provider": "groq",
+  "model": "llama-3.1-8b-instant",
+  "timestamp": "2025-12-02T19:34:01.771412"
+}
