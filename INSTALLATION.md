@@ -64,3 +64,20 @@ Si vous avez déjà installé l'application et souhaitez récupérer la dernièr
     .\.venv\Scripts\Activate
     pip install -r requirements.txt
     ```
+
+## 5. Alternative : Version Portable (Sans installation)
+
+Si vous ne pouvez pas installer Python ou les dépendances sur le poste cible (restrictions de droits), vous pouvez créer un exécutable autonome depuis un poste où vous avez les droits.
+
+### Sur le poste "Source" (avec droits) :
+1.  Assurez-vous que tout est installé et fonctionnel.
+2.  Lancez la compilation :
+    ```bash
+    python build_app.py
+    ```
+3.  Une fois terminé, récupérez le fichier `MonAssistantPerso.exe` dans le dossier `dist/`.
+
+### Sur le poste "Cible" (sans droits) :
+1.  Copiez simplement le fichier `MonAssistantPerso.exe`.
+2.  Lancez-le.
+    *Note : Les fonctionnalités de scraping (navigation web) peuvent nécessiter des navigateurs. Si elles échouent, il faudra peut-être installer les navigateurs Playwright manuellement si possible, ou copier le dossier de cache des navigateurs.*

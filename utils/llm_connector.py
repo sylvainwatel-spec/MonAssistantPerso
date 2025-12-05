@@ -126,13 +126,13 @@ class LLMConnectionTester:
             
             # Requête minimale pour vérifier la clé
             response = client.messages.create(
-                model="claude-3-haiku-20240307",
+                model="claude-opus-4-20250514",
                 max_tokens=10,
                 messages=[{"role": "user", "content": "Hello"}]
             )
             
             content = response.content[0].text if response.content else ""
-            return True, f"Connexion réussie à Anthropic Claude !\nModèle: claude-3-haiku\nRéponse: {content}"
+            return True, f"Connexion réussie à Anthropic Claude !\nModèle: claude-opus-4\nRéponse: {content}"
             
         except Exception as e:
             return False, f"Erreur Anthropic Claude: {str(e)}"
@@ -178,15 +178,15 @@ class LLMConnectionTester:
             Tuple (succès: bool, message: str)
         """
         try:
-            from mistralai.client import MistralClient
+            from mistralai import Mistral
             
-            client = MistralClient(api_key=api_key)
+            client = Mistral(api_key=api_key)
             
             # Requête minimale pour vérifier la clé
-            response = client.chat(
+            response = client.chat.complete(
                 model="mistral-small-latest",
                 messages=[{"role": "user", "content": "Hello"}],
-                max_tokens=5,
+                max_tokens=5
             )
             
             content = response.choices[0].message.content if response.choices else ""
@@ -227,6 +227,69 @@ class LLMConnectionTester:
             
         except Exception as e:
             return False, f"Erreur DeepSeek: {str(e)}"
+
+    @staticmethod
+    def test_deepseek_vl(api_key: str) -> Tuple[bool, str]:
+        """
+        Test de connexion à DeepSeek-VL (Vision-Language).
+        
+        Args:
+            api_key: Clé API DeepSeek
+            
+        Returns:
+            Tuple (succès: bool, message: str)
+        """
+        try:
+            from openai import OpenAI
+            
+            # DeepSeek-VL est compatible avec l'API OpenAI
+            client = OpenAI(
+                api_key=api_key,
+                base_url="https://api.deepseek.com"
+            )
+            
+            # Requête minimale pour vérifier la clé
+            response = client.chat.completions.create(
+                model="deepseek-vl",
+                messages=[{"role": "user", "content": "Hello"}],
+                max_tokens=5,
+            )
+            
+            content = response.choices[0].message.content if response.choices else ""
+            return True, f"Connexion réussie à DeepSeek-VL !\nModèle: deepseek-vl\nRéponse: {content}"
+            
+        except Exception as e:
+            return False, f"Erreur DeepSeek-VL: {str(e)}"
+
+    @staticmethod
+    def test_huggingface(api_key: str) -> Tuple[bool, str]:
+        """
+        Test de connexion à Hugging Face Inference API.
+        
+        Args:
+            api_key: Token Hugging Face
+            
+        Returns:
+            Tuple (succès: bool, message: str)
+        """
+        try:
+            from huggingface_hub import InferenceClient
+            
+            client = InferenceClient(token=api_key)
+            
+            # Test avec un modèle compatible chat_completion
+            # Utiliser Qwen2.5 qui est gratuit et supporte chat
+            response = client.chat_completion(
+                messages=[{"role": "user", "content": "Hello"}],
+                model="Qwen/Qwen2.5-72B-Instruct",
+                max_tokens=10
+            )
+            
+            content = response.choices[0].message.content if response.choices else ""
+            return True, f"Connexion réussie à Hugging Face !\nModèle: Qwen2.5-72B-Instruct\nRéponse: {content[:50]}..."
+            
+        except Exception as e:
+            return False, f"Erreur Hugging Face: {str(e)}"
 
     @staticmethod
     def test_openai_compatible(api_key: str, base_url: str) -> Tuple[bool, str]:
@@ -304,10 +367,13 @@ class LLMConnectionTester:
         provider_mapping = {
             "OpenAI GPT-4o mini": cls.test_openai,
             "Google Gemini 1.5 Flash": cls.test_google_gemini,
-            "Anthropic Claude 3 Haiku": cls.test_anthropic_claude,
+            "Google Gemini 2.5 Flash-Lite": cls.test_google_gemini,
+            "Anthropic Claude Opus 4.5": cls.test_anthropic_claude,
             "Meta Llama 3 (via Groq)": cls.test_groq_llama,
             "Mistral NeMo": cls.test_mistral,
             "DeepSeek-V3": cls.test_deepseek,
+            "DeepSeek-VL": cls.test_deepseek_vl,
+            "Hugging Face (Mistral/Mixtral)": cls.test_huggingface,
             "IAKA (Interne)": lambda k: cls.test_openai_compatible(k, kwargs.get('base_url', ''))
         }
         

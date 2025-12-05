@@ -29,7 +29,7 @@ class ScrapeGraphConnectorFrame(ctk.CTkFrame):
         # List of LLMs compatible with ScrapeGraphAI
         self.llm_options = [
             "OpenAI GPT-4o mini",
-            "Google Gemini 1.5 Flash",
+            "Google Gemini 2.5 Flash-Lite",
             "Meta Llama 3 (via Groq)"
         ]
 

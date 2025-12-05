@@ -306,7 +306,14 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
         # Mettre à jour le provider actif
         settings = self.app.data_manager.get_settings()
         settings["current_provider"] = provider
-        self.app.data_manager.save_configuration(settings["current_provider"], settings.get("api_keys", {}))
+        # save_configuration attend: chat_provider, scrapegraph_provider, api_keys, endpoints
+        self.app.data_manager.save_configuration(
+            chat_provider=provider,
+            scrapegraph_provider=settings.get("scrapegraph_provider", ""),
+            api_keys=settings.get("api_keys", {}),
+            endpoints=settings.get("endpoints", {})
+        )
+
 
         # Afficher un message de succès
         messagebox.showinfo("Succès", f"L'assistant '{name}' a été créé avec succès !")

@@ -14,7 +14,7 @@ try:
 except ImportError:
     pass
 
-from scrapegraphai.graphs import SmartScraperGraph
+from utils.custom_scraper_graph import CustomSmartScraperGraph as SmartScraperGraph
 
 
 class AIScraper:
@@ -71,7 +71,8 @@ class AIScraper:
                     "model": self.model,
                 },
                 "verbose": True,
-                "headless": False,  # Navigateur visible pour debugging
+                "headless": False,  # Mode visible pour voir le CAPTCHA si nécessaire
+                "browser_type": "chromium",  # Utiliser Chromium
             }
             
             # Adaptation pour les providers spécifiques
@@ -262,7 +263,8 @@ class AIScraper:
                     "model": self.model,
                 },
                 "verbose": True,
-                "headless": False,
+                "headless": False,  # Mode visible pour voir le CAPTCHA si nécessaire
+                "browser_type": "chromium",  # Utiliser Chromium
             }
             
             # Adaptation pour les providers spécifiques

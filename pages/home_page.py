@@ -102,18 +102,14 @@ class HomeFrame(ctk.CTkFrame):
         welcome = ctk.CTkLabel(self, text="Bienvenue", font=ctk.CTkFont(size=32, weight="bold"))
         welcome.grid(row=2, column=0, pady=(0, 30))
 
-        # Dock d'Actions
-        dock_frame = ctk.CTkFrame(self, fg_color="transparent")
-        dock_frame.grid(row=3, column=0, pady=20)
-
-        # Bouton Principal : Mes Assistants
-        btn_list = ctk.CTkButton(dock_frame, text="Mes Assistants", font=ctk.CTkFont(size=18, weight="bold"),
-                                 width=200, height=60, corner_radius=30,
-                                 command=self.app.show_list)
-        btn_list.grid(row=0, column=0, padx=20)
-
-        # Bouton Secondaire : Créer
-        btn_create = ctk.CTkButton(dock_frame, text="+ Créer", font=ctk.CTkFont(size=16),
-                                   width=120, height=50, corner_radius=25, fg_color=("#3B8ED0", "#1F6AA5"), border_width=0,
-                                   command=self.app.show_create)
-        btn_create.grid(row=0, column=1, padx=20)
+        # Bouton Principal : Mes Assistants (centré)
+        btn_list = ctk.CTkButton(
+            self, 
+            text="Mes Assistants", 
+            font=ctk.CTkFont(size=18, weight="bold"),
+            width=200, 
+            height=60, 
+            corner_radius=30,
+            command=self.app.show_list
+        )
+        btn_list.grid(row=3, column=0, pady=20)

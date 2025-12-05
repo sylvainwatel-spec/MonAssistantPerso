@@ -28,12 +28,14 @@ class ChatConnectorFrame(ctk.CTkFrame):
 
         # List of all supported LLMs for chat
         self.llm_options = [
-            "Google Gemini 1.5 Flash",
+            "Google Gemini 2.5 Flash-Lite",
             "OpenAI GPT-4o mini",
-            "Anthropic Claude 3 Haiku",
+            "Anthropic Claude Opus 4.5",
             "Meta Llama 3 (via Groq)",
             "Mistral NeMo",
             "DeepSeek-V3",
+            "DeepSeek-VL",
+            "Hugging Face (Mistral/Mixtral)",
             "IAKA (Interne)"
         ]
 

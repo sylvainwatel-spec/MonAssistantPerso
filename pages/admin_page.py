@@ -198,7 +198,7 @@ class AdminFrame(ctk.CTkFrame):
         status_label.grid(row=2, column=1, sticky="w", pady=(0, 15), padx=(0, 0))
 
         # Compatibility note
-        compatible_llms = ["OpenAI GPT-4o mini", "Google Gemini 1.5 Flash", "Meta Llama 3 (via Groq)"]
+        compatible_llms = ["OpenAI GPT-4o mini", "Google Gemini 2.5 Flash-Lite", "Meta Llama 3 (via Groq)"]
         is_compatible = self.scrapegraph_provider in compatible_llms
         
         if not is_compatible:

@@ -363,7 +363,16 @@ IMPORTANT :
             api_key = settings.get('api_keys', {}).get(provider)
             
             if not api_key:
-                self.add_error_message(f"Aucune clé API configurée pour {provider}. Veuillez configurer votre clé dans la page Administration.")
+                # Debug : afficher les informations
+                available_keys = list(settings.get('api_keys', {}).keys())
+                self.add_error_message(
+                    f"⚠️ **Clé API invalide**\n"
+                    f"La clé API est incorrecte ou a expiré.\n"
+                    f"Solution : Vérifiez la clé dans la page Administration.\n\n"
+                    f"Debug Info:\n"
+                    f"- Provider de l'assistant : '{provider}'\n"
+                    f"- Clés disponibles : {available_keys}"
+                )
                 self.btn_send.configure(state="normal", text="Envoyer")
                 return
             
@@ -371,7 +380,7 @@ IMPORTANT :
             system_prompt = self.build_system_prompt()
             
             # Appeler le LLM selon le provider
-            # Appeler le LLM selon le provider
+            # IMPORTANT : Vérifier "Hugging Face" AVANT "Mistral" car le nom contient "Mistral"
             if "OpenAI" in provider:
                 response_text = self._call_openai(api_key, system_prompt, user_message)
             elif "Gemini" in provider:
@@ -380,8 +389,12 @@ IMPORTANT :
                 response_text = self._call_claude(api_key, system_prompt, user_message)
             elif "Llama" in provider or "Groq" in provider:
                 response_text = self._call_groq(api_key, system_prompt, user_message)
+            elif "Hugging Face" in provider:  # AVANT "Mistral" !
+                response_text = self._call_huggingface(api_key, system_prompt, user_message)
             elif "Mistral" in provider:
                 response_text = self._call_mistral(api_key, system_prompt, user_message)
+            elif "DeepSeek-VL" in provider:
+                response_text = self._call_deepseek_vl(api_key, system_prompt, user_message)
             elif "DeepSeek" in provider:
                  # DeepSeek utilise l'API OpenAI avec une base_url spécifique
                  response_text = self._call_openai_compatible(api_key, "https://api.deepseek.com", system_prompt, user_message)
@@ -404,18 +417,20 @@ IMPORTANT :
                 friendly_msg = (
                     "⚠️ **Quota API dépassé**\n"
                     "La clé API utilisée a atteint sa limite.\n"
-                    "Solution : Changez de modèle (ex: Groq, Gemini) dans la modification de l'assistant."
+                    "Solution : Changez de modèle (ex: Groq, Gemini) dans la modification de l'assistant.\n\n"
+                    f"Erreur technique : {error_msg}"
                 )
                 self.add_error_message(friendly_msg)
-            elif "401" in error_msg or "invalid" in error_msg.lower():
+            elif "401" in error_msg or ("invalid" in error_msg.lower() and "api" in error_msg.lower()):
                 friendly_msg = (
                     "⚠️ **Clé API invalide**\n"
                     "La clé API est incorrecte ou a expiré.\n"
-                    "Solution : Vérifiez la clé dans la page Administration."
+                    "Solution : Vérifiez la clé dans la page Administration.\n\n"
+                    f"Erreur technique : {error_msg}"
                 )
                 self.add_error_message(friendly_msg)
             else:
-                self.add_error_message(f"Erreur technique : {error_msg}")
+                self.add_error_message(f"❌ Erreur technique : {error_msg}")
         
         finally:
             # Cacher l'indicateur de chargement
@@ -473,7 +488,7 @@ IMPORTANT :
                 # Mapper le modèle (simplifié)
                 model_code = "gpt-4o-mini"
                 if "Gemini" in sg_provider:
-                    model_code = "gemini-1.5-flash"
+                    model_code = "gemini-2.0-flash-exp"
                 elif "Llama" in sg_provider:
                     model_code = "llama-3.1-8b-instant"
                 
@@ -554,6 +569,7 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
             
             # Appel récursif (attention à la boucle infinie, on pourrait ajouter un compteur)
             # Pour simplifier ici, on refait juste un appel standard
+            # IMPORTANT : Vérifier "Hugging Face" AVANT "Mistral"
             if "OpenAI" in self.assistant.get('provider', ''):
                 final_response = self._call_openai(api_key, system_prompt, new_user_message)
             elif "Gemini" in self.assistant.get('provider', ''):
@@ -562,8 +578,12 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
                 final_response = self._call_claude(api_key, system_prompt, new_user_message)
             elif "Llama" in self.assistant.get('provider', '') or "Groq" in self.assistant.get('provider', ''):
                 final_response = self._call_groq(api_key, system_prompt, new_user_message)
+            elif "Hugging Face" in self.assistant.get('provider', ''):  # AVANT "Mistral" !
+                final_response = self._call_huggingface(api_key, system_prompt, new_user_message)
             elif "Mistral" in self.assistant.get('provider', ''):
                 final_response = self._call_mistral(api_key, system_prompt, new_user_message)
+            elif "DeepSeek-VL" in self.assistant.get('provider', ''):
+                final_response = self._call_deepseek_vl(api_key, system_prompt, new_user_message)
             elif "DeepSeek" in self.assistant.get('provider', ''):
                  final_response = self._call_openai_compatible(api_key, "https://api.deepseek.com", system_prompt, new_user_message)
             elif "IAKA" in self.assistant.get('provider', ''):
@@ -663,7 +683,7 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
         client = Anthropic(api_key=api_key)
         
         response = client.messages.create(
-            model="claude-3-haiku-20240307",
+            model="claude-opus-4-20250514",
             max_tokens=500,
             system=system_prompt,
             messages=[
@@ -693,19 +713,69 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
     
     def _call_mistral(self, api_key, system_prompt, user_message):
         """Appelle l'API Mistral."""
-        from mistralai.client import MistralClient
+        from mistralai import Mistral
         
-        client = MistralClient(api_key=api_key)
+        client = Mistral(api_key=api_key)
         
-        # Combiner system prompt et user message
-        full_message = f"{system_prompt}\n\nUtilisateur : {user_message}"
+        # Utiliser le nouveau format de messages
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
         
-        response = client.chat(
+        response = client.chat.complete(
             model="mistral-small-latest",
-            messages=[
-                {"role": "user", "content": full_message}
-            ],
+            messages=messages,
             max_tokens=500
+        )
+        
+        return response.choices[0].message.content
+    
+    def _call_deepseek_vl(self, api_key, system_prompt, user_message):
+        """Appelle l'API DeepSeek-VL (Vision-Language)."""
+        from openai import OpenAI
+        
+        client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.deepseek.com"
+        )
+        
+        response = client.chat.completions.create(
+            model="deepseek-vl",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            max_tokens=500,
+            temperature=0.7
+        )
+        
+        return response.choices[0].message.content
+    
+    def _call_huggingface(self, api_key, system_prompt, user_message):
+        """Appelle l'API Hugging Face Inference."""
+        from huggingface_hub import InferenceClient
+        
+        # Nettoyer le token (enlever espaces et retours à la ligne)
+        clean_token = api_key.strip() if api_key else ""
+        
+        # Debug : vérifier le token
+        print(f"[DEBUG HF] Token length: {len(clean_token)}")
+        print(f"[DEBUG HF] Token starts with 'hf_': {clean_token.startswith('hf_')}")
+        
+        client = InferenceClient(token=clean_token)
+        
+        # Utiliser chat_completion avec Qwen2.5-72B (gratuit et performant)
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message}
+        ]
+        
+        response = client.chat_completion(
+            messages=messages,
+            model="Qwen/Qwen2.5-72B-Instruct",
+            max_tokens=500,
+            temperature=0.7
         )
         
         return response.choices[0].message.content
