@@ -54,12 +54,42 @@ class CreateAssistantFrame(ctk.CTkFrame):
         )
         self.provider_dropdown.grid(row=2, column=0, pady=(0, 20), sticky="w")
 
+        # Scraping Solution selection
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="🔧 Solution de Scraping",
+            font=("Arial", 14, "bold")
+        ).grid(row=3, column=0, pady=(0, 5), sticky="w")
+        
+        # Récupérer la solution par défaut depuis les settings
+        default_solution = settings.get("scraping_solution", "scrapegraphai")
+        
+        self.scraping_solution_var = ctk.StringVar(value=default_solution)
+        scraping_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
+        scraping_frame.grid(row=4, column=0, pady=(0, 20), sticky="w")
+        
+        radio_scrapegraph = ctk.CTkRadioButton(
+            scraping_frame,
+            text="🤖 ScrapeGraphAI (IA - Payant)",
+            variable=self.scraping_solution_var,
+            value="scrapegraphai"
+        )
+        radio_scrapegraph.pack(side="left", padx=(0, 20))
+        
+        radio_playwright = ctk.CTkRadioButton(
+            scraping_frame,
+            text="🎭 Playwright (Gratuit)",
+            variable=self.scraping_solution_var,
+            value="playwright"
+        )
+        radio_playwright.pack(side="left")
+
         # Nom
         ctk.CTkLabel(
             self.scrollable_frame,
             text="📝 Nom de l'assistant *",
             font=("Arial", 14, "bold")
-        ).grid(row=3, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=5, column=0, pady=(0, 5), sticky="w")
         
         self.entry_name = ctk.CTkEntry(
             self.scrollable_frame,
@@ -67,7 +97,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             height=40,
             font=("Arial", 12)
         )
-        self.entry_name.grid(row=4, column=0, pady=(0, 20), sticky="ew")
+        self.entry_name.grid(row=6, column=0, pady=(0, 20), sticky="ew")
 
         # Description
         ctk.CTkLabel(
@@ -279,6 +309,7 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
         target_url = self.entry_url.get().strip()
         url_instructions = self.text_url_instructions.get("1.0", "end-1c").strip()
         provider = self.provider_var.get()
+        scraping_solution = self.scraping_solution_var.get()
 
         # Validation
         if not name:
@@ -300,7 +331,8 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
             response_format=response_format,
             target_url=target_url,
             url_instructions=url_instructions,
-            provider=provider
+            provider=provider,
+            scraping_solution=scraping_solution
         )
 
         # Mettre à jour le provider actif

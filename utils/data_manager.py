@@ -55,7 +55,7 @@ class DataManager:
         with open(self.filepath, 'r') as f:
             return json.load(f)
 
-    def save_assistant(self, name, description, role="", context="", objective="", limits="", response_format="", target_url="", url_instructions="", provider=""):
+    def save_assistant(self, name, description, role="", context="", objective="", limits="", response_format="", target_url="", url_instructions="", provider="", scraping_solution="scrapegraphai"):
         """
         Sauvegarde un nouvel assistant avec tous ses champs.
         
@@ -70,6 +70,7 @@ class DataManager:
             target_url: URL cible pour les recherches
             url_instructions: Instructions pour se connecter et naviguer sur le site cible
             provider: Provider LLM à utiliser
+            scraping_solution: Solution de scraping ("scrapegraphai" ou "playwright")
         """
         assistants = self.get_all_assistants()
         new_assistant = {
@@ -84,6 +85,7 @@ class DataManager:
             "target_url": target_url,
             "url_instructions": url_instructions,
             "provider": provider,
+            "scraping_solution": scraping_solution,
             "status": "stopped"  # stopped, running
         }
         assistants.append(new_assistant)
@@ -91,7 +93,7 @@ class DataManager:
         return new_assistant
 
     def update_assistant(self, assistant_id, name=None, description=None, role=None, 
-                        context=None, objective=None, limits=None, response_format=None, target_url=None, url_instructions=None, provider=None):
+                        context=None, objective=None, limits=None, response_format=None, target_url=None, url_instructions=None, provider=None, scraping_solution=None):
         """
         Met à jour un assistant existant.
         
@@ -107,6 +109,7 @@ class DataManager:
             target_url: Nouvelle URL cible (optionnel)
             url_instructions: Nouvelles instructions URL (optionnel)
             provider: Nouveau provider (optionnel)
+            scraping_solution: Nouvelle solution de scraping (optionnel)
         """
         assistants = self.get_all_assistants()
         for assistant in assistants:
@@ -131,6 +134,8 @@ class DataManager:
                     assistant["url_instructions"] = url_instructions
                 if provider is not None:
                     assistant["provider"] = provider
+                if scraping_solution is not None:
+                    assistant["scraping_solution"] = scraping_solution
                 break
         self._save_to_file(assistants)
 
@@ -207,7 +212,7 @@ class DataManager:
                 data["api_keys"][provider] = self._decrypt(encrypted_key)
         return data
 
-    def save_configuration(self, chat_provider, scrapegraph_provider, api_keys, endpoints=None):
+    def save_configuration(self, chat_provider, scrapegraph_provider, api_keys, endpoints=None, scraping_solution=None, visible_mode=None, scraping_browser=None):
         """
         Sauvegarde la configuration complète : providers (chat et scrapegraph), clés API et endpoints.
         api_keys est un dictionnaire {provider_name: clear_text_key}
@@ -224,6 +229,18 @@ class DataManager:
         current["chat_provider"] = chat_provider
         current["scrapegraph_provider"] = scrapegraph_provider
         
+        # Mise à jour de la solution de scraping si fournie
+        if scraping_solution is not None:
+            current["scraping_solution"] = scraping_solution
+            
+        # Mise à jour du mode visible si fourni
+        if visible_mode is not None:
+            current["visible_mode"] = visible_mode
+            
+        # Mise à jour du navigateur scraping si fourni
+        if scraping_browser is not None:
+            current["scraping_browser"] = scraping_browser
+        
         # On s'assure que les sections existent
         if "api_keys" not in current:
             current["api_keys"] = {}
@@ -232,8 +249,9 @@ class DataManager:
 
         # Décrypter les clés existantes d'abord
         decrypted_keys = {}
-        for provider, encrypted_key in current["api_keys"].items():
-            decrypted_keys[provider] = self._decrypt(encrypted_key)
+        if "api_keys" in current:
+            for provider, encrypted_key in current["api_keys"].items():
+                decrypted_keys[provider] = self._decrypt(encrypted_key)
         
         # Mise à jour des clés (en mémoire) - fusionner avec les nouvelles
         for provider, key in api_keys.items():
@@ -249,7 +267,10 @@ class DataManager:
             "chat_provider": chat_provider,
             "scrapegraph_provider": scrapegraph_provider,
             "api_keys": {},
-            "endpoints": current["endpoints"]
+            "endpoints": current["endpoints"],
+            "scraping_solution": current.get("scraping_solution", "scrapegraphai"),
+            "visible_mode": current.get("visible_mode", False),
+            "scraping_browser": current.get("scraping_browser", "firefox")
         }
         
         for prov, key in decrypted_keys.items():

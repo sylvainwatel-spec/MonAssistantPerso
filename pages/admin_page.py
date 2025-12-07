@@ -33,7 +33,7 @@ class AdminFrame(ctk.CTkFrame):
         self.create_header()
 
         # Main content
-        self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.content_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.content_frame.grid(row=1, column=0, sticky="nsew", padx=40, pady=20)
         self.content_frame.grid_columnconfigure(0, weight=1)
 
@@ -89,6 +89,13 @@ class AdminFrame(ctk.CTkFrame):
         # Separator
         separator2 = ctk.CTkFrame(self.content_frame, height=2, fg_color=("gray80", "gray30"))
         separator2.grid(row=5, column=0, sticky="ew", pady=30)
+
+        # Scraping Solution Section
+        self.create_scraping_solution_section()
+
+        # Separator
+        separator3 = ctk.CTkFrame(self.content_frame, height=2, fg_color=("gray80", "gray30"))
+        separator3.grid(row=7, column=0, sticky="ew", pady=30)
 
         # System Information Section
         self.create_system_info_section()
@@ -210,10 +217,126 @@ class AdminFrame(ctk.CTkFrame):
             )
             compat_label.grid(row=3, column=1, sticky="w", pady=(0, 15))
 
+    def create_scraping_solution_section(self):
+        """Section pour choisir la solution de scraping."""
+        scraping_frame = ctk.CTkFrame(self.content_frame, fg_color=("gray95", "gray20"), corner_radius=12)
+        scraping_frame.grid(row=6, column=0, sticky="ew", pady=10)
+        scraping_frame.grid_columnconfigure(1, weight=1)
+        
+        # Icon and title
+        icon_label = ctk.CTkLabel(scraping_frame, text="🔧", font=("Arial", 32))
+        icon_label.grid(row=0, column=0, rowspan=3, padx=20, pady=20)
+        
+        title_label = ctk.CTkLabel(
+            scraping_frame,
+            text="Solution de Scraping par Défaut",
+            font=("Arial", 16, "bold")
+        )
+        title_label.grid(row=0, column=1, sticky="w", pady=(20, 5))
+        
+        # Current solution
+        current_solution = self.settings.get("scraping_solution", "scrapegraphai")
+        solution_text = "ScrapeGraphAI (IA)" if current_solution == "scrapegraphai" else "Playwright (Gratuit)"
+        
+        solution_info = ctk.CTkLabel(
+            scraping_frame,
+            text=f"Solution actuelle : {solution_text}",
+            font=("Arial", 13),
+            text_color=("gray30", "gray70")
+        )
+        solution_info.grid(row=1, column=1, sticky="w", pady=(0, 10))
+        
+        # Radio buttons for selection
+        self.scraping_solution_var = ctk.StringVar(value=current_solution)
+        
+        radio_frame = ctk.CTkFrame(scraping_frame, fg_color="transparent")
+        radio_frame.grid(row=2, column=1, sticky="w", pady=(0, 15))
+        
+        radio_scrapegraph = ctk.CTkRadioButton(
+            radio_frame,
+            text="🤖 ScrapeGraphAI (IA - Payant ~0.05€/scraping)",
+            variable=self.scraping_solution_var,
+            value="scrapegraphai",
+            command=self.save_scraping_solution
+        )
+        radio_scrapegraph.pack(anchor="w", pady=5)
+        
+        radio_playwright = ctk.CTkRadioButton(
+            radio_frame,
+            text="🎭 Playwright (Gratuit - Rapide)",
+            variable=self.scraping_solution_var,
+            value="playwright",
+            command=self.save_scraping_solution
+        )
+        radio_playwright.pack(anchor="w", pady=5)
+        
+        # Checkbox Mode Visible
+        self.visible_mode_var = ctk.BooleanVar(value=self.settings.get("visible_mode", False))
+        checkbox_visible = ctk.CTkCheckBox(
+            radio_frame,
+            text="👁️ Mode Visible (Voir le navigateur / Captchas)",
+            variable=self.visible_mode_var,
+            font=("Arial", 12),
+            command=self.save_scraping_solution
+        )
+        checkbox_visible.pack(anchor="w", pady=(10, 5))
+
+        # Browser Selection
+        browser_label = ctk.CTkLabel(radio_frame, text="Navigateur (Playwright) :", font=("Arial", 12))
+        browser_label.pack(anchor="w", pady=(5, 0))
+        
+        current_browser = self.settings.get("scraping_browser", "firefox")
+        self.scraping_browser_var = ctk.StringVar(value=current_browser)
+        self.browser_menu = ctk.CTkOptionMenu(
+            radio_frame,
+            values=["firefox", "chromium", "chrome", "msedge"],
+            variable=self.scraping_browser_var,
+            width=200,
+            command=lambda x: self.save_scraping_solution()
+        )
+        self.browser_menu.pack(anchor="w", pady=(0, 5))
+        
+        # Save button
+        btn_save = ctk.CTkButton(
+            scraping_frame,
+            text="💾 Sauvegarder",
+            width=150,
+            height=35,
+            fg_color=("#4CAF50", "#388E3C"),
+            hover_color=("#45A049", "#2E7D32"),
+            font=("Arial", 12, "bold"),
+            command=self.save_scraping_solution
+        )
+        btn_save.grid(row=0, column=2, rowspan=3, padx=20, pady=20)
+
+    def save_scraping_solution(self, _=None):
+        """Sauvegarde le choix de solution de scraping."""
+        solution = self.scraping_solution_var.get()
+        visible_mode = self.visible_mode_var.get()
+        scraping_browser = self.scraping_browser_var.get()
+        
+        self.settings["scraping_solution"] = solution
+        self.settings["visible_mode"] = visible_mode
+        self.settings["scraping_browser"] = scraping_browser
+        
+        # Sauvegarder dans settings
+        self.app.data_manager.save_configuration(
+            chat_provider=self.settings.get("chat_provider", ""),
+            scrapegraph_provider=self.settings.get("scrapegraph_provider", ""),
+            api_keys=self.settings.get("api_keys", {}),
+            endpoints=self.settings.get("endpoints", {}),
+            scraping_solution=solution,
+            visible_mode=visible_mode,
+            scraping_browser=scraping_browser
+        )
+        
+        solution_name = "ScrapeGraphAI" if solution == "scrapegraphai" else "Playwright"
+        messagebox.showinfo("Succès", f"Solution de scraping changée : {solution_name}")
+
     def create_system_info_section(self):
         """Section d'informations système."""
         info_frame = ctk.CTkFrame(self.content_frame, fg_color=("gray95", "gray20"), corner_radius=12)
-        info_frame.grid(row=6, column=0, sticky="ew", pady=10)
+        info_frame.grid(row=8, column=0, sticky="ew", pady=10)
 
         title_label = ctk.CTkLabel(
             info_frame,

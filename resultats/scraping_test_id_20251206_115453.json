@@ -1,0 +1,13 @@
+{
+  "assistant_id": "test_id",
+  "assistant_name": "Test Assistant",
+  "url": "https://example.com",
+  "query": "test query",
+  "extraction_prompt": "",
+  "results": "❌ Aucun résultat trouvé.",
+  "raw_results": [],
+  "provider": "playwright",
+  "model": "chromium",
+  "scraper_type": "playwright",
+  "timestamp": "2025-12-06T11:54:53.657439"
+}

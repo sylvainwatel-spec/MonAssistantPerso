@@ -465,46 +465,82 @@ IMPORTANT :
             # Afficher les instructions qui seront utilisées
             self.add_system_message(f"📝 Instructions d'extraction:\n{url_instructions}")
             
-            # Importer et utiliser l'AI Scraper
-            from utils.ai_scraper import AIScraper
+            # Importer la factory
+            from utils.scraper_factory import ScraperFactory
             
             try:
-                # Récupérer la configuration ScrapeGraphAI
+                # Déterminer la solution de scraping à utiliser
+                # Priorité: 1. Assistant config, 2. Global settings, 3. Default (ScrapeGraphAI)
                 settings = self.app.data_manager.get_settings()
-                sg_provider = settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
-                sg_api_key = settings.get("api_keys", {}).get(sg_provider)
+                global_default = settings.get("scraping_solution", "scrapegraphai")
+                scraping_solution = self.assistant.get("scraping_solution", global_default)
                 
-                if not sg_api_key:
-                    self.add_system_message(f"⚠️ Aucune clé API configurée pour le scraping ({sg_provider}). Veuillez vérifier la configuration dans Administration.")
-                    return
+                # Définir le callback pour les logs du scraper
+                def log_scraper(msg):
+                    # Utiliser after pour être thread-safe avec Tkinter
+                    try:
+                        self.after(0, lambda: self.add_system_message(f"🕸️ {msg}"))
+                    except:
+                        pass
 
-                # Mapper le nom du provider pour AIScraper
-                provider_code = "openai"
-                if "Gemini" in sg_provider:
-                    provider_code = "google"
-                elif "Groq" in sg_provider:
-                    provider_code = "groq"
+                scraper_params = {
+                    "assistant_id": str(self.assistant.get('id', 'unknown')),
+                    "assistant_name": self.assistant.get('name', 'Unknown'),
+                    "log_callback": log_scraper
+                }
                 
-                # Mapper le modèle (simplifié)
-                model_code = "gpt-4o-mini"
-                if "Gemini" in sg_provider:
-                    model_code = "gemini-2.0-flash-exp"
-                elif "Llama" in sg_provider:
-                    model_code = "llama-3.1-8b-instant"
-                
-                self.add_system_message(f"🤖 Scraping avec {sg_provider}...")
+                # Configuration spécifique pour ScrapeGraphAI
+                if scraping_solution == "scrapegraphai":
+                    sg_provider = settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
+                    sg_api_key = settings.get("api_keys", {}).get(sg_provider)
+                    
+                    if not sg_api_key:
+                        self.add_system_message(f"⚠️ Aucune clé API configurée pour le scraping ({sg_provider}). Veuillez vérifier la configuration dans Administration.")
+                        return
 
-                # Créer le scraper IA avec les infos de l'assistant
-                ai_scraper = AIScraper(
-                    api_key=sg_api_key,
-                    model=model_code,
-                    provider=provider_code,
-                    assistant_id=str(self.assistant.get('id', 'unknown')),
-                    assistant_name=self.assistant.get('name', 'Unknown')
-                )
+                    # Mapper le nom du provider pour AIScraper
+                    provider_code = "openai"
+                    if "Gemini" in sg_provider:
+                        provider_code = "google"
+                    elif "Groq" in sg_provider:
+                        provider_code = "groq"
+                    
+                    # Mapper le modèle (simplifié)
+                    model_code = "gpt-4o-mini"
+                    if "Gemini" in sg_provider:
+                        model_code = "gemini-2.0-flash-exp"
+                    elif "Llama" in sg_provider:
+                        model_code = "llama-3.1-8b-instant"
+                    
+                    self.add_system_message(f"🤖 Scraping avec {sg_provider}...")
+                    
+                    scraper_params.update({
+                        "api_key": sg_api_key,
+                        "model": model_code,
+                        "provider": provider_code
+                    })
+                else:
+                    scraping_browser = settings.get("scraping_browser", "firefox")
+                    self.add_system_message(f"🎭 Scraping avec Playwright ({scraping_browser})...")
+                    # Configurer le mode headless selon les paramètres
+                    scraper_params["headless"] = not settings.get("visible_mode", False)
+                    scraper_params["browser_type"] = scraping_browser
+                    
+                    # Tentative de récupération d'une clé Gemini pour la Vision (Plan B)
+                    # On cherche une clé qui contient "Gemini" ou "Google"
+                    api_keys = settings.get("api_keys", {})
+                    gemini_key = next((v for k, v in api_keys.items() if "Gemini" in k or "Google" in k), None)
+                    
+                    if gemini_key:
+                        self.add_system_message("🧠 Vision Scraping activé (au cas où)")
+                        scraper_params["llm_api_key"] = gemini_key
+                        scraper_params["llm_model"] = "gemini-2.0-flash-exp" # Modèle performant pour la vision
+                
+                # Créer le scraper via la factory
+                scraper = ScraperFactory.create_scraper(scraping_solution, **scraper_params)
                 
                 # Exécuter la recherche avec l'IA (retourne tuple: results, filepath)
-                search_results, results_filepath = ai_scraper.search(
+                search_results, results_filepath = scraper.search(
                     url=self.assistant.get('target_url'),
                     query=query,
                     extraction_prompt=url_instructions
@@ -539,11 +575,17 @@ RÉSULTATS TROUVÉS :
 {results_text}
 
 INSTRUCTIONS :
-Analyse ces résultats et présente-les de manière claire, structurée et utile pour l'utilisateur.
-- Si ce sont des annonces/produits, résume les points principaux de chaque élément
-- Si ce sont des données structurées, organise-les en liste ou tableau
-- Mets en évidence les informations les plus pertinentes
-- Si aucun résultat n'a été trouvé, explique-le clairement et suggère des alternatives
+Analyse ces résultats et présente-les de manière claire.
+Tu DOIS structurer ta réponse en deux parties distinctes :
+
+Partie 1 : Analyse détaillée
+- Résume les points principaux
+- Mets en évidence les informations pertinentes
+
+Partie 2 : Synthèse à exporter
+- Cette partie doit contenir UNIQUEMENT un tableau Markdown.
+- Ce tableau servira à l'export Excel.
+- Colonnes suggérées : Nom, Prix, Liens, Description courte (adapte selon les données).
 """
                         
                         # Utiliser le prompt d'analyse au lieu des résultats bruts
@@ -609,7 +651,7 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=500,
+            max_tokens=4000,
             temperature=0.7
         )
         
@@ -640,7 +682,7 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message}
                 ],
-                max_tokens=500,
+                max_tokens=4000,
                 temperature=0.7
             )
             return response.choices[0].message.content
@@ -684,7 +726,7 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
         
         response = client.messages.create(
             model="claude-opus-4-20250514",
-            max_tokens=500,
+            max_tokens=4000,
             system=system_prompt,
             messages=[
                 {"role": "user", "content": user_message}
@@ -705,7 +747,7 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=500,
+            max_tokens=4000,
             temperature=0.7
         )
         
@@ -726,7 +768,7 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
         response = client.chat.complete(
             model="mistral-small-latest",
             messages=messages,
-            max_tokens=500
+            max_tokens=4000
         )
         
         return response.choices[0].message.content
@@ -746,7 +788,7 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message}
             ],
-            max_tokens=500,
+            max_tokens=4000,
             temperature=0.7
         )
         
@@ -771,27 +813,45 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
             {"role": "user", "content": user_message}
         ]
         
-        response = client.chat_completion(
-            messages=messages,
-            model="Qwen/Qwen2.5-72B-Instruct",
-            max_tokens=500,
-            temperature=0.7
-        )
+        # Retry mechanism pour gérer les timeouts (504)
+        import time
+        max_retries = 3
+        last_error = None
         
-        return response.choices[0].message.content
-
+        for attempt in range(max_retries):
+            try:
+                response = client.chat_completion(
+                    messages=messages,
+                    model="Qwen/Qwen2.5-72B-Instruct",
+                    max_tokens=4000,
+                    temperature=0.7
+                )
+                return response.choices[0].message.content
+                
+            except Exception as e:
+                last_error = e
+                error_str = str(e)
+                print(f"[HF Retry] Tentative {attempt+1}/{max_retries} échouée: {error_str}")
+                
+                # Si erreur 504 (Timeout) ou 503 (Unavailable) ou 429 (Too Many Requests)
+                if "504" in error_str or "503" in error_str or "429" in error_str:
+                    time.sleep(2 * (attempt + 1))  # Backoff exponentiel : 2s, 4s, 6s
+                    continue
+                else:
+                    # Autres erreurs (401, 400, etc) ne servent à rien de réessayer
+                    raise e
     def export_to_excel(self):
-        """Exporte le tableau de la 'Partie 2 : Synthèse à exporter' vers Excel."""
+        """Exporte tous les tableaux de la 'Partie 2 : Synthèse à exporter' vers des onglets Excel séparés."""
         if not self.history:
             messagebox.showinfo("Info", "Aucun message à exporter.")
             return
             
-        # Rechercher la "Partie 2" dans les messages de l'assistant
+        # Rechercher la "Partie 2" dans TOUS les messages de l'assistant
         target_section = "Partie 2 : Synthèse à exporter"
-        table_data = None
+        found_tables = []
         
-        # Parcourir l'historique à l'envers pour trouver le dernier message pertinent
-        for msg in reversed(self.history):
+        # Parcourir l'historique dans l'ordre chronologique
+        for i, msg in enumerate(self.history):
             if msg["role"] == "Assistant" and target_section in msg["content"]:
                 # Extraire le contenu après le titre de la section
                 content = msg["content"]
@@ -801,10 +861,16 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
                 # Chercher un tableau Markdown
                 table_data = self._parse_markdown_table(section_content)
                 if table_data:
-                    break
+                    # Ajouter un timestamp ou un index pour l'identification
+                    timestamp = msg.get("timestamp", datetime.datetime.now()).strftime("%H-%M")
+                    found_tables.append({
+                        "id": len(found_tables) + 1,
+                        "timestamp": timestamp,
+                        "data": table_data
+                    })
         
-        if not table_data:
-            messagebox.showwarning("Attention", f"Aucune table trouvée dans la section '{target_section}'.\nAssurez-vous que l'assistant a généré cette section avec un tableau.")
+        if not found_tables:
+            messagebox.showwarning("Attention", f"Aucune table trouvée dans les sections '{target_section}'.\\nAssurez-vous que l'assistant a généré ces sections.")
             return
 
         try:
@@ -815,8 +881,8 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
             filename = filedialog.asksaveasfilename(
                 defaultextension=".xlsx",
                 filetypes=[("Excel files", "*.xlsx"), ("All files", "*.*")],
-                initialfile=f"synthese_export_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                title="Exporter la synthèse"
+                initialfile=f"chatbot_export_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                title=f"Exporter {len(found_tables)} résultat(s)"
             )
             
             if not filename:
@@ -824,54 +890,69 @@ Analyse ces résultats et présente-les de manière claire, structurée et utile
             
             # Créer le classeur Excel
             wb = Workbook()
-            ws = wb.active
-            ws.title = "Synthèse"
+            # Supprimer la feuille par défaut si on va en créer d'autres, 
+            # ou la renommer pour le premier résultat
+            default_ws = wb.active
             
-            # Styles
+            # Styles communs
             header_fill = PatternFill(start_color="4CAF50", end_color="4CAF50", fill_type="solid")
             header_font = Font(bold=True, color="FFFFFF")
             center_align = Alignment(horizontal="center", vertical="center", wrap_text=True)
             thin_border = Border(left=Side(style='thin'), right=Side(style='thin'), top=Side(style='thin'), bottom=Side(style='thin'))
             
-            # Écrire les en-têtes
-            if table_data["headers"]:
-                ws.append(table_data["headers"])
-                for col_idx, cell in enumerate(ws[1], 1):
-                    cell.fill = header_fill
-                    cell.font = header_font
-                    cell.alignment = center_align
-                    cell.border = thin_border
-            
-            # Écrire les données
-            for row in table_data["rows"]:
-                ws.append(row)
-                # Appliquer les bordures et l'alignement à la dernière ligne ajoutée
-                for cell in ws[ws.max_row]:
-                    cell.border = thin_border
-                    cell.alignment = Alignment(vertical="center", wrap_text=True)
-            
-            # Ajuster la largeur des colonnes
-            for col in ws.columns:
-                max_length = 0
-                column = col[0].column_letter # Get the column name
-                for cell in col:
-                    try:
-                        if len(str(cell.value)) > max_length:
-                            max_length = len(str(cell.value))
-                    except:
-                        pass
-                adjusted_width = (max_length + 2)
-                # Limiter la largeur max pour éviter des colonnes géantes
-                ws.column_dimensions[column].width = min(adjusted_width, 50)
+            for index, item in enumerate(found_tables):
+                # Créer ou récupérer la feuille
+                if index == 0:
+                    ws = default_ws
+                else:
+                    ws = wb.create_sheet()
+                
+                # Nom de l'onglet : Resultat 1 (14-30), Resultat 2...
+                sheet_title = f"Resultat {item['id']} ({item['timestamp']})"
+                # Excel limite les noms d'onglets à 31 caractères et interdit certains comme : / \\ ? * [ ]
+                safe_title = "".join([c for c in sheet_title if c not in r"[]:*?/\\"])
+                ws.title = safe_title[:31] # Maximium 31 chars
+                
+                table_data = item["data"]
+                
+                # Écrire les en-têtes
+                if table_data["headers"]:
+                    ws.append(table_data["headers"])
+                    for col_idx, cell in enumerate(ws[1], 1):
+                        cell.fill = header_fill
+                        cell.font = header_font
+                        cell.alignment = center_align
+                        cell.border = thin_border
+                
+                # Écrire les données
+                for row in table_data["rows"]:
+                    ws.append(row)
+                    # Appliquer les bordures et l'alignement
+                    for cell in ws[ws.max_row]:
+                        cell.border = thin_border
+                        cell.alignment = Alignment(vertical="center", wrap_text=True)
+                
+                # Ajuster la largeur des colonnes
+                for col in ws.columns:
+                    max_length = 0
+                    column = col[0].column_letter
+                    for cell in col:
+                        try:
+                            if len(str(cell.value)) > max_length:
+                                max_length = len(str(cell.value))
+                        except:
+                            pass
+                    adjusted_width = (max_length + 2)
+                    ws.column_dimensions[column].width = min(adjusted_width, 60)
             
             # Sauvegarder
             wb.save(filename)
-            messagebox.showinfo("Succès", f"Synthèse exportée avec succès vers :\n{filename}")
+            messagebox.showinfo("Succès", f"Export terminé avec succès !\\n{len(found_tables)} onglets créés dans {os.path.basename(filename)}")
             
-        except ImportError:
-            messagebox.showerror("Erreur", "Le module 'openpyxl' est manquant. Veuillez l'installer.")
         except Exception as e:
-            messagebox.showerror("Erreur", f"Une erreur est survenue lors de l'export :\n{str(e)}")
+            messagebox.showerror("Erreur", f"Erreur lors de l'export Excel : {str(e)}")
+            import traceback
+            traceback.print_exc()
 
     def _parse_markdown_table(self, text):
         """Parse un tableau Markdown dans le texte donné."""

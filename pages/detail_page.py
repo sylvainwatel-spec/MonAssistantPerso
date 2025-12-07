@@ -210,7 +210,38 @@ class AssistantDetailFrame(ctk.CTkFrame):
             variable=self.provider_var,
             width=400
         )
-        self.provider_dropdown.grid(row=19, column=0, pady=(0, 30), sticky="w")
+        self.provider_dropdown.grid(row=19, column=0, pady=(0, 20), sticky="w")
+
+        # Scraping Solution selection
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="🔧 Solution de Scraping",
+            font=("Arial", 14, "bold")
+        ).grid(row=20, column=0, pady=(0, 5), sticky="w")
+        
+        # Récupérer la solution par défaut depuis les settings
+        default_solution = settings.get("scraping_solution", "scrapegraphai")
+        current_solution = self.assistant.get("scraping_solution", default_solution)
+        
+        self.scraping_solution_var = ctk.StringVar(value=current_solution)
+        scraping_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
+        scraping_frame.grid(row=21, column=0, pady=(0, 20), sticky="w")
+        
+        radio_scrapegraph = ctk.CTkRadioButton(
+            scraping_frame,
+            text="🤖 ScrapeGraphAI (IA - Payant)",
+            variable=self.scraping_solution_var,
+            value="scrapegraphai"
+        )
+        radio_scrapegraph.pack(side="left", padx=(0, 20))
+        
+        radio_playwright = ctk.CTkRadioButton(
+            scraping_frame,
+            text="🎭 Playwright (Gratuit)",
+            variable=self.scraping_solution_var,
+            value="playwright"
+        )
+        radio_playwright.pack(side="left")
     
     def save_changes(self):
         """Sauvegarde les modifications de l'assistant."""
@@ -223,7 +254,9 @@ class AssistantDetailFrame(ctk.CTkFrame):
         response_format = self.text_response_format.get("1.0", "end-1c").strip()
         target_url = self.entry_url.get().strip()
         url_instructions = self.text_url_instructions.get("1.0", "end-1c").strip()
+        url_instructions = self.text_url_instructions.get("1.0", "end-1c").strip()
         provider = self.provider_var.get()
+        scraping_solution = self.scraping_solution_var.get()
         
         # Validation
         if not name:
@@ -246,7 +279,8 @@ class AssistantDetailFrame(ctk.CTkFrame):
             response_format=response_format,
             target_url=target_url,
             url_instructions=url_instructions,
-            provider=provider
+            provider=provider,
+            scraping_solution=scraping_solution
         )
         
         # Afficher un message de succès
