@@ -349,6 +349,56 @@ class LLMConnectionTester:
         except Exception as e:
             return False, f"Erreur Provider Compatible: {str(e)}"
 
+    @staticmethod
+    def test_iaka(api_key: str, base_url: str) -> Tuple[bool, str]:
+        """
+        Test de connexion au connector IAKA.
+        
+        Args:
+            api_key: Clé API
+            base_url: URL de base de l'API (ex: https://iaka-api...)
+            
+        Returns:
+            Tuple (succès: bool, message: str)
+        """
+        try:
+            from openai import OpenAI
+            
+            if not base_url:
+                return False, "URL de base (Endpoint) manquante."
+            
+            # Construction de l'URL spécifique IAKA
+            # Structure : {BASE_URL}/{CODE_MODEL}/v1
+            model_name = "mistral-small"
+            
+            # Nettoyage de l'URL de base (retirer le slash final si présent)
+            clean_base_url = base_url.rstrip('/')
+            
+            # Construction de l'URL complète
+            full_url = f"{clean_base_url}/{model_name}/v1"
+            
+            client = OpenAI(
+                api_key=api_key,
+                base_url=full_url
+            )
+            
+            # Requête simple pour tester
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[{"role": "user", "content": "Hello"}],
+                temperature=0.1,
+                top_p=1,
+                max_tokens=5,
+                stream=False
+            )
+            
+            content = response.choices[0].message.content if response.choices else ""
+            
+            return True, f"Connexion réussie à IAKA !\nURL: {full_url}\nModèle: {model_name}\nRéponse: {content}"
+            
+        except Exception as e:
+            return False, f"Erreur IAKA: {str(e)}"
+
     @classmethod
     def test_provider(cls, provider_name: str, api_key: str, **kwargs: Any) -> Tuple[bool, str]:
         """
@@ -374,7 +424,7 @@ class LLMConnectionTester:
             "DeepSeek-V3": cls.test_deepseek,
             "DeepSeek-VL": cls.test_deepseek_vl,
             "Hugging Face (Mistral/Mixtral)": cls.test_huggingface,
-            "IAKA (Interne)": lambda k: cls.test_openai_compatible(k, kwargs.get('base_url', ''))
+            "IAKA (Interne)": lambda k: cls.test_iaka(k, kwargs.get('base_url', ''))
         }
         
         # Récupération de la méthode appropriée

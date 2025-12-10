@@ -37,3 +37,7 @@ ENV/
 assistants.json
 settings.json
 .secret.key
+
+# Runtime Data
+chrome_persistent_profile/
+resultats/

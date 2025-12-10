@@ -73,6 +73,10 @@ class AIScraper:
                 "verbose": True,
                 "headless": False,  # Mode visible pour voir le CAPTCHA si nécessaire
                 "browser_type": "chromium",  # Utiliser Chromium
+                "storage_state": "browser_context.json",  # Persistance des cookies
+                "loader_kwargs": {
+                    "args": ["--disable-blink-features=AutomationControlled", "--no-sandbox", "--start-maximized"],
+                }
             }
             
             # Adaptation pour les providers spécifiques
@@ -265,6 +269,10 @@ class AIScraper:
                 "verbose": True,
                 "headless": False,  # Mode visible pour voir le CAPTCHA si nécessaire
                 "browser_type": "chromium",  # Utiliser Chromium
+                "storage_state": "browser_context.json",  # Persistance des cookies
+                "loader_kwargs": {
+                    "args": ["--disable-blink-features=AutomationControlled", "--no-sandbox", "--start-maximized"],
+                }
             }
             
             # Adaptation pour les providers spécifiques

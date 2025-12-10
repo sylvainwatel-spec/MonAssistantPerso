@@ -81,3 +81,22 @@ Si vous ne pouvez pas installer Python ou les dépendances sur le poste cible (r
 1.  Copiez simplement le fichier `MonAssistantPerso.exe`.
 2.  Lancez-le.
     *Note : Les fonctionnalités de scraping (navigation web) peuvent nécessiter des navigateurs. Si elles échouent, il faudra peut-être installer les navigateurs Playwright manuellement si possible, ou copier le dossier de cache des navigateurs.*
+
+## 6. Migration depuis un autre PC
+
+Si vous installez l'application sur un nouveau PC et souhaitez récupérer vos assistants et votre configuration (clés API), vous devez copier manuellement certains fichiers depuis votre ancienne installation.
+
+Ces fichiers ne sont pas inclus dans le dépôt Git pour des raisons de sécurité.
+
+### Fichiers à copier :
+
+Copiez les fichiers suivants de la racine du dossier de l'application sur l'ancien PC vers la racine du dossier sur le nouveau PC :
+
+1.  **`assistants.json`** : Contient tous vos assistants créés.
+2.  **`settings.json`** : Contient votre configuration (Clés API, modèle par défaut, thème, etc.).
+3.  **`.secret.key`** : **IMPORTANT**. C'est la clé qui permet de déchiffrer vos clés API stockées dans `settings.json`. Si vous ne copiez pas ce fichier, votre fichier `settings.json` sera illisible.
+
+### Procédure :
+1.  Installez l'application sur le nouveau PC (suivez les étapes 1 et 2 de ce guide).
+2.  Copiez/Collez les 3 fichiers ci-dessus dans le dossier de l'application sur le nouveau PC.
+3.  Lancez l'application. Vous devriez retrouver tout votre environnement.

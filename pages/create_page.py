@@ -104,7 +104,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             self.scrollable_frame,
             text="💬 Description courte *",
             font=("Arial", 14, "bold")
-        ).grid(row=5, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=7, column=0, pady=(0, 5), sticky="w")
         
         self.entry_desc = ctk.CTkEntry(
             self.scrollable_frame,
@@ -112,14 +112,14 @@ class CreateAssistantFrame(ctk.CTkFrame):
             height=40,
             font=("Arial", 12)
         )
-        self.entry_desc.grid(row=6, column=0, pady=(0, 20), sticky="ew")
+        self.entry_desc.grid(row=8, column=0, pady=(0, 20), sticky="ew")
 
         # Rôle
         ctk.CTkLabel(
             self.scrollable_frame,
             text="🎭 Rôle",
             font=("Arial", 14, "bold")
-        ).grid(row=7, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=9, column=0, pady=(0, 5), sticky="w")
         
         self.text_role = ctk.CTkTextbox(
             self.scrollable_frame,
@@ -127,7 +127,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_role.grid(row=8, column=0, pady=(0, 20), sticky="ew")
+        self.text_role.grid(row=10, column=0, pady=(0, 20), sticky="ew")
         self.text_role.insert("1.0", "Ex: Expert en marketing digital avec 10 ans d'expérience...")
 
         # Contexte
@@ -135,7 +135,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             self.scrollable_frame,
             text="🌍 Contexte",
             font=("Arial", 14, "bold")
-        ).grid(row=9, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=11, column=0, pady=(0, 5), sticky="w")
         
         self.text_context = ctk.CTkTextbox(
             self.scrollable_frame,
@@ -143,7 +143,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_context.grid(row=10, column=0, pady=(0, 20), sticky="ew")
+        self.text_context.grid(row=12, column=0, pady=(0, 20), sticky="ew")
         self.text_context.insert("1.0", "Ex: Vous travaillez pour une agence de marketing digital...")
 
         # Objectif
@@ -151,7 +151,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             self.scrollable_frame,
             text="🎯 Objectif",
             font=("Arial", 14, "bold")
-        ).grid(row=11, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=13, column=0, pady=(0, 5), sticky="w")
         
         self.text_objective = ctk.CTkTextbox(
             self.scrollable_frame,
@@ -159,7 +159,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_objective.grid(row=12, column=0, pady=(0, 20), sticky="ew")
+        self.text_objective.grid(row=14, column=0, pady=(0, 20), sticky="ew")
         self.text_objective.insert("1.0", "Ex: Aider à créer des campagnes marketing efficaces...")
 
         # Limites
@@ -167,7 +167,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             self.scrollable_frame,
             text="⚠️ Limites",
             font=("Arial", 14, "bold")
-        ).grid(row=13, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=15, column=0, pady=(0, 5), sticky="w")
         
         self.text_limits = ctk.CTkTextbox(
             self.scrollable_frame,
@@ -175,7 +175,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_limits.grid(row=14, column=0, pady=(0, 20), sticky="ew")
+        self.text_limits.grid(row=16, column=0, pady=(0, 20), sticky="ew")
         self.text_limits.insert("1.0", "Ex: Ne pas donner de conseils financiers ou juridiques...")
 
         # Format de réponse
@@ -183,7 +183,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             self.scrollable_frame,
             text="📋 Format de réponse",
             font=("Arial", 14, "bold")
-        ).grid(row=15, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=17, column=0, pady=(0, 5), sticky="w")
         
         self.text_response_format = ctk.CTkTextbox(
             self.scrollable_frame,
@@ -191,7 +191,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_response_format.grid(row=16, column=0, pady=(0, 30), sticky="ew")
+        self.text_response_format.grid(row=18, column=0, pady=(0, 30), sticky="ew")
         self.text_response_format.insert("1.0", "Ex: Réponses structurées avec bullet points et exemples concrets...")
 
         # URL Analysis Section (Moved to bottom)
@@ -199,10 +199,10 @@ class CreateAssistantFrame(ctk.CTkFrame):
             self.scrollable_frame,
             text="🌐 URL à analyser (Optionnel)",
             font=("Arial", 14, "bold")
-        ).grid(row=17, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=19, column=0, pady=(0, 5), sticky="w")
 
         self.url_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
-        self.url_frame.grid(row=18, column=0, pady=(0, 20), sticky="ew")
+        self.url_frame.grid(row=20, column=0, pady=(0, 20), sticky="ew")
         self.url_frame.grid_columnconfigure(0, weight=1)
 
         self.entry_url = ctk.CTkEntry(
@@ -230,7 +230,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             text="📝 Données à extraire (décrivez en français ce que vous voulez)",
             font=("Arial", 12),
             text_color="gray"
-        ).grid(row=19, column=0, pady=(5, 5), sticky="w")
+        ).grid(row=21, column=0, pady=(5, 5), sticky="w")
         
         self.text_url_instructions = ctk.CTkTextbox(
             self.scrollable_frame,
@@ -238,7 +238,7 @@ class CreateAssistantFrame(ctk.CTkFrame):
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_url_instructions.grid(row=20, column=0, pady=(0, 20), sticky="ew")
+        self.text_url_instructions.grid(row=22, column=0, pady=(0, 20), sticky="ew")
         self.text_url_instructions.insert("1.0", """Décrivez simplement ce que vous voulez extraire, par exemple:
 
 "Trouve les annonces avec le titre, le prix et la localisation"
@@ -261,7 +261,7 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
             hover_color=("#45A049", "#2E7D32"),
             command=self.save,
         )
-        btn_save.grid(row=21, column=0, pady=(0, 20))
+        btn_save.grid(row=23, column=0, pady=(0, 20))
 
     def analyze_url(self):
         """Lance l'analyse de l'URL dans un thread séparé."""
