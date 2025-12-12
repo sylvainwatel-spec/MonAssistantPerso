@@ -350,13 +350,14 @@ class LLMConnectionTester:
             return False, f"Erreur Provider Compatible: {str(e)}"
 
     @staticmethod
-    def test_iaka(api_key: str, base_url: str) -> Tuple[bool, str]:
+    def test_iaka(api_key: str, base_url: str, model_name: str = "mistral-small") -> Tuple[bool, str]:
         """
         Test de connexion au connector IAKA.
         
         Args:
             api_key: Clé API
             base_url: URL de base de l'API (ex: https://iaka-api...)
+            model_name: Nom du modèle (défaut: mistral-small)
             
         Returns:
             Tuple (succès: bool, message: str)
@@ -369,7 +370,8 @@ class LLMConnectionTester:
             
             # Construction de l'URL spécifique IAKA
             # Structure : {BASE_URL}/{CODE_MODEL}/v1
-            model_name = "mistral-small"
+            if not model_name:
+                model_name = "mistral-small"
             
             # Nettoyage de l'URL de base (retirer le slash final si présent)
             clean_base_url = base_url.rstrip('/')
@@ -424,7 +426,7 @@ class LLMConnectionTester:
             "DeepSeek-V3": cls.test_deepseek,
             "DeepSeek-VL": cls.test_deepseek_vl,
             "Hugging Face (Mistral/Mixtral)": cls.test_huggingface,
-            "IAKA (Interne)": lambda k: cls.test_iaka(k, kwargs.get('base_url', ''))
+            "IAKA (Interne)": lambda k: cls.test_iaka(k, kwargs.get('base_url', ''), kwargs.get('model', 'mistral-small'))
         }
         
         # Récupération de la méthode appropriée

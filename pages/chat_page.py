@@ -133,10 +133,12 @@ class ChatFrame(ctk.CTkFrame):
             else:
                 # Test de connexion
                 endpoint = None
+                model_name = None
                 if "IAKA" in chat_provider:
                     endpoint = settings.get('endpoints', {}).get(chat_provider)
+                    model_name = settings.get("models", {}).get(chat_provider)
                 
-                success, message = LLMConnectionTester.test_provider(chat_provider, chat_api_key, base_url=endpoint)
+                success, message = LLMConnectionTester.test_provider(chat_provider, chat_api_key, base_url=endpoint, model=model_name)
                 
                 if success:
                     self.add_system_message(f"✅ LLM Chat: Connexion réussie à {chat_provider}")
@@ -165,10 +167,12 @@ class ChatFrame(ctk.CTkFrame):
                 else:
                     # Test de connexion
                     endpoint = None
+                    model_name = None
                     if "IAKA" in sg_provider:
                         endpoint = settings.get('endpoints', {}).get(sg_provider)
+                        model_name = settings.get("models", {}).get(sg_provider)
                     
-                    success, message = LLMConnectionTester.test_provider(sg_provider, sg_api_key, base_url=endpoint)
+                    success, message = LLMConnectionTester.test_provider(sg_provider, sg_api_key, base_url=endpoint, model=model_name)
                     
                     if success:
                         self.add_system_message(f"✅ LLM Scraping: Connexion réussie à {sg_provider}")
@@ -400,9 +404,10 @@ IMPORTANT :
                  response_text = self._call_openai_compatible(api_key, "https://api.deepseek.com", system_prompt, user_message)
             elif "IAKA" in provider:
                 endpoint = settings.get('endpoints', {}).get(provider)
+                model_name = settings.get("models", {}).get(provider, "mistral-small")
                 if not endpoint:
                     raise Exception(f"Endpoint URL non configuré pour {provider}.")
-                response_text = self._call_openai_compatible(api_key, endpoint, system_prompt, user_message)
+                response_text = self._call_iaka(api_key, endpoint, system_prompt, user_message, model_name)
             else:
                 response_text = f"Provider {provider} non supporté pour le moment."
             
@@ -630,8 +635,10 @@ Partie 2 : Synthèse à exporter
                  final_response = self._call_openai_compatible(api_key, "https://api.deepseek.com", system_prompt, new_user_message)
             elif "IAKA" in self.assistant.get('provider', ''):
                 settings = self.app.data_manager.get_settings()
-                endpoint = settings.get('endpoints', {}).get(self.assistant.get('provider', ''))
-                final_response = self._call_openai_compatible(api_key, endpoint, system_prompt, new_user_message)
+                provider_name = self.assistant.get('provider', '')
+                endpoint = settings.get('endpoints', {}).get(provider_name)
+                model_name = settings.get("models", {}).get(provider_name, "mistral-small")
+                final_response = self._call_iaka(api_key, endpoint, system_prompt, new_user_message, model_name)
             else:
                 final_response = "Erreur: Provider non supporté pour la suite de l'action."
                 
@@ -688,6 +695,33 @@ Partie 2 : Synthèse à exporter
             return response.choices[0].message.content
         except Exception as e:
             return f"Erreur lors de l'appel à l'API compatible : {str(e)}"
+
+    def _call_iaka(self, api_key, base_url, system_prompt, user_message, model_name="mistral-small"):
+        """Appelle le connector IAKA avec sa configuration spécifique."""
+        from openai import OpenAI
+        
+        # URL spécifique pour IAKA : {BASE_URL}/{CODE_MODEL}/v1
+        if not model_name:
+            model_name = "mistral-small"
+        clean_base_url = base_url.rstrip('/')
+        full_url = f"{clean_base_url}/{model_name}/v1"
+        
+        client = OpenAI(
+            api_key=api_key,
+            base_url=full_url
+        )
+        
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message}
+            ],
+            temperature=0.7,
+            max_tokens=4000
+        )
+        
+        return response.choices[0].message.content
 
     def _call_gemini(self, api_key, system_prompt, user_message):
         """Appelle l'API Google Gemini."""

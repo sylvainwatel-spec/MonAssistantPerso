@@ -127,48 +127,75 @@ class PlaywrightScraper:
                         args=['--no-sandbox', '--disable-infobars', '--start-maximized']
                     )
             elif self.browser_type in ["chrome", "msedge"]:
-                self._log(f"Lancement du navigateur système (Persistent) : {self.browser_type}")
+                self._log(f"Lancement du navigateur système : {self.browser_type}")
                 
                 import os
-                # Dossier de profil dédié dans le dossier data
-                base_dir = os.path.dirname(self.storage_state_path)
-                user_data_dir = os.path.join(base_dir, f"{self.browser_type}_persistent_profile")
-                if not os.path.exists(user_data_dir):
-                    os.makedirs(user_data_dir, exist_ok=True)
                 
-                launch_kwargs = {
-                    "headless": self.headless,
-                    "user_data_dir": user_data_dir,
-                    "viewport": vp,
-                    "user_agent": ua,
-                    "locale": 'fr-FR',
-                    "timezone_id": 'Europe/Paris',
-                    # args peut être ajouté si nécessaire, mais persistent context est sensible
-                    "args": ["--start-maximized", "--no-sandbox"] # start-maximized est souvent ignoré en persistent
-                }
-
                 # Tentative de détection manuelle du chemin
                 executable_path = self._find_browser_executable(self.browser_type)
+                
+                # Configuration commune
+                launch_kwargs = {
+                    "headless": self.headless,
+                    "viewport": vp,
+                    "args": ["--start-maximized", "--no-sandbox", "--disable-infobars"]
+                }
+                
                 if executable_path:
                     self._log(f"Exécutable trouvé : {executable_path}")
                     launch_kwargs["executable_path"] = executable_path
                 else:
                     launch_kwargs["channel"] = self.browser_type
+                    self._log(f"Exécutable non trouvé, utilisation du channel: {self.browser_type}")
 
+                # 1. Tentative Persistent Context (Plus risqué mais garde les cookies)
                 try:
-                    self._log(f"DEBUG - Attempting Persistent Launch with: {launch_kwargs}")
-                    # Note: launch_persistent_context prend user_data_dir comme premier argument
-                    udd = launch_kwargs.pop("user_data_dir")
-                    self.context = self.playwright.chromium.launch_persistent_context(udd, **launch_kwargs)
-                    self.browser = None # Browser est géré par le context en mode persistent
-                except Exception as e:
-                    self._log(f"⚠️ Échec lancement {self.browser_type} persistent: {e}")
-                    self._log("🔄 Tentative de fallback sur Chromium (bundled)...")
-                    self.browser = self.playwright.chromium.launch(
-                        headless=self.headless,
-                        args=['--no-sandbox', '--disable-infobars', '--start-maximized']
+                    self._log(f"Tentative 1: Mode Persistent...")
+                    
+                    # Dossier de profil dédié
+                    base_dir = os.path.dirname(self.storage_state_path)
+                    user_data_dir = os.path.join(base_dir, f"{self.browser_type}_persistent_profile")
+                    if not os.path.exists(user_data_dir):
+                        os.makedirs(user_data_dir, exist_ok=True)
+                        
+                    # Persistent needs user_data_dir as first arg
+                    persistent_kwargs = launch_kwargs.copy()
+                    
+                    # Persistent launch can be finicky with args, keep it simple
+                    if "args" in persistent_kwargs:
+                        # Some args might conflict with persistent mode
+                        persistent_kwargs["args"] = [a for a in persistent_kwargs["args"] if a != "--start-maximized"]
+
+                    self.context = self.playwright.chromium.launch_persistent_context(
+                        user_data_dir,
+                        user_agent=ua,
+                        locale='fr-FR',
+                        timezone_id='Europe/Paris',
+                        **persistent_kwargs
                     )
-                    self.context = None # Fallback -> standard context required
+                    self.browser = None # Browser managed by context
+                    self._log("✅ Succès lancement Persistent.")
+                    
+                except Exception as e:
+                    self._log(f"⚠️ Échec lancement Persistent: {e}")
+                    
+                    # 2. Tentative Standard Launch (Système)
+                    try:
+                        self._log(f"Tentative 2: Mode Standard (Non-Persistent) sur {self.browser_type}...")
+                        self.browser = self.playwright.chromium.launch(**launch_kwargs)
+                        self.context = None # Will be created later
+                        self._log("✅ Succès lancement Standard.")
+                        
+                    except Exception as e2:
+                        self._log(f"⚠️ Échec lancement Standard: {e2}")
+                        
+                        # 3. Tentative Fallback Chromium Bundled
+                        self._log("🔄 Tentative 3: Fallback sur Chromium (Bundled)...")
+                        self.browser = self.playwright.chromium.launch(
+                            headless=self.headless,
+                            args=['--no-sandbox', '--disable-infobars', '--start-maximized']
+                        )
+                        self.context = None
             else:
                 self.browser = self.playwright.chromium.launch(
                     headless=self.headless,

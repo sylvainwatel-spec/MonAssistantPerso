@@ -24,7 +24,10 @@ class ChatConnectorFrame(ctk.CTkFrame):
         
         self.active_chat_provider = self.settings.get("chat_provider", "OpenAI GPT-4o mini")
         self.api_keys = self.settings.get("api_keys", {})
+        self.active_chat_provider = self.settings.get("chat_provider", "OpenAI GPT-4o mini")
+        self.api_keys = self.settings.get("api_keys", {})
         self.endpoints = self.settings.get("endpoints", {})
+        self.models = self.settings.get("models", {})
 
         # List of all supported LLMs for chat
         self.llm_options = [
@@ -204,7 +207,24 @@ class ChatConnectorFrame(ctk.CTkFrame):
             current_endpoint = self.endpoints.get(self.selected_provider, "")
             self.entry_endpoint = ctk.CTkEntry(endpoint_frame, width=400)
             self.entry_endpoint.insert(0, current_endpoint)
+            self.entry_endpoint = ctk.CTkEntry(endpoint_frame, width=400)
+            self.entry_endpoint.insert(0, current_endpoint)
             self.entry_endpoint.pack(side="left", padx=20, pady=5, fill="x", expand=True)
+
+            # Model Name Section (Only for IAKA) configuration
+            self.entry_model = None
+            model_frame = ctk.CTkFrame(self.detail_panel)
+            model_frame.pack(fill="x", pady=10)
+            ctk.CTkLabel(
+                model_frame,
+                text="Nom du modèle",
+                font=("Arial", 12, "bold"),
+            ).pack(anchor="w", padx=20, pady=(15, 5))
+
+            current_model = self.models.get(self.selected_provider, "mistral-small")
+            self.entry_model = ctk.CTkEntry(model_frame, width=400)
+            self.entry_model.insert(0, current_model)
+            self.entry_model.pack(side="left", padx=20, pady=5, fill="x", expand=True)
 
         btn_save_key = ctk.CTkButton(
             key_frame,
@@ -306,7 +326,13 @@ class ChatConnectorFrame(ctk.CTkFrame):
         # Save endpoint if applicable
         if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
             new_endpoint = self.entry_endpoint.get().strip()
+            new_endpoint = self.entry_endpoint.get().strip()
             self.endpoints[self.selected_provider] = new_endpoint
+            
+        # Save model if applicable
+        if self.selected_provider == "IAKA (Interne)" and self.entry_model:
+            new_model = self.entry_model.get().strip()
+            self.models[self.selected_provider] = new_model
             
         try:
             # Get current scrapegraph_provider to preserve it
@@ -315,7 +341,8 @@ class ChatConnectorFrame(ctk.CTkFrame):
                 self.active_chat_provider, 
                 scrapegraph_provider,
                 self.api_keys, 
-                self.endpoints
+                self.endpoints,
+                self.models
             )
             messagebox.showinfo("Succès", f"Configuration pour {self.selected_provider} enregistrée.")
             self.add_log(f"Configuration enregistrée pour {self.selected_provider}", "success")
@@ -334,6 +361,12 @@ class ChatConnectorFrame(ctk.CTkFrame):
             current_input_endpoint = self.entry_endpoint.get().strip()
             if current_input_endpoint != self.endpoints.get(self.selected_provider, ""):
                 self.endpoints[self.selected_provider] = current_input_endpoint
+        
+        # Save model if changed (for IAKA)
+        if self.selected_provider == "IAKA (Interne)" and self.entry_model:
+            current_input_model = self.entry_model.get().strip()
+            if current_input_model != self.models.get(self.selected_provider, ""):
+                self.models[self.selected_provider] = current_input_model
 
         self.active_chat_provider = self.selected_provider
         try:
@@ -343,7 +376,8 @@ class ChatConnectorFrame(ctk.CTkFrame):
                 self.active_chat_provider, 
                 scrapegraph_provider,
                 self.api_keys, 
-                self.endpoints
+                self.endpoints,
+                self.models
             )
             self.settings = self.app.data_manager.get_settings()
             self.refresh_sidebar()
@@ -371,9 +405,14 @@ class ChatConnectorFrame(ctk.CTkFrame):
         endpoint = None
         if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
             endpoint = self.entry_endpoint.get().strip()
+            
+        # Récupération du modèle si nécessaire
+        model_name = None
+        if self.selected_provider == "IAKA (Interne)" and self.entry_model:
+            model_name = self.entry_model.get().strip()
         
         # Test de connexion via le module LLMConnectionTester
-        success, message = LLMConnectionTester.test_provider(self.selected_provider, api_key, base_url=endpoint)
+        success, message = LLMConnectionTester.test_provider(self.selected_provider, api_key, base_url=endpoint, model=model_name)
         
         if success:
             # Connexion réussie

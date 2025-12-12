@@ -182,13 +182,15 @@ class DataManager:
                 "chat_provider": "OpenAI GPT-4o mini",
                 "scrapegraph_provider": "OpenAI GPT-4o mini",
                 "api_keys": {},
-                "endpoints": {}
+                "endpoints": {},
+                "models": {}
             }
             self.save_configuration(
                 data["chat_provider"], 
                 data["scrapegraph_provider"],
                 data["api_keys"], 
-                data["endpoints"]
+                data["endpoints"],
+                data.get("models", {})
             )
             
         # Migration from old format to new format
@@ -203,7 +205,10 @@ class DataManager:
                 data["chat_provider"],
                 data["scrapegraph_provider"],
                 data.get("api_keys", {}),
-                data.get("endpoints", {})
+                data["scrapegraph_provider"],
+                data.get("api_keys", {}),
+                data.get("endpoints", {}),
+                data.get("models", {})
             )
             
         # Décrypter les clés
@@ -212,18 +217,19 @@ class DataManager:
                 data["api_keys"][provider] = self._decrypt(encrypted_key)
         return data
 
-    def save_configuration(self, chat_provider, scrapegraph_provider, api_keys, endpoints=None, scraping_solution=None, visible_mode=None, scraping_browser=None):
+    def save_configuration(self, chat_provider, scrapegraph_provider, api_keys, endpoints=None, models=None, scraping_solution=None, visible_mode=None, scraping_browser=None):
         """
-        Sauvegarde la configuration complète : providers (chat et scrapegraph), clés API et endpoints.
-        api_keys est un dictionnaire {provider_name: clear_text_key}
-        endpoints est un dictionnaire {provider_name: url} (optionnel)
+        Sauvegarde la configuration complète : providers, clés API, endpoints et modèles.
+        api_keys: {provider_name: clear_text_key}
+        endpoints: {provider_name: url} (optionnel)
+        models: {provider_name: model_name} (optionnel)
         """
         # Charger l'existant sans déclencher de récursion
         try:
             with open(self.settings_path, 'r') as f:
                 current = json.load(f)
         except (json.JSONDecodeError, FileNotFoundError):
-            current = {"api_keys": {}, "endpoints": {}}
+            current = {"api_keys": {}, "endpoints": {}, "models": {}}
         
         # Mise à jour des providers
         current["chat_provider"] = chat_provider
@@ -246,6 +252,8 @@ class DataManager:
             current["api_keys"] = {}
         if "endpoints" not in current:
             current["endpoints"] = {}
+        if "models" not in current:
+            current["models"] = {}
 
         # Décrypter les clés existantes d'abord
         decrypted_keys = {}
@@ -261,13 +269,20 @@ class DataManager:
         if endpoints:
             for provider, url in endpoints.items():
                 current["endpoints"][provider] = url
+        
+        # Mise à jour des modèles
+        if models:
+            for provider, model_name in models.items():
+                current["models"][provider] = model_name
             
         # Préparation sauvegarde (Encryption pour les clés uniquement)
         to_save = {
             "chat_provider": chat_provider,
             "scrapegraph_provider": scrapegraph_provider,
             "api_keys": {},
+            "api_keys": {},
             "endpoints": current["endpoints"],
+            "models": current["models"],
             "scraping_solution": current.get("scraping_solution", "scrapegraphai"),
             "visible_mode": current.get("visible_mode", False),
             "scraping_browser": current.get("scraping_browser", "firefox")
