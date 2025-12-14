@@ -1,0 +1,195 @@
+
+import pandas as pd
+import io
+import os
+import matplotlib.pyplot as plt
+from typing import Optional, Tuple, Any, Dict
+from pptx import Presentation
+from pptx.util import Inches, Pt
+
+from core.services.llm_service import LLMService
+
+class DataAnalysisService:
+    def __init__(self, data_manager):
+        self.data_manager = data_manager
+        self.df: Optional[pd.DataFrame] = None
+        self.current_filename: str = ""
+
+    def load_file(self, file_path: str) -> bool:
+        """Load a CSV or Excel file into a pandas DataFrame."""
+        try:
+            filename = os.path.basename(file_path)
+            if file_path.endswith('.csv'):
+                self.df = pd.read_csv(file_path)
+            elif file_path.endswith(('.xls', '.xlsx')):
+                self.df = pd.read_excel(file_path)
+            else:
+                return False
+            
+            self.current_filename = filename
+            return True
+        except Exception as e:
+            print(f"Error loading file: {e}")
+            return False
+
+    def get_basic_stats(self) -> str:
+        """Return a string summary of the dataframe."""
+        if self.df is None:
+            return "Aucune donnée chargée."
+        
+        buffer = io.StringIO()
+        self.df.info(buf=buffer)
+        info_str = buffer.getvalue()
+        
+        stats = f"Nom du fichier: {self.current_filename}\n"
+        stats += f"Dimensions: {self.df.shape[0]} lignes, {self.df.shape[1]} colonnes\n\n"
+        stats += "Aperçu (5 premières lignes):\n"
+        stats += self.df.head().to_string() + "\n\n"
+        stats += "Statistiques descriptives:\n"
+        stats += self.df.describe().to_string() + "\n\n"
+        stats += "Info types:\n"
+        stats += info_str
+        
+        return stats
+
+    def generate_chart(self) -> Optional[Any]:
+        """
+        Generate a histogram for the first numeric column.
+        Returns a matplotlib Figure object or None.
+        """
+        if self.df is None:
+            return None
+
+        # Find first numeric column
+        numeric_cols = self.df.select_dtypes(include=['number']).columns
+        if len(numeric_cols) == 0:
+            return None
+        
+        col_name = numeric_cols[0]
+        
+        # Create figure
+        fig, ax = plt.subplots(figsize=(6, 4))
+        self.df[col_name].hist(ax=ax, bins=15, color='skyblue', edgecolor='black')
+        ax.set_title(f"Distribution de {col_name}")
+        ax.set_xlabel(col_name)
+        ax.set_ylabel("Fréquence")
+        plt.tight_layout()
+        
+        return fig
+
+    def analyze_with_llm(self, provider_override: Optional[str] = None) -> str:
+        """Send data summary to LLM for qualitative analysis."""
+        if self.df is None:
+            return "Aucune donnée à analyser."
+
+        # Get settings
+        settings = self.data_manager.get_settings()
+        # Use override, then doc_analyst_provider, then fallback
+        provider = provider_override if provider_override else settings.get("doc_analyst_provider", settings.get("chat_provider", "OpenAI GPT-4o mini"))
+        api_keys = settings.get("api_keys", {})
+        
+        # Resolve key
+        api_key = api_keys.get(provider)
+        if not api_key:
+            # Try to match partial key (e.g. if provider is "OpenAI ...", check "OpenAI ...")
+            # But usually exact match in settings.
+            return f"Clé API manquante pour le provider: {provider}"
+
+        # Prepare Prompt
+        stats_summary = self.get_basic_stats()
+        # Truncate if too long (simple check)
+        if len(stats_summary) > 10000:
+            stats_summary = stats_summary[:10000] + "\n...(tronqué)"
+
+        messages = [
+            {"role": "system", "content": "Tu es un expert en analyse de données. Analyse le résumé statistique suivant et donne des insights pertinents, des tendances ou des points d'attention. Sois concis et professionnel."},
+            {"role": "user", "content": f"Voici les données:\n{stats_summary}"}
+        ]
+
+        success, response = LLMService.generate_response(
+            provider_name=provider,
+            api_key=api_key,
+            messages=messages,
+            # Add other kwargs like base_url if needed from settings endpoints
+            base_url=settings.get("endpoints", {}).get(provider),
+            model=settings.get("models", {}).get(provider)
+        )
+
+        if success:
+            return response
+        else:
+            if "Endpoint manquant pour IAKA" in response:
+                return "Erreur Configuration: L'endpoint IAKA n'est pas configuré.\n\nVeuillez aller dans Administration > Connecteur Chat,\nsélectionner 'IAKA (Interne)' et entrer l'URL de l'endpoint."
+            return f"Erreur lors de l'analyse LLM: {response}"
+
+    def export_to_pptx(self, output_path: str, llm_analysis: str = "") -> bool:
+        """Export analysis to a PowerPoint presentation."""
+        try:
+            prs = Presentation()
+
+            # Slide 1: Title
+            title_slide_layout = prs.slide_layouts[0]
+            slide = prs.slides.add_slide(title_slide_layout)
+            title = slide.shapes.title
+            subtitle = slide.placeholders[1]
+            title.text = f"Analyse de {self.current_filename}"
+            subtitle.text = "Généré par Mon Assistant Perso"
+
+            # Slide 2: Stats Summary
+            bullet_slide_layout = prs.slide_layouts[1]
+            slide = prs.slides.add_slide(bullet_slide_layout)
+            shapes = slide.shapes
+            title_shape = shapes.title
+            body_shape = shapes.placeholders[1]
+            title_shape.text = "Résumé Statistique"
+            
+            tf = body_shape.text_frame
+            tf.text = "Aperçu des données"
+            
+            # Simple stats integration
+            if self.df is not None:
+                p = tf.add_paragraph()
+                p.text = f"Lignes: {self.df.shape[0]}"
+                p = tf.add_paragraph()
+                p.text = f"Colonnes: {self.df.shape[1]}"
+                
+                # Add columns list
+                p = tf.add_paragraph()
+                p.text = "Colonnes: " + ", ".join(self.df.columns[:5]) + ("..." if len(self.df.columns) > 5 else "")
+
+            # Slide 3: LLM Analysis
+            if llm_analysis:
+                slide = prs.slides.add_slide(bullet_slide_layout)
+                title_shape = slide.shapes.title
+                title_shape.text = "Analyse IA"
+                body_shape = slide.shapes.placeholders[1]
+                body_shape.text_frame.text = llm_analysis[:1000] # Truncate to fit roughly
+
+            # Slide 4: Chart
+            fig = self.generate_chart()
+            if fig:
+                blank_slide_layout = prs.slide_layouts[6]
+                slide = prs.slides.add_slide(blank_slide_layout)
+                
+                image_stream = io.BytesIO()
+                fig.savefig(image_stream, format='png')
+                image_stream.seek(0)
+                
+                left = Inches(1)
+                top = Inches(1.5)
+                height = Inches(4.5)
+                slide.shapes.add_picture(image_stream, left, top, height=height)
+                
+                title_box = slide.shapes.add_textbox(Inches(1), Inches(0.5), Inches(8), Inches(1))
+                title_box.text_frame.text = "Visualisation (Premier champ numérique)"
+                
+                # Close figure to free memory
+                plt.close(fig)
+
+            prs.save(output_path)
+            return True
+        except Exception as e:
+            print(f"Error exporting to PPTX: {e}")
+            import traceback
+            traceback.print_exc()
+            return False

@@ -15,6 +15,8 @@ class LLMService:
         try:
             from openai import OpenAI
             client = OpenAI(api_key=api_key)
+            if not model:
+                model = "gpt-4o-mini"
             response = client.chat.completions.create(
                 model=model,
                 messages=messages,
@@ -29,6 +31,8 @@ class LLMService:
         try:
             import google.generativeai as genai
             genai.configure(api_key=api_key)
+            if not model:
+                model = "gemini-1.5-flash"
             model_instance = genai.GenerativeModel(model)
             
             # Convert generic messages to Gemini history format if needed, or simple prompt
@@ -56,6 +60,11 @@ class LLMService:
                 else:
                     filtered_messages.append(msg)
             
+                    filtered_messages.append(msg)
+            
+            if not model:
+                model = "claude-3-opus-20240229"
+
             create_args = {
                 "model": model,
                 "messages": filtered_messages,
@@ -73,6 +82,13 @@ class LLMService:
     def generate_groq(api_key: str, messages: List[Dict[str, str]], model: str = "llama3-8b-8192", **kwargs) -> Tuple[bool, str]:
         try:
             from groq import Groq
+            # Client doesn't need base_url usually, but if needed it typically goes in constructor
+            # For now just remove it from kwargs to avoid the error
+            kwargs.pop('base_url', None)
+            
+            if not model:
+                model = "llama-3.1-8b-instant"
+
             client = Groq(api_key=api_key)
             response = client.chat.completions.create(
                 model=model,
@@ -87,6 +103,12 @@ class LLMService:
     def generate_mistral(api_key: str, messages: List[Dict[str, str]], model: str = "mistral-small-latest", **kwargs) -> Tuple[bool, str]:
         try:
             from mistralai import Mistral
+            # Remove base_url if present
+            kwargs.pop('base_url', None)
+            
+            if not model:
+                model = "mistral-small-latest"
+
             client = Mistral(api_key=api_key)
             response = client.chat.complete(
                 model=model,
