@@ -1,10 +1,10 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
-from utils.llm_connector import LLMConnectionTester
+from core.services.llm_service import LLMService as LLMConnectionTester
 
-class ChatConnectorFrame(ctk.CTkFrame):
-    """Page de configuration du connecteur LLM pour le chat."""
+class ScrapeGraphConnectorFrame(ctk.CTkFrame):
+    """Page de configuration du connecteur LLM pour ScrapeGraphAI."""
     
     def __init__(self, master, app):
         super().__init__(master, fg_color="transparent")
@@ -22,28 +22,19 @@ class ChatConnectorFrame(ctk.CTkFrame):
                 "endpoints": {}
             }
         
-        self.active_chat_provider = self.settings.get("chat_provider", "OpenAI GPT-4o mini")
-        self.api_keys = self.settings.get("api_keys", {})
-        self.active_chat_provider = self.settings.get("chat_provider", "OpenAI GPT-4o mini")
+        self.active_scrapegraph_provider = self.settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
         self.api_keys = self.settings.get("api_keys", {})
         self.endpoints = self.settings.get("endpoints", {})
-        self.models = self.settings.get("models", {})
 
-        # List of all supported LLMs for chat
+        # List of LLMs compatible with ScrapeGraphAI
         self.llm_options = [
-            "Google Gemini 2.5 Flash-Lite",
             "OpenAI GPT-4o mini",
-            "Anthropic Claude Opus 4.5",
-            "Meta Llama 3 (via Groq)",
-            "Mistral NeMo",
-            "DeepSeek-V3",
-            "DeepSeek-VL",
-            "Hugging Face (Mistral/Mixtral)",
-            "IAKA (Interne)"
+            "Google Gemini 2.5 Flash-Lite",
+            "Meta Llama 3 (via Groq)"
         ]
 
         # UI State
-        self.selected_provider = self.active_chat_provider
+        self.selected_provider = self.active_scrapegraph_provider
         
         # Log textbox reference
         self.log_textbox = None
@@ -55,7 +46,7 @@ class ChatConnectorFrame(ctk.CTkFrame):
         # 1. Header (Top)
         self.create_header()
 
-        # 2. Sidebar (Left) - List of LLMs
+        # 2. Sidebar (Left) - List of compatible LLMs
         self.sidebar = ctk.CTkScrollableFrame(self, width=250, corner_radius=0, fg_color=("gray90", "gray15"))
         self.sidebar.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
 
@@ -86,7 +77,7 @@ class ChatConnectorFrame(ctk.CTkFrame):
         )
         btn_back.pack(side="left", padx=10)
 
-        title = ctk.CTkLabel(header, text="💬 Connecteur LLM Chat", font=("Arial", 20, "bold"))
+        title = ctk.CTkLabel(header, text="🤖 Connecteur LLM ScrapeGraphAI", font=("Arial", 20, "bold"))
         title.pack(side="left", padx=20)
 
     def refresh_sidebar(self):
@@ -100,18 +91,32 @@ class ChatConnectorFrame(ctk.CTkFrame):
 
         lbl = ctk.CTkLabel(
             self.sidebar,
-            text="Modèles Disponibles",
+            text="Modèles Compatibles",
             font=("Arial", 14, "bold"),
             text_color="gray60",
         )
         lbl.pack(pady=(10, 5), padx=10, anchor="w")
         self.sidebar_widgets.append(lbl)
 
+        # Info message about compatibility
+        info_frame = ctk.CTkFrame(self.sidebar, fg_color=("gray85", "gray20"), corner_radius=6)
+        info_frame.pack(fill="x", padx=5, pady=(0, 10))
+        self.sidebar_widgets.append(info_frame)
+        
+        info_label = ctk.CTkLabel(
+            info_frame,
+            text="ℹ️ Seuls certains LLMs\nsont compatibles avec\nScrapeGraphAI",
+            font=("Arial", 10),
+            text_color="gray50",
+            justify="left"
+        )
+        info_label.pack(padx=10, pady=10)
+
         for provider in self.llm_options:
             self.create_sidebar_item(provider)
 
     def create_sidebar_item(self, provider):
-        is_active = provider == self.active_chat_provider
+        is_active = provider == self.active_scrapegraph_provider
         is_selected = provider == self.selected_provider
 
         btn_color = ("gray80", "gray25") if is_selected else "transparent"
@@ -167,6 +172,16 @@ class ChatConnectorFrame(ctk.CTkFrame):
             font=("Arial", 24, "bold"),
         ).pack(anchor="w", pady=(0, 5))
 
+        # Compatibility info
+        compat_frame = ctk.CTkFrame(self.detail_panel, fg_color=("lightblue", "darkblue"), corner_radius=8)
+        compat_frame.pack(fill="x", pady=(0, 15))
+        ctk.CTkLabel(
+            compat_frame,
+            text="✓ Ce modèle est compatible avec ScrapeGraphAI",
+            font=("Arial", 11, "bold"),
+            text_color=("darkblue", "lightblue")
+        ).pack(padx=15, pady=10)
+
         # API Key Section
         key_frame = ctk.CTkFrame(self.detail_panel)
         key_frame.pack(fill="x", pady=10)
@@ -192,39 +207,6 @@ class ChatConnectorFrame(ctk.CTkFrame):
             command=self.toggle_key_visibility,
         )
         self.btn_show_hide.pack(side="left", padx=(0, 20))
-
-        # Endpoint URL Section (Only for IAKA)
-        self.entry_endpoint = None
-        if self.selected_provider == "IAKA (Interne)":
-            endpoint_frame = ctk.CTkFrame(self.detail_panel)
-            endpoint_frame.pack(fill="x", pady=10)
-            ctk.CTkLabel(
-                endpoint_frame,
-                text="Endpoint URL",
-                font=("Arial", 12, "bold"),
-            ).pack(anchor="w", padx=20, pady=(15, 5))
-
-            current_endpoint = self.endpoints.get(self.selected_provider, "")
-            self.entry_endpoint = ctk.CTkEntry(endpoint_frame, width=400)
-            self.entry_endpoint.insert(0, current_endpoint)
-            self.entry_endpoint = ctk.CTkEntry(endpoint_frame, width=400)
-            self.entry_endpoint.insert(0, current_endpoint)
-            self.entry_endpoint.pack(side="left", padx=20, pady=5, fill="x", expand=True)
-
-            # Model Name Section (Only for IAKA) configuration
-            self.entry_model = None
-            model_frame = ctk.CTkFrame(self.detail_panel)
-            model_frame.pack(fill="x", pady=10)
-            ctk.CTkLabel(
-                model_frame,
-                text="Nom du modèle",
-                font=("Arial", 12, "bold"),
-            ).pack(anchor="w", padx=20, pady=(15, 5))
-
-            current_model = self.models.get(self.selected_provider, "mistral-small")
-            self.entry_model = ctk.CTkEntry(model_frame, width=400)
-            self.entry_model.insert(0, current_model)
-            self.entry_model.pack(side="left", padx=20, pady=5, fill="x", expand=True)
 
         btn_save_key = ctk.CTkButton(
             key_frame,
@@ -268,18 +250,18 @@ class ChatConnectorFrame(ctk.CTkFrame):
         self.log_textbox.configure(state="disabled")
 
         # Activation Section
-        if self.selected_provider != self.active_chat_provider:
+        if self.selected_provider != self.active_scrapegraph_provider:
             action_frame = ctk.CTkFrame(self.detail_panel, fg_color="transparent")
             action_frame.pack(fill="x", pady=30)
             lbl_info = ctk.CTkLabel(
                 action_frame,
-                text="Voulez-vous utiliser ce modèle comme LLM par défaut pour le chat ?",
+                text="Voulez-vous utiliser ce modèle comme LLM par défaut pour ScrapeGraphAI ?",
                 text_color="gray",
             )
             lbl_info.pack(anchor="w", pady=(0, 10))
             btn_activate = ctk.CTkButton(
                 action_frame,
-                text="Définir comme LLM Chat par Défaut",
+                text="Définir comme LLM ScrapeGraphAI par Défaut",
                 fg_color="#4CAF50",
                 hover_color="#388E3C",
                 height=40,
@@ -322,27 +304,15 @@ class ChatConnectorFrame(ctk.CTkFrame):
     def save_current_key(self):
         new_key = self.entry_key.get().strip()
         self.api_keys[self.selected_provider] = new_key
-        
-        # Save endpoint if applicable
-        if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
-            new_endpoint = self.entry_endpoint.get().strip()
-            new_endpoint = self.entry_endpoint.get().strip()
-            self.endpoints[self.selected_provider] = new_endpoint
-            
-        # Save model if applicable
-        if self.selected_provider == "IAKA (Interne)" and self.entry_model:
-            new_model = self.entry_model.get().strip()
-            self.models[self.selected_provider] = new_model
             
         try:
-            # Get current scrapegraph_provider to preserve it
-            scrapegraph_provider = self.settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
+            # Get current chat_provider to preserve it
+            chat_provider = self.settings.get("chat_provider", "OpenAI GPT-4o mini")
             self.app.data_manager.save_configuration(
-                self.active_chat_provider, 
-                scrapegraph_provider,
+                chat_provider,
+                self.active_scrapegraph_provider,
                 self.api_keys, 
-                self.endpoints,
-                self.models
+                self.endpoints
             )
             messagebox.showinfo("Succès", f"Configuration pour {self.selected_provider} enregistrée.")
             self.add_log(f"Configuration enregistrée pour {self.selected_provider}", "success")
@@ -356,34 +326,21 @@ class ChatConnectorFrame(ctk.CTkFrame):
         if current_input_key != self.api_keys.get(self.selected_provider, ""):
             self.api_keys[self.selected_provider] = current_input_key
             
-        # Save endpoint if changed (for IAKA)
-        if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
-            current_input_endpoint = self.entry_endpoint.get().strip()
-            if current_input_endpoint != self.endpoints.get(self.selected_provider, ""):
-                self.endpoints[self.selected_provider] = current_input_endpoint
-        
-        # Save model if changed (for IAKA)
-        if self.selected_provider == "IAKA (Interne)" and self.entry_model:
-            current_input_model = self.entry_model.get().strip()
-            if current_input_model != self.models.get(self.selected_provider, ""):
-                self.models[self.selected_provider] = current_input_model
-
-        self.active_chat_provider = self.selected_provider
+        self.active_scrapegraph_provider = self.selected_provider
         try:
-            # Get current scrapegraph_provider to preserve it
-            scrapegraph_provider = self.settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
+            # Get current chat_provider to preserve it
+            chat_provider = self.settings.get("chat_provider", "OpenAI GPT-4o mini")
             self.app.data_manager.save_configuration(
-                self.active_chat_provider, 
-                scrapegraph_provider,
+                chat_provider,
+                self.active_scrapegraph_provider,
                 self.api_keys, 
-                self.endpoints,
-                self.models
+                self.endpoints
             )
             self.settings = self.app.data_manager.get_settings()
             self.refresh_sidebar()
             self.refresh_detail_panel()
-            messagebox.showinfo("Succès", f"{self.active_chat_provider} est maintenant le LLM par défaut pour le chat.")
-            self.add_log(f"{self.active_chat_provider} défini comme LLM chat par défaut", "success")
+            messagebox.showinfo("Succès", f"{self.active_scrapegraph_provider} est maintenant le LLM par défaut pour ScrapeGraphAI.")
+            self.add_log(f"{self.active_scrapegraph_provider} défini comme LLM ScrapeGraphAI par défaut", "success")
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors de l'activation : {e}")
             self.add_log(f"Erreur activation: {str(e)}", "error")
@@ -401,18 +358,8 @@ class ChatConnectorFrame(ctk.CTkFrame):
         # Log de début de test
         self.add_log(f"Test de connexion en cours pour {self.selected_provider}...", "info")
         
-        # Récupération de l'endpoint si nécessaire
-        endpoint = None
-        if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
-            endpoint = self.entry_endpoint.get().strip()
-            
-        # Récupération du modèle si nécessaire
-        model_name = None
-        if self.selected_provider == "IAKA (Interne)" and self.entry_model:
-            model_name = self.entry_model.get().strip()
-        
         # Test de connexion via le module LLMConnectionTester
-        success, message = LLMConnectionTester.test_provider(self.selected_provider, api_key, base_url=endpoint, model=model_name)
+        success, message = LLMConnectionTester.test_provider(self.selected_provider, api_key)
         
         if success:
             # Connexion réussie

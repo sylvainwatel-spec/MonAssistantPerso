@@ -346,7 +346,6 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
             endpoints=settings.get("endpoints", {})
         )
 
-
         # Afficher un message de succès
         messagebox.showinfo("Succès", f"L'assistant '{name}' a été créé avec succès !")
 

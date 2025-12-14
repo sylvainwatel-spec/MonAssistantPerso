@@ -23,6 +23,8 @@ class AdminFrame(ctk.CTkFrame):
         
         self.chat_provider = self.settings.get("chat_provider", "OpenAI GPT-4o mini")
         self.scrapegraph_provider = self.settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
+        self.image_gen_provider = self.settings.get("image_gen_provider", "OpenAI DALL-E 3")
+        self.doc_analyst_provider = self.settings.get("doc_analyst_provider", "OpenAI GPT-4o mini")
         self.api_keys = self.settings.get("api_keys", {})
 
         # --- Layout ---
@@ -97,7 +99,15 @@ class AdminFrame(ctk.CTkFrame):
         separator3 = ctk.CTkFrame(self.content_frame, height=2, fg_color=("gray80", "gray30"))
         separator3.grid(row=7, column=0, sticky="ew", pady=30)
 
+
         # System Information Section
+        # System Information Section
+        self.create_financial_section()
+        
+        # Separator
+        separator_fin = ctk.CTkFrame(self.content_frame, height=2, fg_color=("gray80", "gray30"))
+        separator_fin.grid(row=11, column=0, sticky="ew", pady=30)
+ 
         self.create_system_info_section()
 
     def create_chat_section(self):
@@ -327,16 +337,71 @@ class AdminFrame(ctk.CTkFrame):
             endpoints=self.settings.get("endpoints", {}),
             scraping_solution=solution,
             visible_mode=visible_mode,
-            scraping_browser=scraping_browser
+            scraping_browser=scraping_browser,
+            image_gen_provider=self.settings.get("image_gen_provider", "OpenAI DALL-E 3"),
+            doc_analyst_provider=self.settings.get("doc_analyst_provider", "OpenAI GPT-4o mini")
         )
         
         solution_name = "ScrapeGraphAI" if solution == "scrapegraphai" else "Playwright"
         messagebox.showinfo("Succès", f"Solution de scraping changée : {solution_name}")
 
+    def create_image_gen_section(self):
+        """Section pour la génération d'images."""
+        img_frame = ctk.CTkFrame(self.content_frame, fg_color=("gray95", "gray20"), corner_radius=12)
+        img_frame.grid(row=8, column=0, sticky="ew", pady=10)
+        img_frame.grid_columnconfigure(1, weight=1)
+        
+        # Icon and title
+        icon_label = ctk.CTkLabel(img_frame, text="🎨", font=("Arial", 32))
+        icon_label.grid(row=0, column=0, rowspan=2, padx=20, pady=20)
+        
+        title_label = ctk.CTkLabel(
+            img_frame,
+            text="Génération d'Images",
+            font=("Arial", 16, "bold")
+        )
+        title_label.grid(row=0, column=1, sticky="w", pady=(20, 5))
+        
+        # Provider selection
+        self.image_gen_var = ctk.StringVar(value=self.image_gen_provider)
+        
+        provider_menu = ctk.CTkOptionMenu(
+            img_frame,
+            values=["OpenAI DALL-E 3", "OpenAI DALL-E 2", "Stable Diffusion XL", "FLUX.1 [schnell]"],
+            variable=self.image_gen_var,
+            width=200,
+            command=self.save_image_gen_provider
+        )
+        provider_menu.grid(row=1, column=1, sticky="w", pady=(0, 20))
+        
+        # Info
+        info_label = ctk.CTkLabel(
+            img_frame,
+            text="Utilise la clé API OpenAI ou Hugging Face selon le modèle.",
+            font=("Arial", 11),
+            text_color="gray"
+        )
+        info_label.grid(row=2, column=1, sticky="w", pady=(0, 15))
+
+    def save_image_gen_provider(self, choice):
+        self.settings["image_gen_provider"] = choice
+        self.app.data_manager.save_configuration(
+            chat_provider=self.settings.get("chat_provider", ""),
+            scrapegraph_provider=self.settings.get("scrapegraph_provider", ""),
+            api_keys=self.settings.get("api_keys", {}),
+            endpoints=self.settings.get("endpoints", {}),
+            scraping_solution=self.settings.get("scraping_solution", "scrapegraphai"),
+            visible_mode=self.settings.get("visible_mode", False),
+            scraping_browser=self.settings.get("scraping_browser", "firefox"),
+            image_gen_provider=choice,
+            doc_analyst_provider=self.settings.get("doc_analyst_provider", "OpenAI GPT-4o mini")
+        )
+
+
     def create_system_info_section(self):
         """Section d'informations système."""
         info_frame = ctk.CTkFrame(self.content_frame, fg_color=("gray95", "gray20"), corner_radius=12)
-        info_frame.grid(row=8, column=0, sticky="ew", pady=10)
+        info_frame.grid(row=12, column=0, sticky="ew", pady=10)
 
         title_label = ctk.CTkLabel(
             info_frame,
@@ -418,3 +483,69 @@ class AdminFrame(ctk.CTkFrame):
             font=("Arial", 11),
             text_color="gray"
         ).pack(pady=(0, 10))
+
+    def create_financial_section(self):
+        """Section pour l'API Financière Alpha Vantage."""
+        fin_frame = ctk.CTkFrame(self.content_frame, fg_color=("gray95", "gray20"), corner_radius=12)
+        fin_frame.grid(row=10, column=0, sticky="ew", pady=10)
+        fin_frame.grid_columnconfigure(1, weight=1)
+        
+        # Icon and title
+        icon_label = ctk.CTkLabel(fin_frame, text="💰", font=("Arial", 32))
+        icon_label.grid(row=0, column=0, rowspan=3, padx=20, pady=20)
+        
+        title_label = ctk.CTkLabel(
+            fin_frame,
+            text="API Financière (Alpha Vantage)",
+            font=("Arial", 16, "bold")
+        )
+        title_label.grid(row=0, column=1, sticky="w", pady=(20, 5))
+        
+        # API Key Input
+        self.financial_api_key_var = ctk.StringVar(value=self.api_keys.get("alpha_vantage", ""))
+        
+        key_entry = ctk.CTkEntry(
+            fin_frame,
+            textvariable=self.financial_api_key_var,
+            width=300,
+            show="•", # Encrypted view (masked)
+            placeholder_text="Clé API Alpha Vantage"
+        )
+        key_entry.grid(row=1, column=1, sticky="w", pady=(0, 20))
+        
+        # Save Button
+        btn_save_key = ctk.CTkButton(
+            fin_frame,
+            text="💾 Enregistrer",
+            width=100,
+            command=self.save_financial_key
+        )
+        btn_save_key.grid(row=1, column=2, padx=20, pady=(0, 20))
+
+        # Helper link
+        link_label = ctk.CTkLabel(
+            fin_frame,
+            text="Obtenir une clé gratuite : alphavantage.co/support/#api-key",
+            font=("Arial", 10),
+            text_color="blue",
+            cursor="hand2"
+        )
+        link_label.grid(row=2, column=1, sticky="w", pady=(0, 15))
+        link_label.bind("<Button-1>", lambda e: self.app.open_url("https://www.alphavantage.co/support/#api-key"))
+
+    def save_financial_key(self):
+        new_key = self.financial_api_key_var.get().strip()
+        self.api_keys["alpha_vantage"] = new_key
+        
+        self.app.data_manager.save_configuration(
+            chat_provider=self.settings.get("chat_provider", ""),
+            scrapegraph_provider=self.settings.get("scrapegraph_provider", ""),
+            api_keys=self.api_keys, 
+            endpoints=self.settings.get("endpoints", {}),
+            scraping_solution=self.settings.get("scraping_solution", "scrapegraphai"),
+            visible_mode=self.settings.get("visible_mode", False),
+            scraping_browser=self.settings.get("scraping_browser", "firefox"),
+            image_gen_provider=self.settings.get("image_gen_provider", "OpenAI DALL-E 3"),
+            doc_analyst_provider=self.settings.get("doc_analyst_provider", "OpenAI GPT-4o mini")
+        )
+        messagebox.showinfo("Succès", "Clé API Alpha Vantage enregistrée !")

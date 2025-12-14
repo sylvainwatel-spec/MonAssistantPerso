@@ -254,7 +254,6 @@ class AssistantDetailFrame(ctk.CTkFrame):
         response_format = self.text_response_format.get("1.0", "end-1c").strip()
         target_url = self.entry_url.get().strip()
         url_instructions = self.text_url_instructions.get("1.0", "end-1c").strip()
-        url_instructions = self.text_url_instructions.get("1.0", "end-1c").strip()
         provider = self.provider_var.get()
         scraping_solution = self.scraping_solution_var.get()
         

@@ -6,7 +6,7 @@ import os
 # Add parent directory to path to import utils
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from utils.llm_connector import LLMConnectionTester
+from core.services.llm_service import LLMService as LLMConnectionTester
 
 class TestIAKAConnector(unittest.TestCase):
     @patch('openai.OpenAI')

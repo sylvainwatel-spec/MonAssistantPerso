@@ -1,12 +1,14 @@
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
-from utils.llm_connector import LLMConnectionTester
+from core.services.llm_service import LLMService as LLMConnectionTester
 from utils.web_scraper import WebScraper
 from utils.results_manager import ResultsManager
 import threading
 import datetime
 import os
 import logging
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 class ChatFrame(ctk.CTkFrame):
     def __init__(self, master, app, assistant_data):
@@ -261,16 +263,6 @@ class ChatFrame(ctk.CTkFrame):
         self.chat_area.see("end")
     
     def _truncate_results_for_llm(self, results_text, max_chars=5000):
-        """
-        Tronque les résultats s'ils sont trop longs pour le contexte du LLM.
-        
-        Args:
-            results_text: Le texte complet des résultats
-            max_chars: Nombre maximum de caractères à conserver
-            
-        Returns:
-            Texte tronqué avec une note si nécessaire
-        """
         if len(results_text) <= max_chars:
             return results_text
         
@@ -418,11 +410,11 @@ IMPORTANT :
             error_msg = str(e)
             
             # Détection des erreurs courantes pour un message plus clair
-            if "429" in error_msg or "quota" in error_msg.lower():
+            if "429" in error_msg or "402" in error_msg or "quota" in error_msg.lower() or "payment" in error_msg.lower():
                 friendly_msg = (
-                    "⚠️ **Quota API dépassé**\n"
-                    "La clé API utilisée a atteint sa limite.\n"
-                    "Solution : Changez de modèle (ex: Groq, Gemini) dans la modification de l'assistant.\n\n"
+                    "⚠️ **Quota API dépassé (ou Payant)**\n"
+                    "La limite d'utilisation gratuite pour ce modèle est atteinte (Erreur 402/429).\n"
+                    "Solution : Changez de modèle ou de fournisseur (ex: Groq, Gemini) dans les paramètres de l'assistant.\n\n"
                     f"Erreur technique : {error_msg}"
                 )
                 self.add_error_message(friendly_msg)
@@ -906,11 +898,8 @@ Partie 2 : Synthèse à exporter
         if not found_tables:
             messagebox.showwarning("Attention", f"Aucune table trouvée dans les sections '{target_section}'.\\nAssurez-vous que l'assistant a généré ces sections.")
             return
-
-        try:
-            from openpyxl import Workbook
-            from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
             
+        try:
             # Demander l'emplacement de sauvegarde
             filename = filedialog.asksaveasfilename(
                 defaultextension=".xlsx",

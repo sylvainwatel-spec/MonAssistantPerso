@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import io
 import traceback
 from utils.data_manager import DataManager
-from utils.llm_connector import LLMConnectionTester
+from core.services.llm_service import LLMService as LLMConnectionTester
 
 # Force UTF-8 for stdout
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')

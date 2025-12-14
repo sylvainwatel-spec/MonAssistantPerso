@@ -6,8 +6,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from utils.data_manager import DataManager
-from pages.home_page import HomeFrame
-from pages.create_page import CreateAssistantFrame
+from modules.assistants.home import HomeFrame
+from modules.assistants.create import CreateAssistantFrame
 import customtkinter as ctk
 
 # Test if the show_create method works

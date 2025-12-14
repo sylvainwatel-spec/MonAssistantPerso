@@ -9,8 +9,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from utils.data_manager import DataManager
 from utils.resource_handler import resource_path
-from pages.home_page import HomeFrame
-from pages.create_page import CreateAssistantFrame
+from modules.assistants.home import HomeFrame
+from modules.assistants.create import CreateAssistantFrame
 
 class AutoTestApp(ctk.CTk):
     def __init__(self):

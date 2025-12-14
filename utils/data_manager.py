@@ -47,8 +47,13 @@ class DataManager:
         if not os.path.exists(self.settings_path):
             with open(self.settings_path, 'w') as f:
                 json.dump({
-                    "current_provider": "OpenAI GPT-4o mini",
-                    "api_keys": {}
+                    "chat_provider": "OpenAI GPT-4o mini",
+                    "scrapegraph_provider": "OpenAI GPT-4o mini",
+                    "image_gen_provider": "OpenAI DALL-E 3",
+                    "doc_analyst_provider": "OpenAI GPT-4o mini",
+                    "api_keys": {},
+                    "endpoints": {},
+                    "models": {}
                 }, f)
 
     def get_all_assistants(self):
@@ -186,11 +191,13 @@ class DataManager:
                 "models": {}
             }
             self.save_configuration(
-                data["chat_provider"], 
-                data["scrapegraph_provider"],
-                data["api_keys"], 
-                data["endpoints"],
-                data.get("models", {})
+                data.get("chat_provider", "OpenAI GPT-4o mini"), 
+                data.get("scrapegraph_provider", "OpenAI GPT-4o mini"),
+                data.get("api_keys", {}),
+                endpoints=data.get("endpoints", {}),
+                models=data.get("models", {}),
+                image_gen_provider=data.get("image_gen_provider", "OpenAI DALL-E 3"),
+                doc_analyst_provider=data.get("doc_analyst_provider", "OpenAI GPT-4o mini")
             )
             
         # Migration from old format to new format
@@ -205,10 +212,8 @@ class DataManager:
                 data["chat_provider"],
                 data["scrapegraph_provider"],
                 data.get("api_keys", {}),
-                data["scrapegraph_provider"],
-                data.get("api_keys", {}),
-                data.get("endpoints", {}),
-                data.get("models", {})
+                endpoints=data.get("endpoints", {}),
+                models=data.get("models", {})
             )
             
         # Décrypter les clés
@@ -217,7 +222,7 @@ class DataManager:
                 data["api_keys"][provider] = self._decrypt(encrypted_key)
         return data
 
-    def save_configuration(self, chat_provider, scrapegraph_provider, api_keys, endpoints=None, models=None, scraping_solution=None, visible_mode=None, scraping_browser=None):
+    def save_configuration(self, chat_provider, scrapegraph_provider, api_keys, endpoints=None, models=None, scraping_solution=None, visible_mode=None, scraping_browser=None, image_gen_provider=None, doc_analyst_provider=None):
         """
         Sauvegarde la configuration complète : providers, clés API, endpoints et modèles.
         api_keys: {provider_name: clear_text_key}
@@ -234,6 +239,10 @@ class DataManager:
         # Mise à jour des providers
         current["chat_provider"] = chat_provider
         current["scrapegraph_provider"] = scrapegraph_provider
+        if image_gen_provider:
+             current["image_gen_provider"] = image_gen_provider
+        if doc_analyst_provider:
+             current["doc_analyst_provider"] = doc_analyst_provider
         
         # Mise à jour de la solution de scraping si fournie
         if scraping_solution is not None:
@@ -285,7 +294,9 @@ class DataManager:
             "models": current["models"],
             "scraping_solution": current.get("scraping_solution", "scrapegraphai"),
             "visible_mode": current.get("visible_mode", False),
-            "scraping_browser": current.get("scraping_browser", "firefox")
+            "scraping_browser": current.get("scraping_browser", "firefox"),
+            "image_gen_provider": current.get("image_gen_provider", "OpenAI DALL-E 3"),
+            "doc_analyst_provider": current.get("doc_analyst_provider", "OpenAI GPT-4o mini")
         }
         
         for prov, key in decrypted_keys.items():

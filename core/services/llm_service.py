@@ -1,12 +1,137 @@
 """
-Module de connexion aux différents LLM providers.
-Chaque provider a sa propre méthode de test de connexion.
+Core Client Service for LLM connections.
+Handles connection testing and provider management.
 """
 
-from typing import Tuple, Optional, Any, Dict
+from typing import Tuple, Optional, Any, Dict, List
 
-class LLMConnectionTester:
-    """Classe pour tester les connexions aux différents LLM providers."""
+class LLMService:
+    """Service for checking connections and generating responses from various LLM providers."""
+    
+    # --- Generation Methods ---
+
+    @staticmethod
+    def generate_openai(api_key: str, messages: List[Dict[str, str]], model: str = "gpt-4o-mini", **kwargs) -> Tuple[bool, str]:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key)
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                **kwargs
+            )
+            return True, response.choices[0].message.content
+        except Exception as e:
+            return False, f"Erreur OpenAI: {str(e)}"
+
+    @staticmethod
+    def generate_gemini(api_key: str, messages: List[Dict[str, str]], model: str = "gemini-1.5-flash", **kwargs) -> Tuple[bool, str]:
+        try:
+            import google.generativeai as genai
+            genai.configure(api_key=api_key)
+            model_instance = genai.GenerativeModel(model)
+            
+            # Convert generic messages to Gemini history format if needed, or simple prompt
+            # For simplicity in this v1, connecting last user message
+            last_msg = messages[-1]['content']
+            
+            # TODO: Better history handling
+            response = model_instance.generate_content(last_msg)
+            return True, response.text
+        except Exception as e:
+            return False, f"Erreur Gemini: {str(e)}"
+
+    @staticmethod
+    def generate_anthropic(api_key: str, messages: List[Dict[str, str]], model: str = "claude-3-opus-20240229", **kwargs) -> Tuple[bool, str]:
+        try:
+            from anthropic import Anthropic
+            client = Anthropic(api_key=api_key)
+            
+            # Extract system message if present
+            system_prompt = None
+            filtered_messages = []
+            for msg in messages:
+                if msg['role'] == 'system':
+                    system_prompt = msg['content']
+                else:
+                    filtered_messages.append(msg)
+            
+            create_args = {
+                "model": model,
+                "messages": filtered_messages,
+                "max_tokens": 4000
+            }
+            if system_prompt:
+                create_args["system"] = system_prompt
+                
+            response = client.messages.create(**create_args)
+            return True, response.content[0].text
+        except Exception as e:
+            return False, f"Erreur Anthropic: {str(e)}"
+
+    @staticmethod
+    def generate_groq(api_key: str, messages: List[Dict[str, str]], model: str = "llama3-8b-8192", **kwargs) -> Tuple[bool, str]:
+        try:
+            from groq import Groq
+            client = Groq(api_key=api_key)
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                **kwargs
+            )
+            return True, response.choices[0].message.content
+        except Exception as e:
+            return False, f"Erreur Groq: {str(e)}"
+
+    @staticmethod
+    def generate_mistral(api_key: str, messages: List[Dict[str, str]], model: str = "mistral-small-latest", **kwargs) -> Tuple[bool, str]:
+        try:
+            from mistralai import Mistral
+            client = Mistral(api_key=api_key)
+            response = client.chat.complete(
+                model=model,
+                messages=messages,
+                **kwargs
+            )
+            return True, response.choices[0].message.content
+        except Exception as e:
+            return False, f"Erreur Mistral: {str(e)}"
+
+    @staticmethod
+    def generate_huggingface(api_key: str, messages: List[Dict[str, str]], model: str = "mistralai/Mistral-7B-Instruct-v0.2", **kwargs) -> Tuple[bool, str]:
+        try:
+            from huggingface_hub import InferenceClient
+            client = InferenceClient(token=api_key)
+            
+            # Default model if none provided or it's generic
+            if not model or model == "default":
+                model = "mistralai/Mistral-7B-Instruct-v0.2"
+                
+            response = client.chat_completion(
+                messages=messages,
+                model=model,
+                max_tokens=kwargs.get('max_tokens', 4000),
+                temperature=kwargs.get('temperature', 0.7)
+            )
+            return True, response.choices[0].message.content
+        except Exception as e:
+             return False, f"Erreur Hugging Face: {str(e)}"
+
+    @staticmethod
+    def generate_openai_compatible(api_key: str, messages: List[Dict[str, str]], base_url: str, model: str = "default", **kwargs) -> Tuple[bool, str]:
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key=api_key, base_url=base_url)
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                **kwargs
+            )
+            return True, response.choices[0].message.content
+        except Exception as e:
+            return False, f"Erreur Compatible OpenAI: {str(e)}"
+            
+    # --- Testing Methods (Existing) ---
     
     @staticmethod
     def test_openai(api_key: str) -> Tuple[bool, str]:
@@ -437,3 +562,48 @@ class LLMConnectionTester:
         
         # Exécution du test
         return test_method(api_key)
+
+    @classmethod
+    def generate_response(cls, provider_name: str, api_key: str, messages: List[Dict[str, str]], **kwargs: Any) -> Tuple[bool, str]:
+        """
+        Generate a response using the specified provider.
+        
+        Args:
+            provider_name: Name of the provider
+            api_key: API Key
+            messages: List of message dictionaries containing 'role' and 'content'
+            **kwargs: Additional arguments like model, base_url, etc.
+            
+        Returns:
+            Tuple (success: bool, content: str)
+        """
+        if "OpenAI" in provider_name:
+            return cls.generate_openai(api_key, messages, **kwargs)
+        elif "Gemini" in provider_name or "Google" in provider_name:
+            return cls.generate_gemini(api_key, messages, **kwargs)
+        elif "Claude" in provider_name or "Anthropic" in provider_name:
+            return cls.generate_anthropic(api_key, messages, **kwargs)
+        elif "Groq" in provider_name or "Llama" in provider_name:
+            return cls.generate_groq(api_key, messages, **kwargs)
+        elif "Hugging Face" in provider_name:
+            # Handle Hugging Face (before Mistral to avoid ambiguity)
+            return cls.generate_huggingface(api_key, messages, **kwargs)
+        elif "Mistral" in provider_name:
+            return cls.generate_mistral(api_key, messages, **kwargs)
+        elif "DeepSeek" in provider_name:
+            # DeepSeek is OpenAI compatible
+            return cls.generate_openai_compatible(api_key, messages, base_url="https://api.deepseek.com", model="deepseek-chat", **kwargs)
+        elif "IAKA" in provider_name:
+            # Handle IAKA specifically
+            base_url = kwargs.get('base_url')
+            model_name = kwargs.get('model', 'mistral-small')
+            
+            if not base_url:
+                return False, "Endpoint manquant pour IAKA"
+                
+            clean_base_url = base_url.rstrip('/')
+            full_url = f"{clean_base_url}/{model_name}/v1"
+            
+            return cls.generate_openai_compatible(api_key, messages, base_url=full_url, model=model_name, **kwargs)
+        
+        return False, f"Provider {provider_name} non supporté pour la génération."
