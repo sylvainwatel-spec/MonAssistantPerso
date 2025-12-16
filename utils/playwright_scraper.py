@@ -116,12 +116,22 @@ class PlaywrightScraper:
             
             if self.browser_type == "firefox":
                 try:
-                    self.browser = self.playwright.firefox.launch(
-                        headless=self.headless,
-                    )
+                    executable_path = self._find_browser_executable("firefox")
+                    launch_kwargs = {"headless": self.headless}
+                    if executable_path:
+                        self._log(f"Utilisation de Firefox système : {executable_path}")
+                        launch_kwargs["executable_path"] = executable_path
+                    
+                    self.browser = self.playwright.firefox.launch(**launch_kwargs)
+                    self.browser = self.playwright.firefox.launch(**launch_kwargs)
                 except Exception as e:
-                    self._log(f"⚠️ Échec lancement Firefox: {e}")
-                    self._log("🔄 Tentative de fallback sur Chromium (bundled)...")
+                    error_msg = str(e)
+                    if "Target page, context or browser has been closed" in error_msg:
+                         self._log("⚠️ Firefox système a fermé la connexion (Protection ou conflit).")
+                    else:
+                         self._log(f"⚠️ Erreur lancement Firefox système: {error_msg}")
+                    
+                    self._log("🔄 Utilisation du moteur de secours (Chromium Bundled)...")
                     self.browser = self.playwright.chromium.launch(
                         headless=self.headless,
                         args=['--no-sandbox', '--disable-infobars', '--start-maximized']
@@ -296,16 +306,24 @@ class PlaywrightScraper:
         
         if browser_type == "chrome":
             paths = [
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe", # User provided
                 os.path.join(program_files, 'Google', 'Chrome', 'Application', 'chrome.exe'),
                 os.path.join(program_files_x86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
                 os.path.join(local_app_data, 'Google', 'Chrome', 'Application', 'chrome.exe')
             ]
         elif browser_type == "msedge":
              paths = [
+                r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", # User provided
                 os.path.join(program_files, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
                 os.path.join(program_files_x86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
                 os.path.join(local_app_data, 'Microsoft', 'Edge', 'Application', 'msedge.exe')
              ]
+        elif browser_type == "firefox":
+            paths = [
+                r"C:\Program Files\Mozilla Firefox\firefox.exe", # User provided
+                os.path.join(program_files, 'Mozilla Firefox', 'firefox.exe'),
+                os.path.join(program_files_x86, 'Mozilla Firefox', 'firefox.exe'),
+            ]
         
         for path in paths:
             if path and os.path.exists(path):

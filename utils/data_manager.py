@@ -222,12 +222,13 @@ class DataManager:
                 data["api_keys"][provider] = self._decrypt(encrypted_key)
         return data
 
-    def save_configuration(self, chat_provider, scrapegraph_provider, api_keys, endpoints=None, models=None, scraping_solution=None, visible_mode=None, scraping_browser=None, image_gen_provider=None, doc_analyst_provider=None):
+    def save_configuration(self, chat_provider, scrapegraph_provider, api_keys, endpoints=None, models=None, scraping_solution=None, visible_mode=None, scraping_browser=None, image_gen_provider=None, doc_analyst_provider=None, **kwargs):
         """
         Sauvegarde la configuration complète : providers, clés API, endpoints et modèles.
         api_keys: {provider_name: clear_text_key}
         endpoints: {provider_name: url} (optionnel)
         models: {provider_name: model_name} (optionnel)
+        **kwargs: Autres paramètres à sauvegarder (ex: tracked_stocks)
         """
         # Charger l'existant sans déclencher de récursion
         try:
@@ -289,7 +290,6 @@ class DataManager:
             "chat_provider": chat_provider,
             "scrapegraph_provider": scrapegraph_provider,
             "api_keys": {},
-            "api_keys": {},
             "endpoints": current["endpoints"],
             "models": current["models"],
             "scraping_solution": current.get("scraping_solution", "scrapegraphai"),
@@ -298,6 +298,9 @@ class DataManager:
             "image_gen_provider": current.get("image_gen_provider", "OpenAI DALL-E 3"),
             "doc_analyst_provider": current.get("doc_analyst_provider", "OpenAI GPT-4o mini")
         }
+        
+        # Ajouter les autres paramètres (kwargs)
+        to_save.update(kwargs)
         
         for prov, key in decrypted_keys.items():
             to_save["api_keys"][prov] = self._encrypt(key)

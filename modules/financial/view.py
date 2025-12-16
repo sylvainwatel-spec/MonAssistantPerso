@@ -127,7 +127,8 @@ class FinancialAnalysisFrame(ctk.CTkFrame):
             visible_mode=settings.get("visible_mode"),
             scraping_browser=settings.get("scraping_browser"),
             image_gen_provider=settings.get("image_gen_provider"),
-            doc_analyst_provider=settings.get("doc_analyst_provider")
+            doc_analyst_provider=settings.get("doc_analyst_provider"),
+            tracked_stocks=self.tracked_stocks
         )
 
     def load_stock_details(self, symbol):
@@ -192,12 +193,27 @@ class FinancialAnalysisFrame(ctk.CTkFrame):
         # I'll instantiate LLMService here or reuse logic.
         
         from core.services.llm_service import LLMService
-        llm_service = LLMService(self.app.data_manager)
-        provider = self.app.data_manager.get_settings().get("chat_provider", "OpenAI GPT-4o mini")
+
+        # Get Settings
+        settings = self.app.data_manager.get_settings()
+        provider = settings.get("chat_provider", "OpenAI GPT-4o mini")
+        api_keys = settings.get("api_keys", {})
+        api_key = api_keys.get(provider)
         
-        response = llm_service.generate_response(context, [], provider, None) # No image
+        if not api_key:
+             self.after(0, lambda: self._display_advice(f"Erreur: Clé API manquante pour {provider}"))
+             return
+
+        # Prepare messages
+        messages = [{"role": "user", "content": context}]
+
+        # Call Service (Static method)
+        success, response_text = LLMService.generate_response(provider, api_key, messages)
         
-        self.after(0, lambda: self._display_advice(response))
+        if not success:
+             response_text = f"Erreur IA: {response_text}"
+        
+        self.after(0, lambda: self._display_advice(response_text))
         
     def _display_advice(self, response):
         self.txt_analysis.delete("0.0", "end")

@@ -83,6 +83,19 @@ class ScrapingFrame(ctk.CTkFrame):
         )
         self.btn_start.pack(pady=30, padx=20)
 
+        # Connect Analyze Button
+        self.btn_analyze = ctk.CTkButton(
+            config_frame,
+            text="🧠 Analyser le JSON",
+            font=("Arial", 12, "bold"),
+            height=32,
+            fg_color="#673AB7",
+            hover_color="#512DA8",
+            state="disabled",
+            command=self.analyze_results
+        )
+        self.btn_analyze.pack(pady=(0, 20), padx=20)
+
         # --- Right Column: Chat ---
         chat_frame = ctk.CTkFrame(content)
         chat_frame.grid(row=0, column=1, sticky="nsew")
@@ -95,7 +108,7 @@ class ScrapingFrame(ctk.CTkFrame):
 
         # Input Area
         input_area = ctk.CTkFrame(chat_frame, height=50)
-        input_area.grid(row=3, column=0, sticky="ew", padx=10, pady=10) # Moved to row 3 to make space for progress bar at row 2
+        input_area.grid(row=3, column=0, sticky="ew", padx=10, pady=10)
         
         self.msg_entry = ctk.CTkEntry(input_area, placeholder_text="Interagissez avec les résultats...")
         self.msg_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
@@ -113,9 +126,8 @@ class ScrapingFrame(ctk.CTkFrame):
             progress_color=("#4CAF50", "#4CAF50"),
             fg_color=("gray85", "gray25")
         )
-        # We will grid it when needed, e.g. between chat and input
         
-        # Initial Message
+        self.last_results = None
         self.append_chat("System", "Bienvenue dans l'outil de scraping. Configurez l'URL et lancez l'extraction.")
 
     def start_scraping(self):
@@ -127,6 +139,7 @@ class ScrapingFrame(ctk.CTkFrame):
             return
 
         self.btn_start.configure(state="disabled", text="Scraping en cours...")
+        self.btn_analyze.configure(state="disabled") # Disable analyze during scrape
         self.entry_url.configure(state="disabled")
         
         # Show Progress Bar
@@ -171,19 +184,13 @@ class ScrapingFrame(ctk.CTkFrame):
                 if not sg_api_key:
                      raise ValueError(f"Aucune clé API configurée pour {sg_provider}")
                 
-                # Provider Mapping
                 provider_code = "openai"
-                if "Gemini" in sg_provider:
-                    provider_code = "google"
-                elif "Groq" in sg_provider:
-                    provider_code = "groq"
+                if "Gemini" in sg_provider: provider_code = "google"
+                elif "Groq" in sg_provider: provider_code = "groq"
                 
-                # Model Mapping
                 model_code = "gpt-4o-mini"
-                if "Gemini" in sg_provider:
-                    model_code = "gemini-2.0-flash-exp"
-                elif "Llama" in sg_provider:
-                    model_code = "llama-3.1-8b-instant"
+                if "Gemini" in sg_provider: model_code = "gemini-2.0-flash-exp"
+                elif "Llama" in sg_provider: model_code = "llama-3.1-8b-instant"
 
                 scraper_params.update({
                     "api_key": sg_api_key,
@@ -196,7 +203,6 @@ class ScrapingFrame(ctk.CTkFrame):
                  scraper_params["headless"] = not settings.get("visible_mode", False)
                  scraper_params["browser_type"] = scraping_browser
                  
-                 # Vision Fallback (Gemini)
                  api_keys = settings.get("api_keys", {})
                  gemini_key = next((v for k, v in api_keys.items() if "Gemini" in k or "Google" in k), None)
                  
@@ -210,12 +216,13 @@ class ScrapingFrame(ctk.CTkFrame):
             scraper = ScraperFactory.create_scraper(scraping_solution, **scraper_params)
             
             # Using 'options' as the extraction instruction/prompt
-            # Passing 'options' as query too, as simple scrapers might use it as a general prompt
             search_results, results_filepath = scraper.search(
                 url=url, 
                 query=options, 
                 extraction_prompt=options
             )
+            
+            self.last_results = search_results # Store for analysis
             
             self.after(0, lambda: self.append_chat("System", "✅ Scraping terminé !"))
             
@@ -229,7 +236,9 @@ class ScrapingFrame(ctk.CTkFrame):
             if results_filepath:
                  filename = os.path.basename(results_filepath)
                  self.after(0, lambda: self.append_chat("System", f"📁 Sauvegardé dans : {filename}"))
-                 # Could automatically open/load it, but let's stick to display
+                 
+            # Enable Analyze button if results found
+            self.after(0, lambda: self.btn_analyze.configure(state="normal"))
             
         except Exception as e:
             self.after(0, lambda: self.append_chat("System", f"❌ Erreur: {e}"))
@@ -243,6 +252,63 @@ class ScrapingFrame(ctk.CTkFrame):
         self.btn_start.configure(state="normal", text="Lancer le Scraping")
         self.entry_url.configure(state="normal")
 
+    def analyze_results(self):
+        if not self.last_results:
+            self.append_chat("System", "⚠️ Aucun résultat JSON en mémoire à analyser.")
+            return
+
+        self.append_chat("System", "🧠 Analyse IA des résultats en cours...")
+        self.btn_analyze.configure(state="disabled")
+        
+        thread = threading.Thread(target=self._run_analysis_thread)
+        thread.daemon = True
+        thread.start()
+
+    def _run_analysis_thread(self):
+        try:
+            from core.services.llm_service import LLMService
+            
+            settings = self.app.data_manager.get_settings()
+            # Use Chat Provider for analysis
+            provider = settings.get("chat_provider", "OpenAI GPT-4o mini")
+            api_keys = settings.get("api_keys", {})
+            api_key = api_keys.get(provider)
+            
+            if not api_key:
+                self.after(0, lambda: self.append_chat("System", f"❌ Pas de clé API pour {provider}"))
+                return
+
+            import json
+            # JSON serialization for prompt
+            if isinstance(self.last_results, dict) or isinstance(self.last_results, list):
+                json_content = json.dumps(self.last_results, ensure_ascii=False, indent=2)
+            else:
+                json_content = str(self.last_results)
+
+            prompt = f"""Voici des données extraites (Scraping JSON) :
+            
+            {json_content[:50000]} 
+            
+            (Tronqué si trop long)
+            
+            Analyse ces données et présente une synthèse claire et structurée. Mets en avant les points clés, les tendances ou les anomalies.
+            """
+            
+            messages = [{"role": "user", "content": prompt}]
+            
+            success, response = LLMService.generate_response(provider, api_key, messages)
+            
+            if success:
+                self.after(0, lambda: self.append_chat("Assistant", response))
+            else:
+                self.after(0, lambda: self.append_chat("System", f"❌ Erreur IA: {response}"))
+
+        except Exception as e:
+            self.after(0, lambda: self.append_chat("System", f"❌ Erreur analyse: {e}"))
+            
+        finally:
+             self.after(0, lambda: self.btn_analyze.configure(state="normal"))
+
     def send_message(self, event=None):
         msg = self.msg_entry.get().strip()
         if not msg:
@@ -250,8 +316,46 @@ class ScrapingFrame(ctk.CTkFrame):
             
         self.append_chat("Vous", msg)
         self.msg_entry.delete(0, "end")
-        # Placeholder for chat response logic
-        # self.append_chat("Assistant", "Réponse simulée...")
+        
+        # Interactive Chat with Context (using last results)
+        if self.last_results:
+             thread = threading.Thread(target=self._run_interactive_chat_thread, args=(msg,))
+             thread.daemon = True
+             thread.start()
+        else:
+             self.append_chat("Assistant", "Je n'ai pas encore de contexte (résultats de scraping) pour répondre.")
+
+    def _run_interactive_chat_thread(self, user_msg):
+         # Similar to analysis but with user query
+         try:
+            from core.services.llm_service import LLMService
+            
+            settings = self.app.data_manager.get_settings()
+            provider = settings.get("chat_provider", "OpenAI GPT-4o mini")
+            api_keys = settings.get("api_keys", {})
+            api_key = api_keys.get(provider)
+            
+            if not api_key:
+                 self.after(0, lambda: self.append_chat("System", "❌ Clé API manquante"))
+                 return
+
+            # Lite Context Construction
+            context = str(self.last_results)[:30000] 
+            
+            messages = [
+                {"role": "system", "content": f"Tu es un assistant qui aide l'utilisateur à comprendre ces données de scraping :\n---\n{context}\n---\nRéponds précisément à la question."},
+                {"role": "user", "content": user_msg}
+            ]
+            
+            success, response = LLMService.generate_response(provider, api_key, messages)
+            
+            if success:
+                self.after(0, lambda: self.append_chat("Assistant", response))
+            else:
+                 self.after(0, lambda: self.append_chat("System", f"❌ Erreur: {response}"))
+
+         except Exception as e:
+             self.after(0, lambda: self.append_chat("System", f"❌ Erreur: {e}"))
 
     def append_chat(self, sender, text):
         self.chat_display.configure(state="normal")

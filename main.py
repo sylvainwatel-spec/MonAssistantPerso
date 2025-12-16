@@ -1,6 +1,17 @@
 import os
 import sys
 from typing import Optional, Any, Type
+import ctypes
+
+# Fix for High DPI scaling issues (Transparency bug on multi-monitor)
+try:
+    # Set DPI awareness to Per Monitor v2
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+except Exception:
+    try:
+        ctypes.windll.user32.SetProcessDPIAware()
+    except Exception:
+        pass
 
 import customtkinter as ctk
 from PIL import Image
