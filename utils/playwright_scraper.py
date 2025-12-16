@@ -23,7 +23,7 @@ class PlaywrightScraper:
     - Contrôle total sur l'extraction
     """
     
-    def __init__(self, assistant_id: str = None, assistant_name: str = None, log_callback: callable = None, headless: bool = True, browser_type: str = "firefox", llm_api_key: str = None, llm_model: str = None):
+    def __init__(self, assistant_id: str = None, assistant_name: str = None, log_callback: callable = None, headless: bool = True, browser_type: str = "chromium", llm_api_key: str = None, llm_model: str = None):
         """
         Initialise le scraper Playwright
         
@@ -32,7 +32,7 @@ class PlaywrightScraper:
             assistant_name: Nom de l'assistant (pour sauvegarde des résultats)
             log_callback: Fonction de callback pour les logs (ex: affichage dans le chat)
             headless: Mode sans interface graphique (True) ou visible (False)
-            browser_type: "firefox" (défaut), "chromium", "chrome" (système), "msedge" (système)
+            browser_type: "chromium" (défaut), "firefox", "chrome" (système), "msedge" (système)
             llm_api_key: Clé API pour fonctionnalités Vision (optionnel)
             llm_model: Modèle pour Vision (optionnel)
         """
@@ -77,9 +77,9 @@ class PlaywrightScraper:
             try:
                 from playwright_stealth import stealth_sync
                 self._has_stealth = True
-            except ImportError:
+            except ImportError as e:
                 self._has_stealth = False
-                self._log("⚠️ module 'playwright-stealth' manquant. Mode furtif désactivé.")
+                self._log(f"⚠️ module 'playwright-stealth' manquant. Mode furtif désactivé. Erreur: {e}")
             
             # Désactiver stealth pour Firefox (instable/incompatible)
             if self.browser_type == "firefox":
@@ -332,7 +332,7 @@ class PlaywrightScraper:
             with self:
                 # Déterminer le type de site et utiliser le scraper approprié
                 if "leboncoin.fr" in url.lower():
-                    results = self._scrape_leboncoin(query)
+                    results = self._scrape_leboncoin(url, query)
                 else:
                     results = self._scrape_generic(url, query)
             
@@ -360,6 +360,7 @@ class PlaywrightScraper:
                 return error_message, None
 
             import traceback
+            error_message = f"Erreur scraping inconnue: {error_str}"
             return error_message, None
     
     def _analyze_with_vision(self, image_bytes: bytes, prompt: str) -> List[Dict]:
@@ -413,17 +414,23 @@ class PlaywrightScraper:
             self._log(f"❌ Erreur Vision: {e}")
             return []
 
-    def _scrape_leboncoin(self, query: str) -> List[Dict]:
+    def _scrape_leboncoin(self, url: str, query: str) -> List[Dict]:
         """
         Scraping spécifique pour LeBonCoin
         
         Args:
-            query: Terme de recherche
+            url: URL complète de recherche
+            query: Terme de recherche (informatif)
         
         Returns:
             Liste de dictionnaires avec les annonces
         """
-        page = self.context.new_page()
+        # Réutiliser la page existante si disponible (cas du Persistent Context)
+        if self.context.pages:
+            self._log("Réutilisation de l'onglet existant.")
+            page = self.context.pages[0]
+        else:
+            page = self.context.new_page()
         # Appliquer stealth si disponible pour contourner les protections (Cloudflare, etc.)
         if hasattr(self, '_has_stealth') and self._has_stealth:
             try:
@@ -435,8 +442,12 @@ class PlaywrightScraper:
         results = []
         
         try:
-            # URL de recherche LeBonCoin
-            search_url = f"https://www.leboncoin.fr/recherche?text={query}"
+            # Utilisation directe de l'URL fournie
+            search_url = url
+            if not search_url.startswith("http"):
+                # Fallback si l'URL semble vide ou invalide, mais on privilégie l'URL brute
+                 search_url = f"https://www.leboncoin.fr/recherche?text={query}"
+            
             self._log(f"Navigation vers : {search_url}")
             
             # Navigation avec trace explicite
@@ -541,7 +552,12 @@ class PlaywrightScraper:
         Returns:
             Liste de résultats
         """
-        page = self.context.new_page()
+        # Réutiliser la page existante si disponible (cas du Persistent Context)
+        if self.context.pages:
+            self._log("Réutilisation de l'onglet existant (Générique).")
+            page = self.context.pages[0]
+        else:
+            page = self.context.new_page()
         # Appliquer stealth si disponible pour contourner les protections (Cloudflare, etc.)
         if hasattr(self, '_has_stealth') and self._has_stealth:
             try:
@@ -553,11 +569,12 @@ class PlaywrightScraper:
         results = []
         
         try:
-            # Construire URL de recherche
-            if "?" in url:
-                search_url = f"{url}&q={query}"
-            else:
-                search_url = f"{url}?q={query}"
+            # Utilisation directe de l'URL fournie
+            search_url = url
+            # Si l'URL ne semble pas complète et qu'il y a une query, on tente de construire
+            # Mais la demande utilisateur est de privilégier l'URL brute
+            if query and "q=" not in search_url and "?" not in search_url:
+                 self._log("⚠️ URL brute utilisée sans paramètre de recherche (comportement demandé).")
             
             self._log(f"Navigation vers (Générique) : {search_url}")
             
