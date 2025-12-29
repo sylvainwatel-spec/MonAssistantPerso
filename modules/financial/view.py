@@ -87,6 +87,12 @@ class FinancialAnalysisFrame(ctk.CTkFrame):
         )
         self.btn_advice.pack(pady=20)
 
+        # Chart Frame
+        self.chart_frame = ctk.CTkFrame(self.detail_panel, fg_color="transparent", height=250)
+        self.chart_frame.pack(fill="x", padx=10, pady=10)
+        self.lbl_chart = ctk.CTkLabel(self.chart_frame, text="") # Placeholder
+        self.lbl_chart.pack()
+
     def update_stock_list_ui(self):
         for widget in self.scroll_stocks.winfo_children():
             widget.destroy()
@@ -142,10 +148,15 @@ class FinancialAnalysisFrame(ctk.CTkFrame):
         thread.start()
 
     def _fetch_stock_data(self, symbol):
+        # 1. Get Current Price
         success, quote, msg = self.service.get_stock_price(symbol)
-        self.after(0, lambda: self._display_data(success, quote, msg, symbol))
+        
+        # 2. Get History & Average for Chart
+        hist_success, hist_data, average_price = self.service.get_historical_data(symbol, period="1y")
+        
+        self.after(0, lambda: self._display_data(success, quote, msg, symbol, hist_data, average_price))
 
-    def _display_data(self, success, quote, msg, symbol):
+    def _display_data(self, success, quote, msg, symbol, hist_data=None, average_price=0.0):
         if success:
             price = quote.get("05. price")
             change = quote.get("10. change percent")
@@ -157,11 +168,57 @@ class FinancialAnalysisFrame(ctk.CTkFrame):
             self.lbl_change.configure(text=f"{change}", text_color=color)
             
             self.current_stock_data = quote
+            self.current_average = average_price # Store for AI context
+            
+            # --- Update Chart ---
+            if hist_data is not None and not hist_data.empty:
+                self._draw_chart(hist_data, average_price, symbol)
+            else:
+                self.lbl_chart.configure(image=None, text="Pas d'historique dispo")
+
             self.btn_advice.configure(state="normal")
         else:
             self.lbl_stock_title.configure(text=f"Erreur {symbol}")
             self.lbl_price.configure(text="--")
             self.lbl_change.configure(text=msg, text_color="red")
+            self.lbl_chart.configure(image=None, text="")
+
+    def _draw_chart(self, hist, avg, symbol):
+        import matplotlib.pyplot as plt
+        import io
+        from PIL import Image
+
+        # Create figure
+        fig, ax = plt.subplots(figsize=(5, 3), dpi=100)
+        fig.patch.set_alpha(0) # Transparent background
+        
+        # Plot Close Price
+        ax.plot(hist.index, hist["Close"], color="#29b6f6", linewidth=1.5, label="Prix")
+        
+        # Plot Average Line
+        ax.axhline(avg, color="#ef5350", linestyle="--", linewidth=1, label=f"Moyenne 1an (${avg:.1f})")
+        
+        ax.set_title(f"Historique 1 An - {symbol}", fontsize=9, color="gray")
+        ax.tick_params(axis='x', rotation=45, labelsize=7, colors="gray")
+        ax.tick_params(axis='y', labelsize=7, colors="gray")
+        ax.spines['bottom'].set_color('gray')
+        ax.spines['left'].set_color('gray')
+        ax.spines['top'].set_visible(False)
+        ax.spines['right'].set_visible(False)
+        ax.legend(fontsize=7)
+        
+        plt.tight_layout()
+        
+        # Convert to CTkImage
+        buf = io.BytesIO()
+        fig.savefig(buf, format='png', facecolor=fig.get_facecolor(), edgecolor='none')
+        buf.seek(0)
+        img = Image.open(buf)
+        ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(400, 240))
+        
+        self.lbl_chart.configure(image=ctk_img, text="")
+        self.lbl_chart.image = ctk_img # keep ref
+        plt.close(fig)
 
     def get_ai_advice(self):
         if not self.selected_symbol: return
@@ -175,15 +232,29 @@ class FinancialAnalysisFrame(ctk.CTkFrame):
         
     def _fetch_advice(self):
         # Prepare context for LLM
+        # Prepare context for LLM with History
+        current_price = float(self.current_stock_data.get("05. price", 0))
+        avg_price = getattr(self, "current_average", 0)
+        distance_to_avg = ((current_price - avg_price) / avg_price) * 100 if avg_price else 0
+        
         context = f"""
         Action: {self.selected_symbol}
-        Prix actuel: {self.current_stock_data.get("05. price")}
-        Variation: {self.current_stock_data.get("10. change percent")}
-        Volume: {self.current_stock_data.get("06. volume")}
-        Haut jour: {self.current_stock_data.get("03. high")}
-        Bas jour: {self.current_stock_data.get("04. low")}
+        Prix actuel: ${current_price}
+        Moyenne 1 An: ${avg_price:.2f}
+        Position vs Moyenne: {distance_to_avg:+.2f}% (Si négatif, le prix est sous la moyenne)
         
-        Agis comme un expert financier. Analyse ces données techniques de base et donne un conseil court (Acheter/Vendre/Conserver) avec 3 arguments clés.
+        Données techniques jour:
+        Variation: {self.current_stock_data.get("10. change percent")}
+        Haut/Bas: {self.current_stock_data.get("03. high")} / {self.current_stock_data.get("04. low")}
+        
+        Agis comme un conseiller financier expert.
+        Analyse la situation en t'appuyant particulièrement sur la position du prix par rapport à sa moyenne annuelle.
+        
+        Est-ce un bon point d'entrée pour un investissement long terme ?
+        Réponse structurée :
+        1. Analyse Technique Rapide
+        2. Comparaison avec la Moyenne (Opportunité ou Surchauffe ?)
+        3. Conseil : ACHETER, VENDRE ou CONSERVER.
         """
         
         # Use Chat Logic (via generic connector if possible, or simple request)

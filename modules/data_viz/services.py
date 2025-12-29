@@ -6,6 +6,9 @@ import matplotlib.pyplot as plt
 from typing import Optional, Tuple, Any, Dict
 from pptx import Presentation
 from pptx.util import Inches, Pt
+import re
+import sys
+import traceback
 
 from core.services.llm_service import LLMService
 
@@ -120,9 +123,113 @@ class DataAnalysisService:
         else:
             if "Endpoint manquant pour IAKA" in response:
                 return "Erreur Configuration: L'endpoint IAKA n'est pas configuré.\n\nVeuillez aller dans Administration > Connecteur Chat,\nsélectionner 'IAKA (Interne)' et entrer l'URL de l'endpoint."
+            if "Endpoint manquant pour IAKA" in response:
+                return "Erreur Configuration: L'endpoint IAKA n'est pas configuré.\n\nVeuillez aller dans Administration > Connecteur Chat,\nsélectionner 'IAKA (Interne)' et entrer l'URL de l'endpoint."
             return f"Erreur lors de l'analyse LLM: {response}"
 
-    def export_to_pptx(self, output_path: str, llm_analysis: str = "") -> bool:
+    def agent_query(self, user_query: str, provider_override: Optional[str] = None) -> Tuple[str, Optional[Any]]:
+        """
+        Agentic method:
+        1. Ask LLM to generate Python code to answer the query.
+        2. Execute the code.
+        3. Return output text and optional figure.
+        """
+        if self.df is None:
+            return "Veuillez d'abord importer un fichier de données.", None
+
+        # 1. Get Settings & LLM
+        settings = self.data_manager.get_settings()
+        provider = provider_override if provider_override else settings.get("doc_analyst_provider", settings.get("chat_provider", "OpenAI GPT-4o mini"))
+        api_keys = settings.get("api_keys", {})
+        api_key = api_keys.get(provider)
+        
+        if not api_key:
+             return f"Clé API manquante pour {provider}", None
+
+        # 2. Prepare Prompt
+        # Get simplified df info
+        buffer = io.StringIO()
+        self.df.info(buf=buffer)
+        info_str = buffer.getvalue()
+        
+        prompt = f"""
+You are a Python Data Analyst. You have a pandas DataFrame named `df` loaded in memory.
+Info about `df`:
+{info_str}
+
+Columns: {list(self.df.columns)}
+
+User Query: "{user_query}"
+
+Instructions:
+1. Write Python code to answer the query.
+2. If the user asks for a plot/chart, use `matplotlib.pyplot` (as `plt`).
+   - Create a figure explicitly: `fig, ax = plt.subplots()`
+   - Plot on `ax`.
+   - IMPORTANT: Do NOT call `plt.show()`.
+   - The figure object must be available as `fig`.
+3. If the user asks for a calculation, print the result using `print()`.
+4. Wrap your code in a markdown block: ```python ... ```.
+5. Do NOT provide explanations outside the code block, just the code.
+6. Keep it simple and robust. Handle potential NaNs if necessary.
+"""
+        
+        messages = [{"role": "user", "content": prompt}]
+        
+        success, response = LLMService.generate_response(
+            provider_name=provider,
+            api_key=api_key,
+            messages=messages,
+            base_url=settings.get("endpoints", {}).get(provider),
+            model=settings.get("models", {}).get(provider)
+        )
+        
+        if not success:
+            return f"Erreur IA: {response}", None
+
+        # 3. Extract Code
+        code_match = re.search(r"```python(.*?)```", response, re.DOTALL)
+        if code_match:
+            code = code_match.group(1).strip()
+        else:
+            # Fallback: assume whole response is code if no blocks (risky but handles some LLMs)
+            if "def " in response or "print(" in response or "fig" in response:
+                code = response
+            else:
+                return f"L'IA n'a pas généré de code valide.\nRéponse: {response}", None
+
+        # 4. Execute Code
+        # We need to capture stdout
+        old_stdout = sys.stdout
+        redirected_output = io.StringIO()
+        sys.stdout = redirected_output
+        
+        # Context for execution
+        local_scope = {"df": self.df, "pd": pd, "plt": plt}
+        fig = None
+        
+        try:
+            exec(code, {}, local_scope)
+            
+            # Check if 'fig' variable exists in local_scope
+            if 'fig' in local_scope and isinstance(local_scope['fig'], plt.Figure):
+                fig = local_scope['fig']
+                
+        except Exception as e:
+            sys.stdout = old_stdout
+            return f"Erreur d'exécution du code généré:\n{e}\n\nCode:\n{code}", None
+            
+        sys.stdout = old_stdout
+        output_text = redirected_output.getvalue()
+        
+        # If no output and no figure, maybe the code didn't print anything?
+        if not output_text and not fig:
+            output_text = "Code exécuté avec succès, mais aucun résultat affiché."
+            
+        # Append the code used for transparency (optional)
+        # output_text += f"\n\n--- Code généré ---\n{code}"
+        
+        return output_text, fig
         """Export analysis to a PowerPoint presentation."""
         try:
             prs = Presentation()

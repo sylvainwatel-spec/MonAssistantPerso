@@ -1,6 +1,6 @@
-import requests
-import json
-from typing import Dict, Any, Tuple
+import yfinance as yf
+import pandas as pd
+from typing import Dict, Any, Tuple, Optional
 from datetime import datetime
 
 class FinancialService:
@@ -14,48 +14,58 @@ class FinancialService:
         return api_keys.get("alpha_vantage", "")
 
     def get_stock_price(self, symbol: str) -> Tuple[bool, Dict[str, Any], str]:
-        """Récupère le prix actuel (Global Quote)."""
-        api_key = self.get_api_key()
-        if not api_key:
-            return False, None, "Clé API Alpha Vantage manquante."
-
-        params = {
-            "function": "GLOBAL_QUOTE",
-            "symbol": symbol,
-            "apikey": api_key
-        }
-
+        """Récupère le prix actuel via yfinance."""
         try:
-            response = requests.get(self.base_url, params=params)
-            data = response.json()
+            ticker = yf.Ticker(symbol)
+            # fast_info is faster than history
+            info = ticker.fast_info
             
-            if "Global Quote" in data:
-                quote = data["Global Quote"]
-                if not quote:
-                     return False, None, f"Symbole '{symbol}' non trouvé."
-                return True, quote, "Succès"
-            elif "Note" in data:
-                return False, None, "Limite d'API atteinte (5 requêtes/min)."
+            # Construct a dict compatible with previous usage or simplified
+            # Previous was Alpha Vantage format {"05. price": ...}
+            # We map it to keep compatibility with view
+            latest_price = info.last_price
+            prev_close = info.previous_close
+            change_percent = ((latest_price - prev_close) / prev_close) * 100
+            
+            # Calculate daily high/low using history(1d) if needed, or stick to fast_info
+            # fast_info has year_high, year_low, but day_high might need 1d history
+            hist = ticker.history(period="1d")
+            if not hist.empty:
+                high = hist["High"].iloc[0]
+                low = hist["Low"].iloc[0]
+                volume = hist["Volume"].iloc[0]
             else:
-                return False, None, f"Erreur API : {data}"
+                high = latest_price
+                low = latest_price
+                volume = 0
+
+            quote = {
+                "05. price": str(latest_price),
+                "10. change percent": f"{change_percent:.2f}%",
+                "06. volume": str(volume),
+                "03. high": str(high),
+                "04. low": str(low)
+            }
+            
+            return True, quote, "Succès"
                 
         except Exception as e:
-            return False, None, f"Erreur réseau : {e}"
+            return False, None, f"Erreur yfinance : {e}"
 
-    def get_company_overview(self, symbol: str) -> Tuple[bool, Dict[str, Any], str]:
-        """Récupère les infos de l'entreprise."""
-        api_key = self.get_api_key()
-        params = {
-            "function": "OVERVIEW",
-            "symbol": symbol,
-            "apikey": api_key
-        }
+    def get_historical_data(self, symbol: str, period: str = "1y") -> Tuple[bool, Optional[pd.DataFrame], float]:
+        """
+        Récupère l'historique et calcule la moyenne.
+        Returns: (success, dataframe, average_close_price)
+        """
         try:
-            response = requests.get(self.base_url, params=params)
-            data = response.json()
-            if "Symbol" in data:
-                return True, data, "Succès"
-            else:
-                return False, None, "Données non trouvées."
+            ticker = yf.Ticker(symbol)
+            hist = ticker.history(period=period)
+            
+            if hist.empty:
+                return False, None, 0.0
+                
+            average_price = hist["Close"].mean()
+            return True, hist, average_price
+            
         except Exception as e:
-            return False, None, str(e)
+            return False, None, 0.0

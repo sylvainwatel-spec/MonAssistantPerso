@@ -79,14 +79,14 @@ class LLMService:
             return False, f"Erreur Anthropic: {str(e)}"
 
     @staticmethod
-    def generate_groq(api_key: str, messages: List[Dict[str, str]], model: str = "llama3-8b-8192", **kwargs) -> Tuple[bool, str]:
+    def generate_groq(api_key: str, messages: List[Dict[str, str]], model: str = "llama-3.1-8b-instant", **kwargs) -> Tuple[bool, str]:
         try:
             from groq import Groq
             # Client doesn't need base_url usually, but if needed it typically goes in constructor
             # For now just remove it from kwargs to avoid the error
             kwargs.pop('base_url', None)
             
-            if not model:
+            if not model or model == "llama3-8b-8192":
                 model = "llama-3.1-8b-instant"
 
             client = Groq(api_key=api_key)

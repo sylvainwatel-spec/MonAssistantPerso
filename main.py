@@ -13,6 +13,8 @@ except Exception:
     except Exception:
         pass
 
+import matplotlib
+matplotlib.use("Agg")
 import customtkinter as ctk
 from PIL import Image
 
