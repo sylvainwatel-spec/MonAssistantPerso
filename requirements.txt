@@ -19,3 +19,10 @@ matplotlib
 python-pptx
 scrapegraphai
 langchain
+yfinance
+diffusers
+torch
+nest_asyncio
+python-docx
+pydantic
+scrapegraph-py

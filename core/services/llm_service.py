@@ -629,6 +629,7 @@ class LLMService:
             # base_url is already in kwargs, but we want to pass the modified full_url
             # and we don't want to pass base_url twice.
             kwargs.pop('base_url', None)
+            kwargs.pop('model', None)
 
             return cls.generate_openai_compatible(api_key, messages, base_url=full_url, model=model_name, **kwargs)
         
