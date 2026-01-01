@@ -13,7 +13,7 @@ class DocAnalystFrame(ctk.CTkFrame):
         self.app = app
         self.service = DocumentAnalysisService(app.data_manager)
         
-        self.current_document_text = ""
+        self.documents = [] # List of {"name": filename, "content": text}
         self.chat_history = [] # List of {"role": "...", "content": "..."}
 
         self.build_ui()
@@ -83,10 +83,19 @@ class DocAnalystFrame(ctk.CTkFrame):
         
         self.btn_upload = ctk.CTkButton(
             controls_panel, 
-            text="📂 Charger PDF / TXT",
+            text="📂 Charger Documents (PDF/TXT)",
             command=self.upload_document
         )
         self.btn_upload.pack(pady=10, padx=20, fill="x")
+
+        self.btn_clear = ctk.CTkButton(
+            controls_panel,
+            text="🗑️ Vider la liste",
+            fg_color="firebrick",
+            hover_color="darkred",
+            command=self.clear_documents
+        )
+        self.btn_clear.pack(pady=5, padx=20, fill="x")
         
         
         self.lbl_filename = ctk.CTkLabel(controls_panel, text="Aucun fichier chargé", text_color="gray")
@@ -131,24 +140,58 @@ class DocAnalystFrame(ctk.CTkFrame):
             self.var_provider.set(self.hf_models[0])
 
     def upload_document(self):
-        file_path = filedialog.askopenfilename(
-            filetypes=[("PDF Documents", "*.pdf"), ("Text Files", "*.txt")]
+        file_paths = filedialog.askopenfilenames(
+            filetypes=[("Documents", "*.pdf *.txt")]
         )
-        if not file_path:
+        if not file_paths:
             return
 
-        success, result = self.service.extract_text(file_path)
-        if success:
-            self.current_document_text = result
-            filename = file_path.split("/")[-1]
-            self.lbl_filename.configure(text=f"✅ {filename}\n({len(result)} caractères)")
-            self.append_chat("System", f"Document '{filename}' chargé avec succès. Vous pouvez poser des questions.")
-            self.chat_history = [] # Reset history
+        loaded_count = 0
+        errors = []
+
+        for file_path in file_paths:
+            success, result = self.service.extract_text(file_path)
+            if success:
+                filename = file_path.split("/")[-1]
+                self.documents.append({"name": filename, "content": result})
+                loaded_count += 1
+            else:
+                errors.append(f"{file_path.split('/')[-1]}: {result}")
+
+        self.update_document_label()
+        
+        if loaded_count > 0:
+            msg = f"{loaded_count} document(s) ajouté(s)."
+            if errors:
+                msg += f"\nErreurs non chargées: {', '.join(errors)}"
+            self.append_chat("System", msg)
+            self.chat_history = [] # Reset history to encourage fresh start or maybe keep it? Let's reset for now or user choice.
+            # Actually, if we add docs, maybe we want to keep context? 
+            # Review plan: "Append a system message...". Plan didn't explicitly say reset history on APPEND,
+            # but usually new context means new convo. I will keep the reset for safety to avoid confusion between old/new context.
+            self.chat_history = [] 
+        elif errors:
+            messagebox.showerror("Erreurs", "\n".join(errors))
+
+    def clear_documents(self):
+        self.documents = []
+        self.chat_history = []
+        self.update_document_label()
+        self.append_chat("System", "Liste des documents vidée.")
+        self.chat_display.configure(state="normal")
+        self.chat_display.delete("1.0", "end")
+        self.chat_display.configure(state="disabled")
+
+    def update_document_label(self):
+        count = len(self.documents)
+        if count == 0:
+            self.lbl_filename.configure(text="Aucun fichier chargé", text_color="gray")
         else:
-            messagebox.showerror("Erreur", result)
+            total_chars = sum(len(d['content']) for d in self.documents)
+            self.lbl_filename.configure(text=f"✅ {count} document(s)\n(~{total_chars} caractères)", text_color="green")
 
     def send_message(self, event=None):
-        if not self.current_document_text:
+        if not self.documents:
             messagebox.showwarning("Info", "Veuillez d'abord charger un document.")
             return
             
@@ -175,8 +218,15 @@ class DocAnalystFrame(ctk.CTkFrame):
         thread.start()
 
     def _chat_thread(self, msg, provider):
+        # Combine all documents
+        full_context = ""
+        for doc in self.documents:
+            full_context += f"--- DEBUT DOCUMENT: {doc['name']} ---\n"
+            full_context += doc['content'] + "\n"
+            full_context += f"--- FIN DOCUMENT: {doc['name']} ---\n\n"
+
         success, response = self.service.chat_with_document(
-            self.current_document_text,
+            full_context,
             msg,
             self.chat_history,
             provider
@@ -220,8 +270,10 @@ class DocAnalystFrame(ctk.CTkFrame):
         try:
             doc = Document()
             # Clean filename from label text
+            # Clean filename from label text
             raw_filename = self.lbl_filename.cget("text")
-            clean_filename = raw_filename.replace("✅ ", "").splitlines()[0] if "✅" in raw_filename else "Document"
+            # Simple fallback for name
+            clean_filename = f"Export_{len(self.documents)}_Docs"
             
             doc.add_heading(f"Analyse de Document : {clean_filename}", 0)
 

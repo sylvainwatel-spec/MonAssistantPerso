@@ -76,13 +76,12 @@ class DocumentAnalysisService:
 
         # Construct Prompt
         system_prompt = f"""Tu es un analyste de documents expert.
-Voici le contenu du document que tu dois analyser :
+Voici le contenu des documents que tu dois analyser :
 ---
-{document_context[:20000]} 
+{document_context} 
 ---
-(Le document peut être tronqué s'il est trop long)
 
-Réponds aux questions de l'utilisateur en te basant UNIQUEMENT sur ce document. Si la réponse n'est pas dans le document, dis-le."""
+Réponds aux questions de l'utilisateur en te basant UNIQUEMENT sur ces documents. Si la réponse n'est pas dans les documents, dis-le."""
 
         # Prepare messages
         messages = [{"role": "system", "content": system_prompt}]

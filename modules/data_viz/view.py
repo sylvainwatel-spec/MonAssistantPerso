@@ -113,7 +113,13 @@ class DataVizFrame(ctk.CTkFrame):
     def import_file(self):
         file_path = filedialog.askopenfilename(
             title="Ouvrir un fichier",
-            filetypes=[("Excel Files", "*.xlsx *.xls"), ("CSV Files", "*.csv")]
+            filetypes=[
+                ("Excel Files", "*.xlsx *.xls"), 
+                ("CSV Files", "*.csv"),
+                ("Word Files", "*.docx"),
+                ("PDF Files", "*.pdf"),
+                ("PowerPoint Files", "*.pptx")
+            ]
         )
         
         if file_path:

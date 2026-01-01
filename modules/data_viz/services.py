@@ -9,6 +9,18 @@ from pptx.util import Inches, Pt
 import re
 import sys
 import traceback
+try:
+    from docx import Document
+except ImportError:
+    Document = None
+try:
+    from pypdf import PdfReader
+except ImportError:
+    PdfReader = None
+try:
+    from pptx import Presentation as PptxPresentation
+except ImportError:
+    PptxPresentation = None
 
 from core.services.llm_service import LLMService
 
@@ -26,6 +38,43 @@ class DataAnalysisService:
                 self.df = pd.read_csv(file_path)
             elif file_path.endswith(('.xls', '.xlsx')):
                 self.df = pd.read_excel(file_path)
+            elif file_path.endswith('.docx'):
+                if Document is None:
+                    return False
+                doc = Document(file_path)
+                data = []
+                for para in doc.paragraphs:
+                    if para.text.strip():
+                        data.append({"Style": para.style.name, "Text": para.text})
+                self.df = pd.DataFrame(data)
+            elif file_path.endswith('.pdf'):
+                if PdfReader is None:
+                    return False
+                reader = PdfReader(file_path)
+                data = []
+                for i, page in enumerate(reader.pages):
+                    text = page.extract_text()
+                    if text:
+                        data.append({"Page": i + 1, "Text": text})
+                self.df = pd.DataFrame(data)
+            elif file_path.endswith('.pptx'):
+                if PptxPresentation is None:
+                    return False
+                prs = PptxPresentation(file_path)
+                data = []
+                for i, slide in enumerate(prs.slides):
+                    text_runs = []
+                    title = ""
+                    if slide.shapes.title:
+                        title = slide.shapes.title.text
+                    
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text") and shape.text:
+                            text_runs.append(shape.text)
+                    
+                    full_text = "\n".join(text_runs)
+                    data.append({"Slide": i + 1, "Title": title, "Text": full_text})
+                self.df = pd.DataFrame(data)
             else:
                 return False
             
