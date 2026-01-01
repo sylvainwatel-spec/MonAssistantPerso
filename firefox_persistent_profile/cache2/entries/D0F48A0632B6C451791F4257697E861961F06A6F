@@ -1,0 +1,2988 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; object-src 'none'; script-src resource: chrome:; connect-src https:; img-src https: data: blob: chrome:; style-src 'unsafe-inline';">
+    <meta name="color-scheme" content="light dark">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-l10n-id="newtab-page-title"></title>
+    <link rel="icon" type="image/png" href="chrome://branding/content/icon32.png"/>
+    <link rel="localization" href="branding/brand.ftl" />
+    <link rel="localization" href="toolkit/branding/brandings.ftl" />
+    <link rel="localization" href="browser/newtab/newtab.ftl" />
+    <link rel="localization" href="toolkit/global/mozMessageBar.ftl" />
+    <link rel="stylesheet" href="chrome://global/skin/design-system/tokens-brand.css">
+    <link rel="stylesheet" href="chrome://browser/content/contentSearchUI.css" />
+    <link rel="stylesheet" href="chrome://newtab/content/css/activity-stream.css" />
+  </head>
+  <!-- Cached: Thu, 01 Jan 2026 15:34:47 GMT -->
+  <body class="activity-stream">
+    <div id="header-asrouter-container" role="presentation"></div>
+    <div id="root">
+      <div class="has-weather has-search has-recommended-stories"><div class="weatherWrapper"><div class="weather weather-placeholder "><div class="placeholder-image placeholder-fill"></div><div class="placeholder-context"><div class="placeholder-header placeholder-fill"></div><div class="placeholder-description placeholder-fill"></div></div></div></div><div class="mobileDownloadPromoWrapper "></div><div class="outer-wrapper ds-outer-wrapper-search-alignment ds-outer-wrapper-breakpoint-override visible-logo"><main class="newtab-main"><div class="non-collapsible-section"><div class="search-wrapper"><h1 class="logo-and-wordmark-wrapper"><div class="logo-and-wordmark" role="img" data-l10n-id="newtab-logo-and-wordmark"><div class="logo"></div><div class="wordmark"></div></div></h1><div class="search-inner-wrapper"><button class="search-handoff-button" tabindex="-1"><div class="fake-textbox"></div><input type="search" class="fake-editable" tabindex="-1" aria-hidden="true"/><div class="fake-caret"></div></button></div></div></div><div class="body-wrapper on"><dialog class="report-content-form" id="dialog-report"><form action=""><moz-radio-group name="report" id="report-group" data-l10n-id="newtab-report-content-why-reporting-this" className="report-content-options" headingLevel="3"><moz-radio data-l10n-id="newtab-report-content-wrong-category" value="wrong_category"></moz-radio><moz-radio data-l10n-id="newtab-report-content-outdated" value="outdated"></moz-radio><moz-radio data-l10n-id="newtab-report-content-inappropriate-offensive" value="inappropriate_or_offensive"></moz-radio><moz-radio data-l10n-id="newtab-report-content-spam-misleading" value="spam_or_misleading"></moz-radio></moz-radio-group><moz-button-group><moz-button data-l10n-id="newtab-report-cancel" onClick="() =&gt; {
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.REPORT_CLOSE
+    }));
+  }" className="cancel-report-btn"></moz-button><moz-button type="primary" data-l10n-id="newtab-report-submit" onClick="() =&gt; {
+    const {
+      card_type,
+      corpus_item_id,
+      position,
+      reporting_url,
+      scheduled_corpus_item_id,
+      section_position,
+      section,
+      title,
+      topic,
+      url
+    } = report;
+    if (card_type === &quot;organic&quot;) {
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.REPORT_CONTENT_SUBMIT,
+        data: {
+          card_type,
+          corpus_item_id,
+          report_reason: selectedReason,
+          scheduled_corpus_item_id,
+          section_position,
+          section,
+          title,
+          topic,
+          url
+        }
+      }));
+    } else if (card_type === &quot;spoc&quot;) {
+      // Retrieve placement_id by comparing spocData with the ad that was reported
+      const getPlacementId = () =&gt; {
+        if (!spocData || !report.url) {
+          return null;
+        }
+        for (const [placementId, spocList] of Object.entries(spocData)) {
+          for (const spoc of Object.values(spocList)) {
+            if (spoc?.url === report.url) {
+              return placementId;
+            }
+          }
+        }
+        return null;
+      };
+      const placement_id = getPlacementId();
+      dispatch(actionCreators.AlsoToMain({
+        type: actionTypes.REPORT_AD_SUBMIT,
+        data: {
+          report_reason: selectedReason,
+          placement_id,
+          position,
+          reporting_url,
+          url
+        }
+      }));
+    }
+    dispatch(actionCreators.AlsoToMain({
+      type: actionTypes.BLOCK_URL,
+      data: [{
+        ...report
+      }]
+    }));
+    dispatch(actionCreators.OnlyToOneContent({
+      type: actionTypes.SHOW_TOAST_MESSAGE,
+      data: {
+        toastId: &quot;reportSuccessToast&quot;,
+        showNotifications: true
+      }
+    }, &quot;ActivityStream:Content&quot;));
+  }" className="submit-report-btn"></moz-button></moz-button-group></form></dialog><div class="discovery-stream ds-layout ds-layout-topsites"><div class="ds-column ds-column-12"><div class="ds-column-grid"><div><div class="ds-top-sites"><section class="collapsible-section top-sites" data-section-id="topsites"><div class="section-top-bar"><h2 class="section-title-container " style="visibility:hidden"><span class="section-title"><span data-l10n-id="newtab-section-header-topsites"></span></span></h2></div><div><div class="top-sites-list-wrapper"><ul role="group" aria-label="Shortcuts" class="top-sites-list"><li class="top-site-outer placeholder "><div class="top-site-inner"><a class="top-site-button" draggable="true" data-is-sponsored-link="false" aria-label="" title="" data-l10n-args="{&quot;title&quot;:&quot;&quot;}"><div class="tile" aria-hidden="true"><div class="icon-wrapper"><div class=""></div></div></div><div class="title"><span class="title-label" dir="auto"><br/></span><span class="sponsored-label" data-l10n-id="newtab-topsite-sponsored"></span></div></a><div class="topsite-impression-observer"></div></div></li><li class="top-site-outer placeholder "><div class="top-site-inner"><a class="top-site-button" draggable="true" data-is-sponsored-link="false" aria-label="" title="" data-l10n-args="{&quot;title&quot;:&quot;&quot;}"><div class="tile" aria-hidden="true"><div class="icon-wrapper"><div class=""></div></div></div><div class="title"><span class="title-label" dir="auto"><br/></span><span class="sponsored-label" data-l10n-id="newtab-topsite-sponsored"></span></div></a><div class="topsite-impression-observer"></div></div></li><li class="top-site-outer placeholder "><div class="top-site-inner"><a class="top-site-button" draggable="true" data-is-sponsored-link="false" aria-label="" title="" data-l10n-args="{&quot;title&quot;:&quot;&quot;}"><div class="tile" aria-hidden="true"><div class="icon-wrapper"><div class=""></div></div></div><div class="title"><span class="title-label" dir="auto"><br/></span><span class="sponsored-label" data-l10n-id="newtab-topsite-sponsored"></span></div></a><div class="topsite-impression-observer"></div></div></li><li class="top-site-outer"><div class="top-site-inner"><a class="top-site-button" href="https://www.wikipedia.org/" tabindex="-1" draggable="true" data-is-sponsored-link="false" aria-label="Wikipedia" title="Wikipedia" data-l10n-args="{&quot;title&quot;:&quot;Wikipedia&quot;}"><div class="tile" aria-hidden="true"><div class="icon-wrapper" data-fallback="W"><div class="top-site-icon rich-icon" style="background-image:url(chrome://activity-stream/content/data/content/tippytop/images/wikipedia-org@2x.png)"></div></div></div><div class="title"><span class="title-label" dir="auto">Wikipedia</span><span class="sponsored-label" data-l10n-id="newtab-topsite-sponsored"></span></div></a><div><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Wikipedia&quot;}" class="context-menu-button icon" tabindex="-1"></button></div><div class="topsite-impression-observer"></div></div></li><li class="top-site-outer"><div class="top-site-inner"><a class="top-site-button" href="https://www.youtube.com/" tabindex="-1" draggable="true" data-is-sponsored-link="false" aria-label="YouTube" title="YouTube" data-l10n-args="{&quot;title&quot;:&quot;YouTube&quot;}"><div class="tile" aria-hidden="true"><div class="icon-wrapper" data-fallback="Y"><div class="top-site-icon rich-icon" style="background-image:url(chrome://activity-stream/content/data/content/tippytop/images/youtube-com@2x.png)"></div></div></div><div class="title"><span class="title-label" dir="auto">YouTube</span><span class="sponsored-label" data-l10n-id="newtab-topsite-sponsored"></span></div></a><div><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;YouTube&quot;}" class="context-menu-button icon" tabindex="-1"></button></div><div class="topsite-impression-observer"></div></div></li><li class="top-site-outer"><div class="top-site-inner"><a class="top-site-button" href="http://lemonde.fr/" tabindex="-1" draggable="true" data-is-sponsored-link="false" aria-label="Le Monde" title="Le Monde" data-l10n-args="{&quot;title&quot;:&quot;Le Monde&quot;}"><div class="tile" aria-hidden="true"><div class="icon-wrapper" data-fallback="L"><div class="top-site-icon rich-icon" style="background-image:url(chrome://activity-stream/content/data/content/tippytop/images/lemonde@2x.png)"></div></div></div><div class="title"><span class="title-label" dir="auto">Le Monde</span><span class="sponsored-label" data-l10n-id="newtab-topsite-sponsored"></span></div></a><div><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Le Monde&quot;}" class="context-menu-button icon" tabindex="-1"></button></div><div class="topsite-impression-observer"></div></div></li><li class="top-site-outer hide-for-narrow"><div class="top-site-inner"><a class="top-site-button" href="https://www.reddit.com/" tabindex="-1" draggable="true" data-is-sponsored-link="false" aria-label="Reddit" title="Reddit" data-l10n-args="{&quot;title&quot;:&quot;Reddit&quot;}"><div class="tile" aria-hidden="true"><div class="icon-wrapper" data-fallback="R"><div class="top-site-icon rich-icon" style="background-image:url(chrome://activity-stream/content/data/content/tippytop/images/reddit-com@2x.png)"></div></div></div><div class="title"><span class="title-label" dir="auto">Reddit</span><span class="sponsored-label" data-l10n-id="newtab-topsite-sponsored"></span></div></a><div><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Reddit&quot;}" class="context-menu-button icon" tabindex="-1"></button></div><div class="topsite-impression-observer"></div></div></li><li class="top-site-outer add-button hide-for-narrow"><div class="top-site-inner"><a class="top-site-button" tabindex="-1" draggable="true" data-is-sponsored-link="false" aria-label="" data-l10n-id="newtab-topsites-add-shortcut-title" data-l10n-args="{&quot;title&quot;:&quot;&quot;}"><div class="tile" aria-hidden="true"><div class="icon-wrapper"><div class=""></div></div></div><div class="title"><span class="title-label" dir="auto" data-l10n-id="newtab-topsites-add-shortcut-label"><br/></span><span class="sponsored-label" data-l10n-id="newtab-topsite-sponsored"></span></div></a><div class="topsite-impression-observer"></div></div></li></ul></div><div class="edit-topsites-wrapper"></div></div></section></div></div></div></div><style data-styles="[[null]]"></style></div><section class="collapsible-section ds-layout" data-section-id="topstories"><div class="section-top-bar"><h2 class="section-title-container "><span class="section-title"><span data-l10n-id="newtab-section-header-stories"></span></span></h2></div><div><div class="discovery-stream ds-layout "><div class="ds-column ds-column-12"><div class="ds-column-grid"><div><div><div class="ds-card-grid     "><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.huffingtonpost.fr/life/article/la-france-est-championne-du-monde-avec-la-coree-du-sud-dans-ce-domaine-et-ca-n-a-rien-de-positif_258724.html?utm_source=firefox-newtab-fr-fr" title="La France est championne du monde avec la Corée du Sud dans ce domaine (et ça n’a rien de positif)" class="ds-card-link" data-is-sponsored-link="false" tabindex="0"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">La France est championne du monde avec la Corée du Sud dans ce domaine (et ça n’a rien de positif)</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Le HuffPost</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="0"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="0"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;La France est championne du monde avec la Corée du Sud dans ce domaine (et ça n’a rien de positif)&quot;}" class="context-menu-button icon" tabindex="0"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.vanityfair.fr/article/george-clooney-son-epouse-amal-et-leurs-enfants-sont-desormais-francais?utm_source=firefox-newtab-fr-fr" title="George Clooney, son épouse Amal et leurs enfants sont désormais français" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">George Clooney, son épouse Amal et leurs enfants sont désormais français</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Vanity Fair</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;George Clooney, son épouse Amal et leurs enfants sont désormais français&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><div class="ds-card placeholder placeholder-seen refined-cards"><div class="placeholder-image placeholder-fill"></div><div class="placeholder-description placeholder-fill"></div><div class="placeholder-header placeholder-fill"></div></div><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://france3-regions.franceinfo.fr/bourgogne-franche-comte/saone-et-loire/bonjour-c-est-le-livreur-votre-colis-ne-rentrait-pas-dans-la-boite-aux-lettres-j-ai-evite-cette-arnaque-de-justesse-3274193.html?utm_source=firefox-newtab-fr-fr" title="&quot;Bonjour c&#x27;est le livreur, votre colis ne rentrait pas dans la boîte aux lettres&quot; : comment éviter cette arnaque bien rodée" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">&quot;Bonjour c&#x27;est le livreur, votre colis ne rentrait pas dans la boîte aux lettres&quot; : comment éviter cette arnaque bien rodée</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">France 3 Régions</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;\&quot;Bonjour c&#x27;est le livreur, votre colis ne rentrait pas dans la boîte aux lettres\&quot; : comment éviter cette arnaque bien rodée&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><div class="ds-card placeholder placeholder-seen refined-cards"><div class="placeholder-image placeholder-fill"></div><div class="placeholder-description placeholder-fill"></div><div class="placeholder-header placeholder-fill"></div></div><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.20minutes.fr/sante/4192059-20251230-vole-enfance-routines-beaute-fillettes-inquietent-psychologues?utm_source=firefox-newtab-fr-fr" title="« On leur vole leur enfance »… Ces routines beauté des fillettes qui inquiètent les psychologues" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">« On leur vole leur enfance »… Ces routines beauté des fillettes qui inquiètent les psychologues</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">20 Minutes</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;« On leur vole leur enfance »… Ces routines beauté des fillettes qui inquiètent les psychologues&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://fr.euronews.com/2025/12/30/nouvel-an-les-120-meilleurs-messages-de-voeux-pour-2026?utm_source=firefox-newtab-fr-fr" title="Nouvel An : les 120 meilleurs messages de vœux pour 2026" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Nouvel An : les 120 meilleurs messages de vœux pour 2026</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Euronews</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Nouvel An : les 120 meilleurs messages de vœux pour 2026&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.france24.com/fr/afrique/20251230-crise-france-algerie-2025-sansal-oqtf-sahara?utm_source=firefox-newtab-fr-fr" title="Crise diplomatique France-Algérie : en 2025, une bascule irrémédiable ?" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Crise diplomatique France-Algérie : en 2025, une bascule irrémédiable ?</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">France 24</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Crise diplomatique France-Algérie : en 2025, une bascule irrémédiable ?&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.gqmagazine.fr/article/7-ingredients-etrangement-bons-pour-votre-sante?utm_source=firefox-newtab-fr-fr" title="7 aliments qui sont bien meilleurs pour votre santé que vous ne l’imaginez" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">7 aliments qui sont bien meilleurs pour votre santé que vous ne l’imaginez</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">GQ France</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;7 aliments qui sont bien meilleurs pour votre santé que vous ne l’imaginez&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.lepoint.fr/culture/clap-de-fin-pour-mtv-les-chaines-musicales-tirent-leur-reverence-4WJ273FYJRA4VMTKK7BCF4XP5Q/?utm_source=firefox-newtab-fr-fr" title="Clap de fin pour MTV : les chaînes musicales tirent leur révérence" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Clap de fin pour MTV : les chaînes musicales tirent leur révérence</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Le Point</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Clap de fin pour MTV : les chaînes musicales tirent leur révérence&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.lefigaro.fr/animaux/l-abolition-des-ours-dansants-en-bulgarie-la-grande-victoire-meconnue-de-brigitte-bardot-20251228?utm_source=firefox-newtab-fr-fr" title="L’abolition des ours dansants en Bulgarie, la grande victoire méconnue de Brigitte Bardot" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">L’abolition des ours dansants en Bulgarie, la grande victoire méconnue de Brigitte Bardot</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Le Figaro</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;L’abolition des ours dansants en Bulgarie, la grande victoire méconnue de Brigitte Bardot&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.nationalgeographic.fr/sante/sante-ce-que-interieur-de-votre-bouche-dit-de-votre-sante-intestins-coeur-cancer-cerveau?utm_source=firefox-newtab-fr-fr" title="Ce que l&#x27;intérieur de votre bouche dit de votre santé" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Ce que l&#x27;intérieur de votre bouche dit de votre santé</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">National Geographic France</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Ce que l&#x27;intérieur de votre bouche dit de votre santé&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.femina.fr/article/ameliorer-son-microbiote-avec-de-bonnes-habitudes-alimentaires-mode-d-emploi?utm_source=firefox-newtab-fr-fr" title="Améliorer son microbiote avec de bonnes habitudes alimentaires, mode d&#x27;emploi" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Améliorer son microbiote avec de bonnes habitudes alimentaires, mode d&#x27;emploi</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Version Femina</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Améliorer son microbiote avec de bonnes habitudes alimentaires, mode d&#x27;emploi&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.ouest-france.fr/leditiondusoir/2025-12-30/pourquoi-a-t-on-souvent-l-impression-que-le-temps-passe-beaucoup-plus-vite-pendant-les-vacances-570f48da-48eb-4543-b7e7-7c1e86c2cbb4?utm_source=firefox-newtab-fr-fr" title="Pourquoi a-t-on souvent l’impression que le temps passe beaucoup plus vite pendant les vacances ?" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Pourquoi a-t-on souvent l’impression que le temps passe beaucoup plus vite pendant les vacances ?</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Ouest-France</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Pourquoi a-t-on souvent l’impression que le temps passe beaucoup plus vite pendant les vacances ?&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://reporterre.net/En-Ecosse-la-bataille-de-la-langue-gaelique-pour-faire-renaitre-des-forets?utm_source=firefox-newtab-fr-fr" title="En Écosse, une langue traditionnelle au secours des forêts" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">En Écosse, une langue traditionnelle au secours des forêts</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Reporterre</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;En Écosse, une langue traditionnelle au secours des forêts&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://podcasts.leparisien.fr/le-parisien-crime-story/202512200700-12-vengeance-et-colis-piege-le-mysterieux-attentat-de-la-bau?utm_source=firefox-newtab-fr-fr" title="[1/2] Vengeance et colis piégé : le mystérieux attentat de La Baule" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">[1/2] Vengeance et colis piégé : le mystérieux attentat de La Baule</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Le Parisien</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;[1/2] Vengeance et colis piégé : le mystérieux attentat de La Baule&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.marieclaire.fr/un-an-apres-le-proces-de-mazan-deux-hommes-comparaissaient-pour-viol-et-soumission-chimique-en-allemagne-et-en-angleterre,1505880.asp?utm_source=firefox-newtab-fr-fr" title="Un an après le procès de Mazan, deux hommes comparaissaient pour viol et soumission chimique en Allemagne et en Angleterre" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Un an après le procès de Mazan, deux hommes comparaissaient pour viol et soumission chimique en Allemagne et en Angleterre</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Marie Claire</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Un an après le procès de Mazan, deux hommes comparaissaient pour viol et soumission chimique en Allemagne et en Angleterre&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.slate.fr/grand-format/images-marquantes-annee-2025-louvre-catastrophes-climatiques-poutine-trump-gaza-pape-francois-incendies-los-angeles?utm_source=firefox-newtab-fr-fr" title="Catastrophes climatiques, le Louvre, Donald Trump et Vladimir Poutine: les images marquantes de 2025" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Catastrophes climatiques, le Louvre, Donald Trump et Vladimir Poutine: les images marquantes de 2025</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Slate France</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Catastrophes climatiques, le Louvre, Donald Trump et Vladimir Poutine: les images marquantes de 2025&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.franceinfo.fr/replay-radio/le-choix-franceinfo/casser-les-codes-longtemps-masculin-le-metier-de-detective-prive-attire-de-plus-en-plus-de-femmes_7682290.html?utm_source=firefox-newtab-fr-fr" title="&quot;Casser les codes&quot; : longtemps masculin, le métier de détective privé attire de plus en plus de femmes" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">&quot;Casser les codes&quot; : longtemps masculin, le métier de détective privé attire de plus en plus de femmes</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">France Info</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;\&quot;Casser les codes\&quot; : longtemps masculin, le métier de détective privé attire de plus en plus de femmes&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.geo.fr/geopolitique/comment-les-activites-secretes-d-israel-visent-a-contrecarrer-le-nouveau-gouvernement-syrien-230220?utm_source=firefox-newtab-fr-fr" title="Comment les activités secrètes d&#x27;Israël visent à contrecarrer le nouveau gouvernement syrien" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Comment les activités secrètes d&#x27;Israël visent à contrecarrer le nouveau gouvernement syrien</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Géo</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Comment les activités secrètes d&#x27;Israël visent à contrecarrer le nouveau gouvernement syrien&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.courrierinternational.com/article/sciences-therapie-genique-implants-cerebraux-trous-noirs-et-etrange-comete-ce-qui-nous-a-marques-en-2025_238604?utm_source=firefox-newtab-fr-fr" title="Thérapie génique, implants cérébraux, trous noirs et étrange comète… Ce qui nous a marqués en 2025" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Thérapie génique, implants cérébraux, trous noirs et étrange comète… Ce qui nous a marqués en 2025</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Courrier international</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Thérapie génique, implants cérébraux, trous noirs et étrange comète… Ce qui nous a marqués en 2025&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.slate.fr/societe/parents-probleme-addiction-ecrans-tv-portables-solitude-depression-capacite-attention-isolement-complot?utm_source=firefox-newtab-fr-fr" title="Vos parents ont-ils un problème d&#x27;addiction aux écrans?" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Vos parents ont-ils un problème d&#x27;addiction aux écrans?</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Slate France</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Vos parents ont-ils un problème d&#x27;addiction aux écrans?&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.nationalgeographic.fr/sante/sante-mentale-physique-bonnes-resolutions-sante-pourquoi-elles-ne-tiennent-pas-et-ce-qui-peut-fonctionner?utm_source=firefox-newtab-fr-fr" title="Bonnes résolutions santé : pourquoi elles ne tiennent pas (et ce qui peut fonctionner)" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Bonnes résolutions santé : pourquoi elles ne tiennent pas (et ce qui peut fonctionner)</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">National Geographic France</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Bonnes résolutions santé : pourquoi elles ne tiennent pas (et ce qui peut fonctionner)&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article><article class="ds-card sections-card-ui    ds-card-title-lines-3 ds-card-desc-lines-3    refined-cards"><a href="https://www.ouest-france.fr/leditiondusoir/2025-12-30/du-ballon-d-or-d-ousmane-dembele-au-maillot-jaune-de-pauline-ferrand-prevot-on-vous-resume-l-annee-sportive-2025-en-images-84f1aeed-bb3d-40d5-aed4-67a13e299053?utm_source=firefox-newtab-fr-fr" title="Du ballon d’or d’Ousmane Dembélé au maillot jaune de Pauline Ferrand Prévot, on vous résume l’année sportive 2025 en images" class="ds-card-link" data-is-sponsored-link="false" tabindex="-1"><div class="img-wrapper"><picture class="ds-image
+       img 
+      
+      
+     loaded"><div class="broken-image"></div></picture></div><div class="impression-observer"></div><div class="meta"><div class="info-wrap"><h3 class="title clamp">Du ballon d’or d’Ousmane Dembélé au maillot jaune de Pauline Ferrand Prévot, on vous résume l’année sportive 2025 en images</h3></div><div class="sections-card-footer"><div class="source-wrapper"><p class="source clamp">Ouest-France</p></div><div class="card-stp-thumbs-buttons-wrapper"><div class="card-stp-thumbs-buttons"><moz-button iconsrc="chrome://global/skin/icons/thumbs-up-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-up refined-layout null" data-l10n-id="newtab-pocket-thumbs-up-tooltip" type="icon ghost" tabIndex="-1"></moz-button><moz-button iconsrc="chrome://global/skin/icons/thumbs-down-20.svg" onClick="function() {
+    [native code]
+}" className="card-stp-thumbs-button icon icon-thumbs-down null" data-l10n-id="newtab-pocket-thumbs-down-tooltip" type="icon ghost" tabIndex="-1"></moz-button></div></div></div></div></a><div class="card-stp-button-hover-background"><div class="card-stp-button-position-wrapper"><div class="context-menu-position-container"><button aria-haspopup="menu" aria-expanded="false" data-l10n-id="newtab-menu-content-tooltip" data-l10n-args="{&quot;title&quot;:&quot;Du ballon d’or d’Ousmane Dembélé au maillot jaune de Pauline Ferrand Prévot, on vous résume l’année sportive 2025 en images&quot;}" class="context-menu-button icon" tabindex="-1"></button></div></div></div></article></div></div></div><div><div class="ds-navigation ds-navigation-left-align "><a href="https://www.mozilla.org/privacy/firefox/#recommend-relevant-content" class="ds-navigation-privacy" data-is-sponsored-link="false"><span data-l10n-id="newtab-section-menu-privacy-notice"></span></a></div></div></div></div><style data-styles="[[null,{&quot;.ds-navigation&quot;:&quot;margin-block-start: -10px;&quot;}]]"></style></div></div></section><div class="discovery-stream ds-layout "><div class="ds-column ds-column-12"><div class="ds-column-grid"><div></div></div></div><style data-styles="[[null]]"></style></div></div></main><aside></aside></div><menu class="personalizeButtonWrapper"><span><button class="personalize-button" data-l10n-id="newtab-customize-panel-icon-button"><label data-l10n-id="newtab-customize-panel-icon-button-label"></label><div><img role="presentation" src="chrome://global/skin/icons/edit-outline.svg"/></div></button><div class="customize-menu-animate-wrapper"><div class="customize-menu " role="dialog" data-l10n-id="newtab-settings-dialog-label"><div class="close-button-wrapper"><moz-button onClick="() =&gt; this.props.onClose()" id="close-button" type="icon ghost" data-l10n-id="newtab-custom-close-menu-button" iconsrc="chrome://global/skin/icons/close.svg"></moz-button></div><div class="home-section"><div class="wallpapers-section"><div><div class="category-header"><h2 data-l10n-id="newtab-wallpaper-title"></h2><button class="wallpapers-reset" data-l10n-id="newtab-wallpaper-reset"></button></div><div role="grid" aria-label="Wallpaper category selection. Use arrow keys to navigate."><fieldset class="category-list"><div><button id="abstracts" style="background-image:url(https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/18c7861f-0c9d-48d4-a98c-fb8999e331bd.avif);background-position:center" class="wallpaper-input
+                      
+                      " tabindex="0"></button><label for="abstracts" data-l10n-id="newtab-wallpaper-category-title-abstract">newtab-wallpaper-category-title-abstract</label></div><div><button id="solid-colors" style="background-color:#76C1FF" class="wallpaper-input
+                      
+                      " tabindex="-1"></button><label for="solid-colors" data-l10n-id="newtab-wallpaper-category-title-colors">newtab-wallpaper-category-title-colors</label></div><div><button id="photographs" style="background-image:url(https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/e94b1e49-c518-40d6-98e3-dffab6cc370d.avif);background-position:center" class="wallpaper-input
+                      
+                      " tabindex="-1"></button><label for="photographs" data-l10n-id="newtab-wallpaper-category-title-photographs">newtab-wallpaper-category-title-photographs</label></div><div><button id="firefox" style="background-image:url(https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/6f7e2155-df50-4917-81fd-9c6f16e14965.svg);background-position:center" class="wallpaper-input
+                      
+                      " tabindex="-1"></button><label for="firefox" data-l10n-id="newtab-wallpaper-category-title-firefox">newtab-wallpaper-category-title-firefox</label></div><div><button id="celestial" style="background-image:url(https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/55b678ff-15c3-49d5-bdbc-40f8413cfb8a.avif);background-position:center" class="wallpaper-input
+                      
+                      " tabindex="-1"></button><label for="celestial" data-l10n-id="newtab-wallpaper-category-title-celestial">newtab-wallpaper-category-title-celestial</label></div><div><button id="custom-wallpaper" style="background-color:" class="wallpaper-input
+                      theme-custom-wallpaper
+                      " tabindex="-1" aria-errormessage="customWallpaperError"></button><label for="custom-wallpaper" data-l10n-id="newtab-wallpaper-upload-image">newtab-wallpaper-upload-image</label></div></fieldset></div></div></div><span class="divider" role="separator"></span><div class="settings-toggles"><div id="weather-section" class="section"><moz-toggle id="weather-toggle" pressed="true" onToggle="function() {
+    [native code]
+}" data-preference="showWeather" data-eventSource="WEATHER" data-l10n-id="newtab-custom-weather-toggle"></moz-toggle></div><div id="shortcuts-section" class="section"><moz-toggle id="shortcuts-toggle" pressed="true" onToggle="function() {
+    [native code]
+}" data-preference="feeds.topsites" data-eventSource="TOP_SITES" data-l10n-id="newtab-custom-shortcuts-toggle"><div slot="nested"><div class="more-info-top-wrapper"><div class="more-information"><select id="row-selector" class="selector" name="row-count" data-preference="topSitesRows" aria-labelledby="custom-shortcuts-title"><option selected="" value="1" data-l10n-id="newtab-custom-row-selector" data-l10n-args="{&quot;num&quot;: 1}"></option><option value="2" data-l10n-id="newtab-custom-row-selector" data-l10n-args="{&quot;num&quot;: 2}"></option><option value="3" data-l10n-id="newtab-custom-row-selector" data-l10n-args="{&quot;num&quot;: 3}"></option><option value="4" data-l10n-id="newtab-custom-row-selector" data-l10n-args="{&quot;num&quot;: 4}"></option></select></div></div></div></moz-toggle></div><div id="pocket-section" class="section"><moz-toggle id="pocket-toggle" pressed="true" onToggle="function() {
+    [native code]
+}" aria-describedby="custom-pocket-subtitle" data-preference="feeds.section.topstories" data-eventSource="TOP_STORIES" data-l10n-id="newtab-custom-stories-toggle"><div slot="nested"></div></moz-toggle></div></div><span class="divider" role="separator"></span><div><button id="settings-link" class="external-link" data-l10n-id="newtab-custom-settings"></button></div></div></div></div></span></menu></div>
+    </div>
+    <div id="footer-asrouter-container" role="presentation"></div>
+    <script src="about:home?jscache"></script>
+    <script async type="module" src="chrome://global/content/elements/moz-toggle.mjs"></script>
+    <script async type="module" src="chrome://global/content/elements/moz-badge.mjs"></script>
+    <script async type="module" src="chrome://global/content/elements/moz-button.mjs"></script>
+    <script async type="module" src="chrome://global/content/elements/moz-button-group.mjs"></script>
+    <script async type="module" src="chrome://global/content/elements/moz-box-button.mjs"></script>
+    <script async type="module" src="chrome://global/content/elements/moz-message-bar.mjs"></script>
+    <script async type="module" src="chrome://global/content/elements/moz-radio-group.mjs"></script>
+    <script async type="module" src="chrome://global/content/elements/moz-select.mjs"></script>
+    <script async type="module" src="chrome://global/content/elements/moz-reorderable-list.mjs"></script>
+    <script async type="module" src="chrome://global/content/elements/panel-list.js"></script>
+  </body>
+</html>
+window.__FROM_STARTUP_CACHE__ = true;
+window.__STARTUP_STATE__ = {
+	"TopSites": {
+		"initialized": true,
+		"rows": [
+			{
+				"isDefault": true,
+				"url": "https://www.amazon.fr/?tag=admarketpla00-21&ref=pd_sl_c15921349d8b7f09b80ddfaeedacdaef698d1b65ee3dfdba5d4cdbd9&mfadid=adm",
+				"hostname": "amazon",
+				"sendAttributionRequest": false,
+				"label": "Amazon",
+				"show_sponsored_label": true,
+				"sponsored_position": 1,
+				"sponsored_click_url": "https://ads.mozilla.org/v1/t?data=CosKEgU3NDM1NxoMCJ6n2soGELK-8e8BIgwIkajaygYQwZ7a7QIqBkFtYXpvbjIkMWU0NDE4ZDYtMDAxMC00MTQwLWE0ZTgtYjQ5YjZlZWM2YWMzOgJGUnINbmV3dGFiX3RpbGVfMXoDTkFRggFQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjCYAQKgAQGoAQOwAQG4AQLCASQwNzA2ZWRhOS03YTUxLTRmNjItYjljOS0yMDBmZWQ5ZDllYzbIAQGSAZIICo8IaHR0cHM6Ly9icmlkZ2UucmljMS5hZG1hcmtldHBsYWNlLm5ldC9jdHA_dmVyc2lvbj0xLjAuMCZlbmNwPWpuRVl4bXdWSlFrWDVRYlVmdElOSSUzRHdxZ0NsbnhHRWtnQ2xyNFF4WTRacXI0WkhZZlpmbkhud3FJJTNERVlEJTNEY1lIRmRaZ0Y0OURuSVFmUk5uRkd2Y2ZEekRCR040c3dsZEZxMyUyRmlEYVlGR2pnRWtxa0NEakJpZHZ1M25YaUVkNyUyRkZDN0JpY3ZHRkM3Z0UlM0ROb0NFajdmcV9HRW5YNGZ3N3VGcWo2aWxfR0RDZUlmdzd2RnEzbzdSZU9nQ2xXZnRhVzdSRWtpQ2tYN1JFUmlDa1k3bmRaajllS2lGM2FnQ2JuaXJqdklwa1o0Q3hrNENIV2ZabG54R0V3eFJ3dklwa1k0UURYZlo4cjRRbFpmQ0RhZkNsWmZRTG5KRzRranBrVzdSN2tIbld6SW5jVHhtRG54OTNraUYyemZ0SXF4JTNENHZJcGtXN25jV2ZaZDFEWmVhQ2MzN2psX0NmOTMxMlplYUN3ZldzbFhEM0czZkVsRXJDRnY3ZkR6bEVHajEzbGNQN240a3NGd3FnQ2xyN240WUlGd3FnQ0xZZnBsbnglM0RYdklwa1hmcGJyN24zWnglM0Q3dklwa1hmcGxfN24zWnglM0RjcWpud3FnQ2xXZnBxbkk5NFdIR0Vxam53cWdDSG0xQ3FuSTk0V2lGenZJcGtZZnBiYTduY3F4bVh2SXBrWTRRRFhmWjhyNFFsWmZRTGtmcDhkMUNxbnhtWFZqJTNEX2RKQ2tYN25FVUVFN2ZnRFg4MkM0bkV3MyUyRjFjeG1KUmM1RXFYWklEXzNqdERZMnFsYUVGdzFEQ05jQ0M3ZTdDNyUzREI5YldERHU2Q2t6NzFFN3BER2pHSEVid2ZxOF80JTNETjYxRTRFaXE4ZElxZFBEY2o4SHFOWjNtMzlqJTNEdWRDUmNERTlIYUNERWcxcE5vSEdOUGlyRGRCRzclM0RGUnZURW5BbWpCRFkyUk4zNDljSEpSRV9pRXY5NHJOOUZuY19KWklYSGszMUprX1lGY3FrQkZ3UkJRam9zcGprc2M0MmlxWDlIR0VGM0dOQmZsNG4zQ2pFQkdJMUpRNHRpbWpWN0M3JTNEaWQ3VkQ5Ym1KR2xrQ2tjX3NRamZGUTRkam5UbnhSM1Z4WmtTMVklMkZNNlFUUzdud3ZIWmt1ZkNUdWZDVHVmQ1R1ZkNUdWZCSVF4cGtXNVE4WTRRYlRmdFdYZnBmcjVwYlRmdFdYZnBicjV0V1Q1dFhraUZYd3hyYlRIbmNRaW1JdkolM0RYS0htelVJOUVRaUdJdxIgBY7MrfEbZK3kxjrOH6M-m2aoDVA9JM4Kewlgdwdi0v0",
+				"sponsored_impression_url": "https://ads.mozilla.org/v1/t?data=Cs0DEgU3NDM1NxoMCJ6n2soGELK-8e8BIgwIkajaygYQwZ7a7QIqBkFtYXpvbjIkMWU0NDE4ZDYtMDAxMC00MTQwLWE0ZTgtYjQ5YjZlZWM2YWMzOgJGUnINbmV3dGFiX3RpbGVfMXoDTkFRggFQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjCYAQGgAQGoAQOwAQG4AQLCASQwNzA2ZWRhOS03YTUxLTRmNjItYjljOS0yMDBmZWQ5ZDllYzbIAQGSAdQBCtEBaHR0cHM6Ly9pbXAubXQ0OC5uZXQvc3RhdGljP2lkPTdSSHpmT0lYakZFWXNCZHZJcGtZNFFEWGZaOHI0UWxaZkNEYWZDbFpmUUxuajl3V0lCZHZJcGtZN240WUlGY2tpR0l3NUZ3cWdDTFlmcGxueCUzRFhOSG1FdUlGJTJCazVGd3FnQ2xXZnB4bkhGMnV4bUVUSUY0a2lGelU1RndxZ0M4bTRDbFpmUXhtZkNmWTFwMldmUUQlMkIxQklaSiUzRHprNUYlMkJkSkY3d3hRa1gSIGA8WSW4xlA4aZfvYQEPYVT2PTcdtGqQaSydNfEFD984",
+				"sponsored_tile_id": "CAMSBmFtYXpvbg",
+				"partner": "amp",
+				"block_key": "CAMSBmFtYXpvbg",
+				"favicon": "https://ads-img.mozilla.org/v1/images?image_data=CnAKbmh0dHBzOi8vYW1wLWFzc2V0LjQ1dHUxYzAuY29tL2Fzc2V0cy8xMDA5L2I2MmM2ZjY0ZWEzY2ExZTFjMmQzMzcwMWZkYmQzMmE0MzllMzRmNDJlZGY5MDQwYTAzNjIwYjg3MDc1NDU1MDguanBnEiCoCsoQw36V5WNmQ0vWqhmhvIgqspGFNqJ3OVrxYFABxg",
+				"faviconSize": 200,
+				"typedBonus": true
+			},
+			{
+				"isDefault": true,
+				"url": "https://temuaffiliateprogram.pxf.io/7azad5?subId1=265132761315811328&mfadid=adm",
+				"hostname": "temuaffiliateprogram.pxf",
+				"sendAttributionRequest": false,
+				"label": "Temu",
+				"show_sponsored_label": true,
+				"sponsored_position": 2,
+				"sponsored_click_url": "https://ads.mozilla.org/v1/t?data=CqEIEgU3NTE2ORoMCJ6n2soGEOCp8u8BIgwIkajaygYQwZ7a7QIqBFRlbXUyJDFlNDQxOGQ2LTAwMTAtNDE0MC1hNGU4LWI0OWI2ZWVjNmFjMzoCRlJyDW5ld3RhYl90aWxlXzJ6A05BUYIBUE1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQ7IHJ2OjE0Ni4wKSBHZWNrby8yMDEwMDEwMSBGaXJlZm94LzE0Ni4wmAECoAEBqAEDsAEBuAECwgEkMDcwNmVkYTktN2E1MS00ZjYyLWI5YzktMjAwZmVkOWQ5ZWM2yAECkgGqBgqnBmh0dHBzOi8vYnJpZGdlLnJpYzEuYWRtYXJrZXRwbGFjZS5uZXQvY3RwP3ZlcnNpb249MS4wLjAmZW5jcD1qbkVZeG13VkpRa1g1UWJVZnRJTkklM0R3cWdDOG54R0VrZ0NscjRReFk0WnFyNFpIWWZaZm5IbndxSSUzREVZRCUzRGNZSEZkWmdEZFNGQ2M0RWxkX0NSdklzbGRQM0NjZzNsRWFDR3Y3NHRJV0hRa1hmcGJVZnRJZGolM0RxemZCSWRJbXF6Zk9JdXhyM1dHbXdxc3BrVzdudXJpRjJ6ZlpEYTFweFlmWjJaN1JjZElHN19pRjJ6ZlFIZGZDZlk0WkhYZlpsZDFwbFhmWjhhN25kWmo5MnpmdElZaiUzRDdUZ0ZJTko5NHc3UmVraiUzRHdxZ0Nibkk5ZVFpRjJ6ZnRJUWo5d3ZJcGtYNFlJUXhuRXZJcGtYZnAyWTRZSVdKJTNEd3FnQ2xXZnB4bkk5NFdIbndxZ0NsazRaYm5JOTRXSEYzbWlGMnpmQzJaZkJJcXhyZU5qRjNtaUYyejFwOGQxdElxeHJldkptd3FnQ2xfZnBEbkhGM1pKJTNEd3FnQzhtNENsWmZReG1mQ2ZZMXAyV2ZRTFgxdElaSiUzRHprSlJFdWdDOG5JRl9FRHFXekNsTmVmbUlGRSUzRExhRVpJSTRHRVFpcjJ3ZnE3JTJGc0NEa0pEN2ZFWmNRM2xkOWludmwzRUVlSEd3bXhxNEdEZGNGeEZXckJGN200cnhZRGNFRDElM0RYREMlM0RUWGZFamxpazRXSkdEYTdDN3RCWmNwaUdEWWlDeFh4UjdsSGt3WkpCRFkzcWNsNCUzRGQyRkVjOEJ3RWw0bXVlcyUzRGpyM0RfYXhra2E0RTNVanJ4WUZxNGVpWk45NGwybnhSM1Z4WmtTMVklMkZNNlFUUzdud3ZIWmt1ZkNUdWZDVHVmQ1R1ZkNUdWZCSVF4cGtXNVFmV2ZRYlRmdFdZMUNiVzVwYlRmdFdYZnBicjV0V1Q1dFhraUZYd3hyYlRIbmNRaW1JdkolM0RYS0htelVJOUVRaUdJdxIgZsRiim9u27d7-OxaBCwHpt5rvv_oTbPI3aL_ysx8gDA",
+				"sponsored_impression_url": "https://ads.mozilla.org/v1/t?data=CskDEgU3NTE2ORoMCJ6n2soGEOCp8u8BIgwIkajaygYQwZ7a7QIqBFRlbXUyJDFlNDQxOGQ2LTAwMTAtNDE0MC1hNGU4LWI0OWI2ZWVjNmFjMzoCRlJyDW5ld3RhYl90aWxlXzJ6A05BUYIBUE1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQ7IHJ2OjE0Ni4wKSBHZWNrby8yMDEwMDEwMSBGaXJlZm94LzE0Ni4wmAEBoAEBqAEDsAEBuAECwgEkMDcwNmVkYTktN2E1MS00ZjYyLWI5YzktMjAwZmVkOWQ5ZWM2yAECkgHSAQrPAWh0dHBzOi8vaW1wLm10NDgubmV0L3N0YXRpYz9pZD03Ukh6Zk9JWGpGRVlzQmR2SXBrWTRRRFhmWjhyNFFsWmZDRGFmQ2xaZlFMbmo5d1dJQmR2SXBrWTduNFlJRmNraUdJdzVGd3FnQ2xXNHA4cjdSZVRIRjR3SkZFVWp0ZHZJcGtYZnBicjduY3E1RzR3SiUzREVRaiUzRHdWSk9kdklwa1k0UURYZlo4cjRRbFpmUUxrZnA4YWZDTG54bVhWanRkVWpGZE9JRzh6Zkx5eRIgE3YJTljuzu9G38RgSxkxzvg3Rt1JGa5O7r0bTWPH7xI",
+				"sponsored_tile_id": "CAMSBHRlbXU",
+				"partner": "amp",
+				"block_key": "CAMSBHRlbXU",
+				"favicon": "https://ads-img.mozilla.org/v1/images?image_data=CnAKbmh0dHBzOi8vYW1wLWFzc2V0LjQ1dHUxYzAuY29tL2Fzc2V0cy8xNDMxL2UxYjMxOGJkNDkzNDYyN2Q3MjZkNTFmOWM1ZDQyNTVjZWFhNjI0MWRkYmY4M2RmMDE5MGUyMjBiN2E4MWUyODUuanBnEiCF1FoJ1nRR2YvYgV1umBhTKA482BKOK56b6gVGpg0XUQ",
+				"faviconSize": 200,
+				"typedBonus": true
+			},
+			{
+				"isDefault": true,
+				"url": "https://hotels.prf.hn/l/VxB3bqk/pubref:265132761315811328?mfadid=adm",
+				"hostname": "hotels.prf",
+				"sendAttributionRequest": false,
+				"label": "Hotels.com",
+				"show_sponsored_label": true,
+				"sponsored_position": 3,
+				"sponsored_click_url": "https://ads.mozilla.org/v1/t?data=CpsIEgU3NTE3MxoMCJ6n2soGEM2E8-8BIgwIkajaygYQwZ7a7QIqCkhvdGVscy5jb20yJDFlNDQxOGQ2LTAwMTAtNDE0MC1hNGU4LWI0OWI2ZWVjNmFjMzoCRlJyDW5ld3RhYl90aWxlXzN6A05BUYIBUE1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQ7IHJ2OjE0Ni4wKSBHZWNrby8yMDEwMDEwMSBGaXJlZm94LzE0Ni4wmAECoAEBqAEDsAEBuAECwgEkMDcwNmVkYTktN2E1MS00ZjYyLWI5YzktMjAwZmVkOWQ5ZWM2yAEDkgGeBgqbBmh0dHBzOi8vYnJpZGdlLnJpYzEuYWRtYXJrZXRwbGFjZS5uZXQvY3RwP3ZlcnNpb249MS4wLjAmZW5jcD1qbkVZeG13VkpRa1g1UWJVZnRJTkklM0R3cWdDZm54R0VrZ0NscjRReFk0WnFyNFpIWWZaZm5IbndxSSUzREVZRCUzRGNZSEZkWmdEZFNGQ2M0RWxkX0NSdklzbGRQM0NjZzNsRWFDR3Y3NHRJV0hRa1hmcGJVZnRJZGolM0RxemZCSWRJbXF6Zk9JdXhyM1dHbXdxc3BrVzdudXJpRjJ6ZlpEYTFwTG1mQ2JXN1JjZElHN19pRjJ6ZlFIZGZDZlk0WkhYZlpsZDFwbFhmWjhhN25kWmo5MnpmdElZaiUzRDdUZ0ZJTko5NHc3UmVraiUzRHdxZ0Nibkk5ZVFpRjJ6ZnRJUWo5d3ZJcGtYNFlJUXhuRXZJcGtYZnBEWjRZSVdKJTNEd3FnQ2xXZnB4bkk5NFdIbndxZ0NsazRaZm5JOTRXSEYzbWlGMnpmQzJaZllJcXhyZU5qRjNtaUYyejFwZnI0WUlxeHJldkptd3FnQ2xaNFFIbkhGM1pKJTNEd3FnQzhtNENsWmZReG1mQ2ZZMXAyV2ZRTG1mdElaSiUzRHprSlJFdWdDZm5JRl9FRHFXekNsTmVmbUlGRSUzRExhRVozX0pwYzFERlhTaTkzckVaSHIzRU5pSXc4WUVtZElqZGVHRUZ2WDdDNyUzRGpHdyUyRkNFNGwzY2ZkRHdla0hSOG1zcWpPamtYNGpwM1gzbThtZm1YV0lHSHJEbXdPQ3BqWEpEV2QxbHdJM0NlNkZPRFkybmQyREdOT0VRSThpbUVRQkRqNEhEY3EyUWUlM0Rpa1hZSG4zcXhkbHdmazJ3ZmsybnhSM1Z4WmtTMVklMkZNNlFUUzdud3ZIWmt1ZkNUdWZDVHVmQ1R1ZkNUdWZCSVF4cGtXNVFmcjRaYlRmdFdZMUMyVzVwYlRmdFdYZnBicjV0V1Q1dFhraUZYd3hyYlRIbmNRaW1JdkolM0RYS0htelVJOUVRaUdJdxIgtJVsoWvok8jT9ejqdbQT0KHbfhlUasQocIXJC60KD0s",
+				"sponsored_impression_url": "https://ads.mozilla.org/v1/t?data=Cs8DEgU3NTE3MxoMCJ6n2soGEM2E8-8BIgwIkajaygYQwZ7a7QIqCkhvdGVscy5jb20yJDFlNDQxOGQ2LTAwMTAtNDE0MC1hNGU4LWI0OWI2ZWVjNmFjMzoCRlJyDW5ld3RhYl90aWxlXzN6A05BUYIBUE1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQ7IHJ2OjE0Ni4wKSBHZWNrby8yMDEwMDEwMSBGaXJlZm94LzE0Ni4wmAEBoAEBqAEDsAEBuAECwgEkMDcwNmVkYTktN2E1MS00ZjYyLWI5YzktMjAwZmVkOWQ5ZWM2yAEDkgHSAQrPAWh0dHBzOi8vaW1wLm10NDgubmV0L3N0YXRpYz9pZD03Ukh6Zk9JWGpGRVlzQmR2SXBrWTRRRFhmWjhyNFFsWmZDRGFmQ2xaZlFMbmo5d1dJQmR2SXBrWTduNFlJRmNraUdJdzVGd3FnQ2xXNENmcjdSZVRIRjR3SkZFVWp0ZHZJcGtYZnBicjduY3E1RzR3SiUzREVRaiUzRHdWSk9kdklwa1k0UURYZlo4cjRRbFpmUUxrZnA4YTRRYm54bVhWanRkVWpGZE9JRzh6Zld5eRIgp4-TQsHC5QT3lU9mo6Xxmi-7U5uw06gEoBE73HTCf-4",
+				"sponsored_tile_id": "CAMSCmhvdGVscy5jb20",
+				"partner": "amp",
+				"block_key": "CAMSCmhvdGVscy5jb20",
+				"favicon": "https://ads-img.mozilla.org/v1/images?image_data=CnAKbmh0dHBzOi8vYW1wLWFzc2V0LjQ1dHUxYzAuY29tL2Fzc2V0cy8xNDMzL2ZjYmI1OGQ1ODAwMmEwYmJkYmFiZmE3ZmM0MjYzMmYxNjZiZjlkYzEwMmQzMDU1MDNiMDU2ZTI3YWMxZjY4ODUuanBnEiA5fkM31kNXi7wM3-JY-xWR3mgAcTmItUfOpkzREEemXg",
+				"faviconSize": 200,
+				"typedBonus": true
+			},
+			{
+				"isDefault": true,
+				"url": "https://www.wikipedia.org/",
+				"hostname": "wikipedia",
+				"sendAttributionRequest": false,
+				"label": "Wikipedia",
+				"tippyTopIcon": "chrome://activity-stream/content/data/content/tippytop/images/wikipedia-org@2x.png",
+				"smallFavicon": "chrome://activity-stream/content/data/content/tippytop/favicons/wikipedia-org.ico",
+				"typedBonus": true
+			},
+			{
+				"isDefault": true,
+				"url": "https://www.youtube.com/",
+				"hostname": "youtube",
+				"sendAttributionRequest": false,
+				"label": "YouTube",
+				"tippyTopIcon": "chrome://activity-stream/content/data/content/tippytop/images/youtube-com@2x.png",
+				"smallFavicon": "chrome://activity-stream/content/data/content/tippytop/favicons/youtube-com.png",
+				"typedBonus": true
+			},
+			{
+				"isDefault": true,
+				"url": "http://lemonde.fr/",
+				"hostname": "lemonde",
+				"sendAttributionRequest": false,
+				"label": "Le Monde",
+				"tippyTopIcon": "chrome://activity-stream/content/data/content/tippytop/images/lemonde@2x.png",
+				"smallFavicon": "chrome://activity-stream/content/data/content/tippytop/favicons/lemonde.png",
+				"typedBonus": true
+			},
+			{
+				"isDefault": true,
+				"url": "https://www.reddit.com/",
+				"hostname": "reddit",
+				"sendAttributionRequest": false,
+				"label": "Reddit",
+				"tippyTopIcon": "chrome://activity-stream/content/data/content/tippytop/images/reddit-com@2x.png",
+				"smallFavicon": "chrome://activity-stream/content/data/content/tippytop/favicons/reddit-com.png",
+				"typedBonus": true
+			}
+		],
+		"editForm": null,
+		"showSearchShortcutsForm": false,
+		"searchShortcuts": [
+			{
+				"keyword": "@google",
+				"shortURL": "google",
+				"url": "https://google.com",
+				"tippyTopIcon": "chrome://activity-stream/content/data/content/tippytop/images/google-com@2x.png",
+				"smallFavicon": "chrome://activity-stream/content/data/content/tippytop/favicons/google-com.ico"
+			},
+			{
+				"keyword": "@bing",
+				"shortURL": "bing",
+				"url": "https://bing.com",
+				"tippyTopIcon": "chrome://activity-stream/content/data/content/tippytop/images/bing-com@2x.svg",
+				"smallFavicon": "chrome://activity-stream/content/data/content/tippytop/favicons/bing-com.ico"
+			},
+			{
+				"keyword": "@duckduckgo",
+				"shortURL": "duckduckgo",
+				"url": "https://duckduckgo.com",
+				"tippyTopIcon": "chrome://activity-stream/content/data/content/tippytop/images/duckduckgo-com@2x.svg",
+				"smallFavicon": "chrome://activity-stream/content/data/content/tippytop/favicons/duckduckgo-com.ico"
+			},
+			{
+				"keyword": "@ebay",
+				"shortURL": "ebay",
+				"url": "https://ebay.com",
+				"tippyTopIcon": "chrome://activity-stream/content/data/content/tippytop/images/ebay@2x.png",
+				"smallFavicon": "chrome://activity-stream/content/data/content/tippytop/favicons/ebay.ico"
+			},
+			{
+				"keyword": "@wikipedia",
+				"shortURL": "wikipedia",
+				"url": "https://wikipedia.org",
+				"tippyTopIcon": "chrome://activity-stream/content/data/content/tippytop/images/wikipedia-org@2x.png",
+				"smallFavicon": "chrome://activity-stream/content/data/content/tippytop/favicons/wikipedia-org.ico"
+			}
+		],
+		"sov": {
+			"ready": false,
+			"positions": []
+		}
+	},
+	"App": {
+		"initialized": true,
+		"locale": "fr",
+		"isForStartupCache": {
+			"App": true,
+			"TopSites": true,
+			"DiscoveryStream": true,
+			"Weather": true,
+			"Wallpaper": true
+		},
+		"customizeMenuVisible": false
+	},
+	"Ads": {
+		"initialized": false,
+		"lastUpdated": null,
+		"tiles": {},
+		"spocs": {},
+		"spocPlacements": {}
+	},
+	"Prefs": {
+		"initialized": true,
+		"values": {
+			"default.sites": "https://www.wikipedia.org/,https://www.youtube.com/,https://www.lemonde.fr/,https://www.reddit.com/",
+			"feeds.topsites": true,
+			"hideTopSitesTitle": false,
+			"showSponsored": true,
+			"system.showSponsored": true,
+			"showSponsoredTopSites": true,
+			"mobileDownloadModal.enabled": false,
+			"mobileDownloadModal.variant-a": false,
+			"mobileDownloadModal.variant-b": false,
+			"mobileDownloadModal.variant-c": false,
+			"discoverystream.refinedCardsLayout.enabled": true,
+			"discoverystream.merino-provider.ohttp.enabled": false,
+			"unifiedAds.ohttp.enabled": false,
+			"unifiedAds.adsFeed.enabled": false,
+			"unifiedAds.tiles.enabled": true,
+			"unifiedAds.spocs.enabled": true,
+			"unifiedAds.endpoint": "https://ads.mozilla.org/",
+			"unifiedAds.blockedAds": "",
+			"system.showWeather": false,
+			"showWeather": true,
+			"system.showWeatherOptIn": false,
+			"discoverystream.optIn-region-weather-config": "DE,GB,FR,ES,IT,CH,AT,BE,IE,NL,PL,CZ,SE,SG,HU,SK,FI,DK,NO,PT",
+			"weather.optInDisplayed": true,
+			"weather.optInAccepted": false,
+			"weather.staticData.enabled": true,
+			"weather.query": "",
+			"weather.locationSearchEnabled": true,
+			"weather.temperatureUnits": "c",
+			"weather.display": "simple",
+			"weather.placement": "header",
+			"images.smart": true,
+			"pocketCta": "{\"cta_button\":\"\",\"cta_text\":\"\",\"cta_url\":\"\",\"use_cta\":false}",
+			"showSearch": true,
+			"logowordmark.alwaysVisible": true,
+			"topSitesRows": 1,
+			"telemetry": true,
+			"telemetry.ut.events": false,
+			"telemetry.structuredIngestion.endpoint": "https://incoming.telemetry.mozilla.org/submit",
+			"telemetry.privatePing.enabled": true,
+			"telemetry.surfaceId": "NEW_TAB_FR_FR",
+			"telemetry.privatePing.redactNewtabPing.enabled": true,
+			"telemetry.privatePing.inferredInterests.enabled": false,
+			"section.highlights.includeVisited": true,
+			"section.highlights.includeBookmarks": true,
+			"section.highlights.includeDownloads": true,
+			"section.highlights.rows": 1,
+			"section.topstories.rows": 1,
+			"sectionOrder": "topsites,topstories,highlights",
+			"newtabWallpapers.enabled": true,
+			"newtabWallpapers.customColor.enabled": true,
+			"newtabWallpapers.customWallpaper.enabled": true,
+			"newtabWallpapers.customWallpaper.uuid": "",
+			"newtabWallpapers.customWallpaper.uploadedPreviously": false,
+			"newtabWallpapers.customWallpaper.fileSize.enabled": false,
+			"newtabWallpapers.customWallpaper.fileSize": 0,
+			"newtabWallpapers.customWallpaper.theme": "",
+			"newtabAdSize.leaderboard": false,
+			"newtabAdSize.leaderboard.position": "3",
+			"newtabAdSize.billboard": false,
+			"newtabAdSize.billboard.position": "3",
+			"newtabAdSize.mediumRectangle": false,
+			"discoverystream.promoCard.enabled": false,
+			"discoverystream.promoCard.visible": true,
+			"discoverystream.sections.enabled": false,
+			"discoverystream.sections.personalization.enabled": false,
+			"discoverystream.sections.customizeMenuPanel.enabled": false,
+			"discoverystream.sections.cards.enabled": true,
+			"discoverystream.sections.contextualAds.enabled": false,
+			"discoverystream.sections.personalization.inferred.enabled": false,
+			"discoverystream.dailyBrief.enabled": false,
+			"discoverystream.dailyBrief.sectionId": "top_stories_section",
+			"discoverystream.shortcuts.personalization.enabled": false,
+			"discoverystream.shortcuts.force_log.enabled": false,
+			"discoverystream.attribution.enabled": false,
+			"discoverystream.sections.personalization.inferred.user.enabled": true,
+			"discoverystream.sections.personalization.inferred.model.override": "",
+			"discoverystream.sections.cards.thumbsUpDown.enabled": true,
+			"discoverystream.reportAds.enabled": true,
+			"discoverystream.sections.following": "",
+			"discoverystream.sections.blocked": "",
+			"discoverystream.sections.interestPicker.enabled": false,
+			"discoverystream.sections.interestPicker.visibleSections": "",
+			"discoverystream.spoc-positions": "2,4,8,13,17,20",
+			"discoverystream.placements.contextualSpocs": "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6",
+			"discoverystream.placements.contextualSpocs.counts": "1, 1, 1, 1, 1, 1",
+			"discoverystream.placements.contextualBanners": "",
+			"discoverystream.placements.contextualBanners.counts": "",
+			"discoverystream.placements.spocs": "newtab_stories_1, newtab_stories_2, newtab_stories_3, newtab_stories_4, newtab_stories_5, newtab_stories_6",
+			"discoverystream.placements.spocs.counts": "1,1,1,1,1,1",
+			"discoverystream.placements.tiles": "newtab_tile_1, newtab_tile_2, newtab_tile_3",
+			"discoverystream.placements.tiles.counts": "1, 1, 1",
+			"discoverystream.imageProxy.enabled": false,
+			"newtabWallpapers.highlightEnabled": false,
+			"newtabWallpapers.highlightDismissed": false,
+			"newtabWallpapers.highlightSeenCounter": 0,
+			"newtabWallpapers.highlightHeaderText": "",
+			"newtabWallpapers.highlightContentText": "",
+			"newtabWallpapers.highlightCtaText": "",
+			"newtabWallpapers.wallpaper": "",
+			"sov.enabled": false,
+			"sov.name": "SOV-20251122215625",
+			"sov.frecency.exposure": false,
+			"sov.amp.allocation": "100, 100, 100",
+			"sov.frecency.allocation": "0, 0, 0",
+			"widgets.system.enabled": false,
+			"widgets.enabled": false,
+			"widgets.lists.enabled": true,
+			"widgets.lists.maxLists": 10,
+			"widgets.lists.maxListItems": 100,
+			"widgets.system.lists.enabled": false,
+			"widgets.lists.interaction": false,
+			"widgets.lists.badge.enabled": false,
+			"widgets.lists.badge.label": "",
+			"widgets.maximized": false,
+			"widgets.system.maximized": false,
+			"widgets.focusTimer.enabled": true,
+			"widgets.system.focusTimer.enabled": false,
+			"widgets.focusTimer.interaction": false,
+			"widgets.focusTimer.showSystemNotifications": false,
+			"improvesearch.noDefaultSearchTile": true,
+			"improvesearch.topSiteSearchShortcuts.searchEngines": "google,amazon",
+			"improvesearch.topSiteSearchShortcuts.havePinned": "",
+			"asrouter.devtoolsEnabled": false,
+			"discoverystream.flight.blocks": "{}",
+			"discoverystream.config": "{\"collapsible\":true,\"enabled\":true}",
+			"discoverystream.endpoints": "https://getpocket.cdn.mozilla.net/,https://firefox-api-proxy.cdn.mozilla.net/,https://spocs.getpocket.com/,https://merino.services.mozilla.com/,https://ads.mozilla.org/",
+			"discoverystream.thumbsUpDown.enabled": false,
+			"discoverystream.thumbsUpDown.searchTopsitesCompact": true,
+			"discoverystream.region-basic-layout": false,
+			"discoverystream.spoc.impressions": "{\"CAISCmhlbGxvZnJlc2g\":[1767281026445,1767281349364,1767281681645],\"CAISF3NvbG8gYWkgd2Vic2l0ZSBjcmVhdG9y\":[1767281026452,1767281681664]}",
+			"discoverystream.endpointSpocsClear": "https://spocs.getpocket.com/user",
+			"discoverystream.rec.impressions": "{}",
+			"discoverystream.topicSelection.enabled": false,
+			"discoverystream.topicSelection.topics": "business, arts, food, health, finance, government, sports, tech, travel, education-science, society",
+			"discoverystream.topicSelection.selectedTopics": "",
+			"discoverystream.topicSelection.suggestedTopics": "business, arts, government",
+			"discoverystream.topicSelection.hasBeenUpdatedPreviously": false,
+			"discoverystream.topicSelection.onboarding.displayCount": 0,
+			"discoverystream.topicSelection.onboarding.maybeDisplay": true,
+			"discoverystream.topicSelection.onboarding.lastDisplayed": "",
+			"discoverystream.topicSelection.onboarding.displayTimeout": 0,
+			"discoverystream.topicSelection.onboarding.enabled": false,
+			"discoverystream.topicLabels.enabled": false,
+			"discoverystream.spocs.onDemand": false,
+			"discoverystream.spocs.startupCache.enabled": false,
+			"discoverystream.publisherFavicon.enabled": true,
+			"discoverystream.sections.clientLayout.enabled": false,
+			"support.url": "https://support.mozilla.org/1/firefox/146.0.1/WINNT/fr/new-tab",
+			"caretBlinkCount": 5,
+			"caretBlinkTime": 530,
+			"showSponsoredCheckboxes": true,
+			"feeds.aboutpreferences": true,
+			"feeds.newtabinit": true,
+			"feeds.places": true,
+			"feeds.prefs": true,
+			"feeds.sections": true,
+			"feeds.startupcacheinit": true,
+			"feeds.section.highlights": false,
+			"feeds.system.topstories": true,
+			"feeds.systemtick": true,
+			"feeds.telemetry": true,
+			"feeds.favicon": true,
+			"feeds.system.topsites": true,
+			"feeds.recommendationprovider": true,
+			"feeds.discoverystreamfeed": true,
+			"feeds.wallpaperfeed": true,
+			"feeds.weatherfeed": true,
+			"feeds.adsfeed": true,
+			"feeds.inferredpersonalizationfeed": true,
+			"feeds.smartshortcutsfeed": true,
+			"feeds.newtabattributionfeed": true,
+			"feeds.newtabmessaging": true,
+			"feeds.listsfeed": true,
+			"feeds.timerfeed": true,
+			"isPrivateBrowsingEnabled": true,
+			"platform": "win",
+			"region": "FR",
+			"fxa_endpoint": "https://accounts.firefox.com/",
+			"appUpdateChannel": "release",
+			"improvesearch.topSiteSearchShortcuts": true,
+			"mayHaveSponsoredTopSites": true,
+			"improvesearch.handoffToAwesomebar": true,
+			"featureConfig": {
+				"customizationMenuEnabled": null,
+				"topSitesContileEnabled": true
+			},
+			"pocketConfig": {
+				"spocTopsitesPositions": "2",
+				"contileTopsitesPositions": "0,1,2",
+				"spocAdTypes": "",
+				"spocZoneIds": "",
+				"spocTopsitesAdTypes": "",
+				"spocTopsitesZoneIds": "",
+				"spocTopsitesPlacementEnabled": true,
+				"spocSiteId": "",
+				"widgetPositions": "",
+				"hybridLayout": false,
+				"hideCardBackground": false,
+				"fourCardLayout": false,
+				"newFooterSection": false,
+				"hideDescriptions": true,
+				"hideDescriptionsRegions": "",
+				"compactGrid": false,
+				"compactImages": false,
+				"imageGradient": false,
+				"titleLines": 3,
+				"descLines": 3,
+				"readTime": true,
+				"newSponsoredLabel": false,
+				"recsPersonalized": false,
+				"spocsPersonalized": true,
+				"ctaButtonSponsors": "",
+				"ctaButtonVariant": "",
+				"regionStoriesConfig": "US,DE,CA,GB,IE,CH,AT,BE,IN,FR,IT,ES",
+				"merinoProviderEndpoint": "merino.services.mozilla.com",
+				"regionStoriesBlock": "",
+				"localeListConfig": "",
+				"regionSpocsConfig": "US,CA,DE,GB,FR,IT,ES",
+				"topSitesContileSovEnabled": true,
+				"pocketFeedParameters": "",
+				"pocketStoriesHeadlineId": "newtab-section-header-stories"
+			},
+			"smartShortcutsConfig": {},
+			"widgetsConfig": {},
+			"feeds.section.topstories": true,
+			"discoverystream.enabled": true,
+			"discoverystream.hardcoded-basic-layout": false,
+			"discoverystream.personalization.enabled": true,
+			"discoverystream.personalization.override": false,
+			"discoverystream.personalization.modelKeys": "nb_model_arts_and_entertainment, nb_model_autos_and_vehicles, nb_model_beauty_and_fitness, nb_model_blogging_resources_and_services, nb_model_books_and_literature, nb_model_business_and_industrial, nb_model_computers_and_electronics, nb_model_finance, nb_model_food_and_drink, nb_model_games, nb_model_health, nb_model_hobbies_and_leisure, nb_model_home_and_garden, nb_model_internet_and_telecom, nb_model_jobs_and_education, nb_model_law_and_government, nb_model_online_communities, nb_model_people_and_society, nb_model_pets_and_animals, nb_model_real_estate, nb_model_reference, nb_model_science, nb_model_shopping, nb_model_sports, nb_model_travel",
+			"discoverystream.spocs-endpoint": "",
+			"discoverystream.spocs-endpoint-query": "",
+			"newNewtabExperience.colors": "#004CA4,#009E97,#7550C2,#B63B39,#C96A00,#CA9600,#CC527F",
+			"trainhopConfig": {
+				"weather": {
+					"enabled": true,
+					"weatherOptInEnabled": true
+				}
+			}
+		}
+	},
+	"Dialog": {
+		"visible": false,
+		"data": {}
+	},
+	"Sections": [
+		{
+			"title": {
+				"id": "newtab-section-header-stories"
+			},
+			"rows": [],
+			"enabled": true,
+			"id": "topstories",
+			"pref": {
+				"titleString": {
+					"id": "home-prefs-recommended-by-header-generic"
+				},
+				"descString": {
+					"id": "home-prefs-recommended-by-description-generic"
+				},
+				"nestedPrefs": [
+					{
+						"name": "showSponsored",
+						"titleString": "home-prefs-recommended-by-option-sponsored-stories",
+						"icon": "icon-info",
+						"eventSource": "POCKET_SPOCS"
+					}
+				],
+				"learnMore": {
+					"link": {
+						"href": "https://getpocket.com/firefox/new_tab_learn_more",
+						"id": "home-prefs-recommended-by-learn-more"
+					}
+				},
+				"feed": "feeds.section.topstories"
+			},
+			"eventSource": "TOP_STORIES",
+			"learnMore": {
+				"link": {
+					"href": "https://getpocket.com/firefox/new_tab_learn_more",
+					"message": {
+						"id": "newtab-pocket-learn-more"
+					}
+				}
+			},
+			"compactCards": false,
+			"rowsPref": "section.topstories.rows",
+			"maxRows": 4,
+			"availableLinkMenuOptions": [
+				"CheckBookmark",
+				"Separator",
+				"OpenInNewWindow",
+				"OpenInPrivateWindow",
+				"Separator",
+				"BlockUrl"
+			],
+			"emptyState": {
+				"message": {
+					"id": "newtab-empty-section-topstories-generic"
+				},
+				"icon": "check"
+			},
+			"shouldSendImpressionStats": true,
+			"dedupeFrom": [
+				"highlights"
+			],
+			"options": {},
+			"contextMenuOptions": [
+				"CheckBookmark",
+				"Separator",
+				"OpenInNewWindow",
+				"OpenInPrivateWindow",
+				"Separator",
+				"BlockUrl"
+			],
+			"initialized": false,
+			"dedupeConfigurations": [
+				{
+					"id": "topstories",
+					"dedupeFrom": [
+						"highlights"
+					]
+				}
+			]
+		},
+		{
+			"title": {
+				"id": "newtab-section-header-recent-activity"
+			},
+			"rows": [],
+			"enabled": false,
+			"id": "highlights",
+			"pref": {
+				"titleString": {
+					"id": "home-prefs-recent-activity-header"
+				},
+				"descString": {
+					"id": "home-prefs-recent-activity-description"
+				},
+				"nestedPrefs": [
+					{
+						"name": "section.highlights.includeVisited",
+						"titleString": "home-prefs-highlights-option-visited-pages"
+					},
+					{
+						"name": "section.highlights.includeBookmarks",
+						"titleString": "home-prefs-highlights-options-bookmarks"
+					},
+					{
+						"name": "section.highlights.includeDownloads",
+						"titleString": "home-prefs-highlights-option-most-recent-download"
+					}
+				],
+				"feed": "feeds.section.highlights"
+			},
+			"shouldHidePref": false,
+			"eventSource": "HIGHLIGHTS",
+			"icon": "chrome://global/skin/icons/highlights.svg",
+			"compactCards": true,
+			"rowsPref": "section.highlights.rows",
+			"maxRows": 4,
+			"emptyState": {
+				"message": {
+					"id": "newtab-empty-section-highlights"
+				},
+				"icon": "chrome://global/skin/icons/highlights.svg"
+			},
+			"shouldSendImpressionStats": false,
+			"options": {},
+			"initialized": false
+		}
+	],
+	"Messages": {
+		"isVisible": true,
+		"portID": "",
+		"messageData": {}
+	},
+	"Notifications": {
+		"showNotifications": false,
+		"toastCounter": 0,
+		"toastId": "",
+		"toastQueue": []
+	},
+	"Pocket": {
+		"pocketCta": {},
+		"waitingForSpoc": true
+	},
+	"Personalization": {
+		"lastUpdated": null,
+		"initialized": false
+	},
+	"InferredPersonalization": {
+		"initialized": false,
+		"lastUpdated": null,
+		"inferredInterests": {},
+		"coarseInferredInterests": {},
+		"coarsePrivateInferredInterests": {}
+	},
+	"DiscoveryStream": {
+		"config": {
+			"collapsible": true,
+			"enabled": true
+		},
+		"layout": [
+			{
+				"width": 12,
+				"components": [
+					{
+						"type": "TopSites",
+						"header": {
+							"title": {
+								"id": "newtab-section-header-topsites"
+							}
+						},
+						"properties": {}
+					},
+					{
+						"type": "Message",
+						"header": {
+							"title": {
+								"id": "newtab-section-header-stories"
+							},
+							"subtitle": "",
+							"link_text": {
+								"id": "newtab-pocket-learn-more"
+							},
+							"link_url": "",
+							"icon": "chrome://global/skin/icons/pocket.svg"
+						},
+						"styles": {
+							".ds-message": "margin-block-end: -20px"
+						}
+					},
+					{
+						"type": "CardGrid",
+						"properties": {
+							"items": 24,
+							"hybridLayout": false,
+							"hideCardBackground": false,
+							"fourCardLayout": false,
+							"compactGrid": false,
+							"ctaButtonSponsors": [],
+							"ctaButtonVariant": ""
+						},
+						"widgets": {
+							"positions": [],
+							"data": []
+						},
+						"cta_variant": "link",
+						"header": {
+							"title": ""
+						},
+						"placement": {
+							"name": "newtab_spocs",
+							"ad_types": [
+								3617
+							],
+							"zone_ids": [
+								217758,
+								217995
+							]
+						},
+						"feed": {
+							"embed_reference": null,
+							"url": "https://merino.services.mozilla.com/api/v1/curated-recommendations"
+						},
+						"spocs": {
+							"probability": 1,
+							"positions": [
+								{
+									"index": 2
+								},
+								{
+									"index": 4
+								},
+								{
+									"index": 8
+								},
+								{
+									"index": 13
+								},
+								{
+									"index": 17
+								},
+								{
+									"index": 20
+								}
+							]
+						}
+					},
+					{
+						"type": "Navigation",
+						"newFooterSection": false,
+						"properties": {
+							"alignment": "left-align",
+							"extraLinks": [
+								{
+									"name": "Career",
+									"url": "https://getpocket.com/explore/career?utm_source=pocket-newtab"
+								},
+								{
+									"name": "Technology",
+									"url": "https://getpocket.com/explore/technology?utm_source=pocket-newtab"
+								}
+							],
+							"privacyNoticeURL": {
+								"url": "https://www.mozilla.org/privacy/firefox/#recommend-relevant-content",
+								"title": {
+									"id": "newtab-section-menu-privacy-notice"
+								}
+							}
+						},
+						"styles": {
+							".ds-navigation": "margin-block-start: -10px;"
+						}
+					}
+				]
+			}
+		],
+		"topicsLoading": false,
+		"feeds": {
+			"data": {
+				"https://merino.services.mozilla.com/api/v1/curated-recommendations": {
+					"lastUpdated": 1767280976689,
+					"personalized": false,
+					"sectionsEnabled": false,
+					"data": {
+						"settings": {},
+						"sections": [],
+						"interestPicker": {},
+						"recommendations": [
+							{
+								"id": "bd1c8ee2-e392-401c-9c8c-d3f1d6f73f1b",
+								"scheduled_corpus_item_id": "665a6b87-4a66-4262-b3e7-4ab52e11c58f",
+								"corpus_item_id": "bd1c8ee2-e392-401c-9c8c-d3f1d6f73f1b",
+								"features": {
+									"t_education": 1
+								},
+								"excerpt": "2025 a été très décevante et 2026 pourrait être pire, selon un sondage Ipsos dévoilé en cette fin d’année.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/9e81c6cc747b388d8927f23b1b1f64d18b6fc5065daf6415340de707fd11f550_2714.png",
+								"isTimeSensitive": false,
+								"publisher": "Le HuffPost",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/898c1a1a-5e6b-428b-bca1-e1713782f975.jpeg",
+								"received_rank": 0,
+								"recommended_at": 1767280977154,
+								"title": "La France est championne du monde avec la Corée du Sud dans ce domaine (et ça n’a rien de positif)",
+								"topic": "education",
+								"url": "https://www.huffingtonpost.fr/life/article/la-france-est-championne-du-monde-avec-la-coree-du-sud-dans-ce-domaine-et-ca-n-a-rien-de-positif_258724.html?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "01827363-2bfb-4202-8bd0-b0870517ac8b",
+								"scheduled_corpus_item_id": "ba1f67f6-256b-41bd-a41f-c1395cddefa4",
+								"corpus_item_id": "01827363-2bfb-4202-8bd0-b0870517ac8b",
+								"features": {
+									"t_education": 1
+								},
+								"excerpt": "Cinq ans après leur installation dans le sud de la France, les Clooney ont obtenu la nationalité française par naturalisation.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/09541c65a1877af2e2adf9c104d22c3b4d0b9a136575e0b97c5ff9c1c1b903c1_15086.oct",
+								"isTimeSensitive": false,
+								"publisher": "Vanity Fair",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/174ac3fd-7d5a-4eb8-8c5f-f5e5e749c27e.jpeg",
+								"received_rank": 1,
+								"recommended_at": 1767280977154,
+								"title": "George Clooney, son épouse Amal et leurs enfants sont désormais français",
+								"topic": "education",
+								"url": "https://www.vanityfair.fr/article/george-clooney-son-epouse-amal-et-leurs-enfants-sont-desormais-francais?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "860c7563-81c3-45e1-8ae3-584a02e25ae1",
+								"scheduled_corpus_item_id": "57937fe7-5eea-4f99-8c63-a8a1b9b714e6",
+								"corpus_item_id": "860c7563-81c3-45e1-8ae3-584a02e25ae1",
+								"features": {
+									"t_finance": 1
+								},
+								"excerpt": "Un message qui vous annonce que votre colis n'a pas pu être livré, avec un lien à cliquer pour régler le souci : cette technique de phishing ou escroquerie s'est largement répandue ces dernières années. Nous avons mordu à...",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/80fee547387e1c5c457a8688b9783c409792a26e0cc8d83a222129b8af3a72ce_1092.png",
+								"isTimeSensitive": false,
+								"publisher": "France 3 Régions",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/221d8c24-dce5-4ad7-af07-f2c30451ff3c.jpeg",
+								"received_rank": 2,
+								"recommended_at": 1767280977154,
+								"title": "\"Bonjour c'est le livreur, votre colis ne rentrait pas dans la boîte aux lettres\" : comment éviter cette arnaque bien rodée",
+								"topic": "finance",
+								"url": "https://france3-regions.franceinfo.fr/bourgogne-franche-comte/saone-et-loire/bonjour-c-est-le-livreur-votre-colis-ne-rentrait-pas-dans-la-boite-aux-lettres-j-ai-evite-cette-arnaque-de-justesse-3274193.html?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "33daf5af-c503-4602-a1f5-7017bc5ab2bc",
+								"scheduled_corpus_item_id": "d67fa047-9d72-431a-bd98-b63b1ecec123",
+								"corpus_item_id": "33daf5af-c503-4602-a1f5-7017bc5ab2bc",
+								"features": {
+									"t_society-parenting": 1
+								},
+								"excerpt": "Etre obnubilé par son apparence, notamment sa peau, à un très jeune âge n’est pas sans conséquence sur la santé mentale.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/1b738993dbc73ada10a235f233a2377102db09aacfb253aab0b95fa817d5f5af_1601.svg",
+								"isTimeSensitive": false,
+								"publisher": "20 Minutes",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/7f646fa9-31b1-4065-b7be-41729e459439.jpeg",
+								"received_rank": 3,
+								"recommended_at": 1767280977154,
+								"title": "« On leur vole leur enfance »… Ces routines beauté des fillettes qui inquiètent les psychologues",
+								"topic": "society-parenting",
+								"url": "https://www.20minutes.fr/sante/4192059-20251230-vole-enfance-routines-beaute-fillettes-inquietent-psychologues?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "b941ccca-80b3-4aae-86ff-f6bbcd477858",
+								"scheduled_corpus_item_id": "4ff9dee9-0c7f-497a-a882-4ad10f0688ca",
+								"corpus_item_id": "b941ccca-80b3-4aae-86ff-f6bbcd477858",
+								"features": {
+									"t_tech": 1
+								},
+								"excerpt": "Vous vous apprêtez à envoyer vos voeux pour 2026 à tout votre entourage ? Euronews vous propose une liste complète de messages classés par catégories, comprenant du texte, des emojis et même des GIF animés.",
+								"icon_src": null,
+								"isTimeSensitive": false,
+								"publisher": "Euronews",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/49ef88f4-68b6-44cd-ac55-8bf30471af7e.jpeg",
+								"received_rank": 4,
+								"recommended_at": 1767280977154,
+								"title": "Nouvel An : les 120 meilleurs messages de vœux pour 2026",
+								"topic": "tech",
+								"url": "https://fr.euronews.com/2025/12/30/nouvel-an-les-120-meilleurs-messages-de-voeux-pour-2026?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "d20c8f3d-3e3f-4776-9e20-cabc2f21f0fe",
+								"scheduled_corpus_item_id": "cd553d08-6c71-45e8-a049-f3df2389362f",
+								"corpus_item_id": "d20c8f3d-3e3f-4776-9e20-cabc2f21f0fe",
+								"features": {
+									"t_government": 1
+								},
+								"excerpt": "Entre affaires judiciaires et contentieux migratoires, la crise diplomatique entre la France et l’Algérie a connu en 2025 un pic historique, marqué par des expulsions mutuelles de diplomates et le rappel…",
+								"icon_src": null,
+								"isTimeSensitive": false,
+								"publisher": "France 24",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/172ab47c-aa39-4f56-a49a-4f272a5cd0d8.jpeg",
+								"received_rank": 5,
+								"recommended_at": 1767280977154,
+								"title": "Crise diplomatique France-Algérie : en 2025, une bascule irrémédiable ?",
+								"topic": "government",
+								"url": "https://www.france24.com/fr/afrique/20251230-crise-france-algerie-2025-sansal-oqtf-sahara?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "a8d3eb66-5b9e-4474-ac6a-7e8f1bec75b0",
+								"scheduled_corpus_item_id": "58e818ac-03d7-4577-a1c0-fe9f3da9a3ed",
+								"corpus_item_id": "a8d3eb66-5b9e-4474-ac6a-7e8f1bec75b0",
+								"features": {
+									"t_health": 1
+								},
+								"excerpt": "Voici une poignée d'aliments aussi gourmands que bénéfiques pour la santé, dont il ne faut pas se priver au quotidien.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/cb03c351a69acdeff9933a6a186a4739a3894011b4eecef241813a76319b009d_7406.oct",
+								"isTimeSensitive": false,
+								"publisher": "GQ France",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/0d846d51-9c74-436c-92c5-13d06794b320.jpeg",
+								"received_rank": 6,
+								"recommended_at": 1767280977154,
+								"title": "7 aliments qui sont bien meilleurs pour votre santé que vous ne l’imaginez",
+								"topic": "health",
+								"url": "https://www.gqmagazine.fr/article/7-ingredients-etrangement-bons-pour-votre-sante?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "fb20c231-b5dd-4c45-9d89-6e7274fd85bc",
+								"scheduled_corpus_item_id": "dc55e942-c83e-4cb9-8d5b-daad42717c76",
+								"corpus_item_id": "fb20c231-b5dd-4c45-9d89-6e7274fd85bc",
+								"features": {
+									"t_arts": 1
+								},
+								"excerpt": "Le 31 décembre 2025, plusieurs déclinaisons musicales de MTV cesseront définitivement d’émettre en France et dans de nombreux pays européens, confrontées à la domination des plateformes de streaming et des réseaux sociaux.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/081b7368f1d5c9e2cf82adb71aba5cdb3b364ff21737154c33bc2cd77f1af678_10990.oct",
+								"isTimeSensitive": false,
+								"publisher": "Le Point",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/889d5328-7578-42f4-86ed-d83735966148.jpeg",
+								"received_rank": 7,
+								"recommended_at": 1767280977154,
+								"title": "Clap de fin pour MTV : les chaînes musicales tirent leur révérence",
+								"topic": "arts",
+								"url": "https://www.lepoint.fr/culture/clap-de-fin-pour-mtv-les-chaines-musicales-tirent-leur-reverence-4WJ273FYJRA4VMTKK7BCF4XP5Q/?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "45a1c3c6-8779-44b3-818a-7bde57f3d153",
+								"scheduled_corpus_item_id": "853c6f22-875e-4609-892f-5034962fb36a",
+								"corpus_item_id": "45a1c3c6-8779-44b3-818a-7bde57f3d153",
+								"features": {
+									"t_education": 1
+								},
+								"excerpt": "En faisant pression auprès du gouvernement bulgare puis en créant le sanctuaire de Belitsa, l’actrice française a permis d’interdire la maltraitance des ours et leur a offert un espace adapté à leur nouvelle liberté.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/2d1fa63a35118a3a230f7f1f58a3e40134fda96d8fc01f88ccba75b993434613_1848.svg",
+								"isTimeSensitive": false,
+								"publisher": "Le Figaro",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/ad63a784-5741-4a00-b7bb-d49c5a373971.jpeg",
+								"received_rank": 8,
+								"recommended_at": 1767280977154,
+								"title": "L’abolition des ours dansants en Bulgarie, la grande victoire méconnue de Brigitte Bardot",
+								"topic": "education",
+								"url": "https://www.lefigaro.fr/animaux/l-abolition-des-ours-dansants-en-bulgarie-la-grande-victoire-meconnue-de-brigitte-bardot-20251228?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "f36a6550-687c-4123-9342-1fff7ab012df",
+								"scheduled_corpus_item_id": "1598aaf1-ba46-40ea-a7f1-268ce0414037",
+								"corpus_item_id": "f36a6550-687c-4123-9342-1fff7ab012df",
+								"features": {
+									"t_health": 1
+								},
+								"excerpt": "Le microbiome buccal, qui abrite des centaines d’espèces de bactéries et de champignons, pourrait aider à prédire des risques allant du cancer à la santé du cœur et du cerveau.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/807b768eaf0b5395e24df2c8bd26b2200ed24adee0cf062c86bb38d7b5a482e2_994.png",
+								"isTimeSensitive": false,
+								"publisher": "National Geographic France",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/a40154d2-3db9-41a3-bc59-01152e0a0d07.jpeg",
+								"received_rank": 9,
+								"recommended_at": 1767280977154,
+								"title": "Ce que l'intérieur de votre bouche dit de votre santé",
+								"topic": "health",
+								"url": "https://www.nationalgeographic.fr/sante/sante-ce-que-interieur-de-votre-bouche-dit-de-votre-sante-intestins-coeur-cancer-cerveau?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "0fabc198-df33-4046-8e1a-f4cf9e6d69e0",
+								"scheduled_corpus_item_id": "92d46a9a-c616-4369-b832-c207390a2d96",
+								"corpus_item_id": "0fabc198-df33-4046-8e1a-f4cf9e6d69e0",
+								"features": {
+									"t_food": 1
+								},
+								"excerpt": "Modifier son microbiote rien qu’en changeant le contenu de son assiette, c’est possible. Découvrez les bases d’une nourriture saine pour la flore intestinale.",
+								"icon_src": null,
+								"isTimeSensitive": false,
+								"publisher": "Version Femina",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/4d4a33e4-c8a6-4926-a37f-00020e50a07e.jpeg",
+								"received_rank": 10,
+								"recommended_at": 1767280977154,
+								"title": "Améliorer son microbiote avec de bonnes habitudes alimentaires, mode d'emploi",
+								"topic": "food",
+								"url": "https://www.femina.fr/article/ameliorer-son-microbiote-avec-de-bonnes-habitudes-alimentaires-mode-d-emploi?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "b13eeaf7-4d32-461e-ae44-64ff807e6bdc",
+								"scheduled_corpus_item_id": "e323e9fe-cb2c-4f48-8a9c-2c6160c040c4",
+								"corpus_item_id": "b13eeaf7-4d32-461e-ae44-64ff807e6bdc",
+								"features": {
+									"t_education-science": 1
+								},
+								"excerpt": "Si une journée compte toujours 24 heures, notre appréciation du temps qui passe, elle, n’est pas toujours la même. Ainsi, les vacances donnent souvent l’impression de filer...",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/868b2e91f5a818f6101fdb5bca116fbacd69d0f7d85a7cd39c7191ca8c7c2c92_738.webp",
+								"isTimeSensitive": false,
+								"publisher": "Ouest-France",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/5a07a54c-2e49-485e-a41d-ef979faa2460.jpeg",
+								"received_rank": 11,
+								"recommended_at": 1767280977154,
+								"title": "Pourquoi a-t-on souvent l’impression que le temps passe beaucoup plus vite pendant les vacances ?",
+								"topic": "education-science",
+								"url": "https://www.ouest-france.fr/leditiondusoir/2025-12-30/pourquoi-a-t-on-souvent-l-impression-que-le-temps-passe-beaucoup-plus-vite-pendant-les-vacances-570f48da-48eb-4543-b7e7-7c1e86c2cbb4?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "7465a58c-5312-4579-aaed-49c835caf54e",
+								"scheduled_corpus_item_id": "ad7a6aa2-3618-474f-84b6-9db0553cfc6a",
+								"corpus_item_id": "7465a58c-5312-4579-aaed-49c835caf54e",
+								"features": {
+									"t_education": 1
+								},
+								"excerpt": "Deux luttes se rencontrent en Écosse : la promotion des langues indigènes, et la protection de l’environnement. Retrouver de vieux toponymes en gaélique permet de tracer la mémoire d’une faune et flore disparues.",
+								"icon_src": null,
+								"isTimeSensitive": false,
+								"publisher": "Reporterre",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/681edaa3-eec8-4dd6-b739-efabd197ea6b.webp",
+								"received_rank": 12,
+								"recommended_at": 1767280977154,
+								"title": "En Écosse, une langue traditionnelle au secours des forêts",
+								"topic": "education",
+								"url": "https://reporterre.net/En-Ecosse-la-bataille-de-la-langue-gaelique-pour-faire-renaitre-des-forets?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "c0990396-d293-4142-ba8b-eeb6bf81ec14",
+								"scheduled_corpus_item_id": "6cf130cd-5069-49aa-80e4-fb35c5005fc0",
+								"corpus_item_id": "c0990396-d293-4142-ba8b-eeb6bf81ec14",
+								"features": {
+									"t_government": 1
+								},
+								"excerpt": "(Premier épisode) Le vendredi 24 novembre 2000, un colis piégé explose au Syndicat intercommunal de la côte d’Amour et de la presqu’île guérandaise, le SICAPG. ...",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/a0c330fb18badec295e7479ebb8bcfc851861ce6814fc20c68f553159a0cd673_5886.ico",
+								"isTimeSensitive": false,
+								"publisher": "Le Parisien",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/9b05baa2-bc03-4286-89cb-1ac889ab4359.jpeg",
+								"received_rank": 13,
+								"recommended_at": 1767280977154,
+								"title": "[1/2] Vengeance et colis piégé : le mystérieux attentat de La Baule",
+								"topic": "government",
+								"url": "https://podcasts.leparisien.fr/le-parisien-crime-story/202512200700-12-vengeance-et-colis-piege-le-mysterieux-attentat-de-la-bau?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "5d33bfb3-77f3-4c68-a9a9-514f798858f2",
+								"scheduled_corpus_item_id": "543e8c99-a954-4c19-9ba9-9d54a99bf1d9",
+								"corpus_item_id": "5d33bfb3-77f3-4c68-a9a9-514f798858f2",
+								"features": {
+									"t_education": 1
+								},
+								"excerpt": "En l’espace de quelques jours, un Allemand de 61 ans a été condamné pour avoir drogué et agressé sexuellement son épouse et un Britannique de 49 ans a été inculpé pour des faits similaires. Une actualité judiciaire qui fait écho à l’affaire des viols de Mazan, dont le verdict avait été délivré il y a presque un an.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/7d57fd9e098e1c45c855631e7a450f4fe9b2b4805e1a57e32345019e757eecd6_3279.png",
+								"isTimeSensitive": false,
+								"publisher": "Marie Claire",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/8fa4669e-6d36-407d-a79b-4239a1448c4e.jpeg",
+								"received_rank": 14,
+								"recommended_at": 1767280977154,
+								"title": "Un an après le procès de Mazan, deux hommes comparaissaient pour viol et soumission chimique en Allemagne et en Angleterre",
+								"topic": "education",
+								"url": "https://www.marieclaire.fr/un-an-apres-le-proces-de-mazan-deux-hommes-comparaissaient-pour-viol-et-soumission-chimique-en-allemagne-et-en-angleterre,1505880.asp?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "83899b8a-1284-4780-bc4c-e7902e1c62f1",
+								"scheduled_corpus_item_id": "08440af9-3a98-4851-b981-4338b5a7f967",
+								"corpus_item_id": "83899b8a-1284-4780-bc4c-e7902e1c62f1",
+								"features": {
+									"t_education": 1
+								},
+								"excerpt": "Retour en images sur quelques moments forts d'une année écoulée riche en actualités.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/7336963e08164c8982c1b06416358f8254ef956653cfa2d92d8d284627e1e14b_602.svg",
+								"isTimeSensitive": false,
+								"publisher": "Slate France",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/91c3b8f8-4c15-41f8-87af-8c03e002b64e.jpeg",
+								"received_rank": 15,
+								"recommended_at": 1767280977154,
+								"title": "Catastrophes climatiques, le Louvre, Donald Trump et Vladimir Poutine: les images marquantes de 2025",
+								"topic": "education",
+								"url": "https://www.slate.fr/grand-format/images-marquantes-annee-2025-louvre-catastrophes-climatiques-poutine-trump-gaza-pape-francois-incendies-los-angeles?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "13ca0a85-26e8-4338-9369-08d4776f9b9b",
+								"scheduled_corpus_item_id": "91f1c5d4-b74f-48ec-b9d5-f3ef15a96a3e",
+								"corpus_item_id": "13ca0a85-26e8-4338-9369-08d4776f9b9b",
+								"features": {
+									"t_career": 1
+								},
+								"excerpt": "Dans l'imaginaire collectif, le détective privé est un homme en costume qui tient un journal troué, pour épier discrètement au travers. Mais aujourd'hui, les femmes représentent un tiers des 800 détectives recensés en France. Reportage en région parisienne.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/219a98f0db5398ffdb56add1419f86f89e19fa63c3a3394c0da0ab66f5a40cde_3058.png",
+								"isTimeSensitive": false,
+								"publisher": "France Info",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/53669f64-f89a-42b3-acb7-c22643d16948.jpeg",
+								"received_rank": 16,
+								"recommended_at": 1767280977154,
+								"title": "\"Casser les codes\" : longtemps masculin, le métier de détective privé attire de plus en plus de femmes",
+								"topic": "career",
+								"url": "https://www.franceinfo.fr/replay-radio/le-choix-franceinfo/casser-les-codes-longtemps-masculin-le-metier-de-detective-prive-attire-de-plus-en-plus-de-femmes_7682290.html?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "d21fab03-7232-4a44-bdf8-e05762de4629",
+								"scheduled_corpus_item_id": "84b83892-807b-4c45-ad17-69719c988f93",
+								"corpus_item_id": "d21fab03-7232-4a44-bdf8-e05762de4629",
+								"features": {
+									"t_education": 1
+								},
+								"excerpt": "Il y a un an, le régime de Bachar al-Assad tombait en Syrie. Un nouveau président a été désigné, mais Israël n’accepte pas ce nouveau régime. Il le fait savoir en soutenant une minorité et en empêchant l’union du pays.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/c92b33423590bb47f99737dfb3aa4269abe87773cedbcfbb5618a6ecc17ad22b_1227.svg",
+								"isTimeSensitive": false,
+								"publisher": "Géo",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/2a2f7dc2-1a46-4f57-8764-0644ae041275.jpeg",
+								"received_rank": 17,
+								"recommended_at": 1767280977154,
+								"title": "Comment les activités secrètes d'Israël visent à contrecarrer le nouveau gouvernement syrien",
+								"topic": "education",
+								"url": "https://www.geo.fr/geopolitique/comment-les-activites-secretes-d-israel-visent-a-contrecarrer-le-nouveau-gouvernement-syrien-230220?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "b277e64b-4463-4e14-a02e-fd295454c61a",
+								"scheduled_corpus_item_id": "91ad3a76-642c-4e3e-84e6-c71eff5119e2",
+								"corpus_item_id": "b277e64b-4463-4e14-a02e-fd295454c61a",
+								"features": {
+									"t_education-science": 1
+								},
+								"excerpt": "En cette fin décembre, il est temps pour la rubrique Sciences de “Courrier international” de revenir sur les faits marquants des douze derniers mois. Des choix ...",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/6da623a4c4a682d23f37be7b00c429aa30553f661c14fa217bcc9897c851963a_4375.svg",
+								"isTimeSensitive": false,
+								"publisher": "Courrier international",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/4ff3037c-86db-4036-870f-48e9ff2697f2.jpeg",
+								"received_rank": 18,
+								"recommended_at": 1767280977154,
+								"title": "Thérapie génique, implants cérébraux, trous noirs et étrange comète… Ce qui nous a marqués en 2025",
+								"topic": "education-science",
+								"url": "https://www.courrierinternational.com/article/sciences-therapie-genique-implants-cerebraux-trous-noirs-et-etrange-comete-ce-qui-nous-a-marques-en-2025_238604?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "55900c4d-95cd-4860-b89e-e81cace939c4",
+								"scheduled_corpus_item_id": "f9c8f68a-a0e6-4168-987b-bce81116a1ea",
+								"corpus_item_id": "55900c4d-95cd-4860-b89e-e81cace939c4",
+								"features": {
+									"t_society-parenting": 1
+								},
+								"excerpt": "Les études montrent une augmentation du temps d'écran chez les seniors. Si certains pointent le risque de dépendance, d'autres y voient un moyen de…",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/7336963e08164c8982c1b06416358f8254ef956653cfa2d92d8d284627e1e14b_602.svg",
+								"isTimeSensitive": false,
+								"publisher": "Slate France",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/ce20b071-e22b-4a3d-a6eb-4d944b50b4b4.jpeg",
+								"received_rank": 19,
+								"recommended_at": 1767280977154,
+								"title": "Vos parents ont-ils un problème d'addiction aux écrans?",
+								"topic": "society-parenting",
+								"url": "https://www.slate.fr/societe/parents-probleme-addiction-ecrans-tv-portables-solitude-depression-capacite-attention-isolement-complot?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "1c262737-7280-4061-8998-66884564e40c",
+								"scheduled_corpus_item_id": "221eadd1-c62b-4133-83a4-d98e859cbd49",
+								"corpus_item_id": "1c262737-7280-4061-8998-66884564e40c",
+								"features": {
+									"t_health": 1
+								},
+								"excerpt": "Alors que les conseils bien-être inondent les réseaux sociaux, les experts mettent en avant une courte liste d’habitudes fondées qui améliorent vraiment notre santé.",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/807b768eaf0b5395e24df2c8bd26b2200ed24adee0cf062c86bb38d7b5a482e2_994.png",
+								"isTimeSensitive": false,
+								"publisher": "National Geographic France",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/24d36691-5ea8-4fc5-83df-98272137c74d.jpeg",
+								"received_rank": 20,
+								"recommended_at": 1767280977154,
+								"title": "Bonnes résolutions santé : pourquoi elles ne tiennent pas (et ce qui peut fonctionner)",
+								"topic": "health",
+								"url": "https://www.nationalgeographic.fr/sante/sante-mentale-physique-bonnes-resolutions-sante-pourquoi-elles-ne-tiennent-pas-et-ce-qui-peut-fonctionner?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "7c1fd48a-ea63-4d00-9d97-834df8e96ab2",
+								"scheduled_corpus_item_id": "e3e57168-ab01-4678-bdf1-60d6c3097fd8",
+								"corpus_item_id": "7c1fd48a-ea63-4d00-9d97-834df8e96ab2",
+								"features": {
+									"t_sports": 1
+								},
+								"excerpt": "L’année 2025 s’achève. Entre arrivée du Vendée Globe, Tournoi des 6 Nations remporté par les Bleus ou un Ballon d’or français, la saison de sport en 2025 a été chargée....",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/868b2e91f5a818f6101fdb5bca116fbacd69d0f7d85a7cd39c7191ca8c7c2c92_738.webp",
+								"isTimeSensitive": false,
+								"publisher": "Ouest-France",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/89c016ba-457b-4d77-8b4f-a80942e18576.jpeg",
+								"received_rank": 21,
+								"recommended_at": 1767280977154,
+								"title": "Du ballon d’or d’Ousmane Dembélé au maillot jaune de Pauline Ferrand Prévot, on vous résume l’année sportive 2025 en images",
+								"topic": "sports",
+								"url": "https://www.ouest-france.fr/leditiondusoir/2025-12-30/du-ballon-d-or-d-ousmane-dembele-au-maillot-jaune-de-pauline-ferrand-prevot-on-vous-resume-l-annee-sportive-2025-en-images-84f1aeed-bb3d-40d5-aed4-67a13e299053?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "a92ed025-6dc2-4b77-958c-38d5656f5238",
+								"scheduled_corpus_item_id": "2d6c5051-dff7-4c7c-95da-2b05a822ca93",
+								"corpus_item_id": "a92ed025-6dc2-4b77-958c-38d5656f5238",
+								"features": {
+									"t_education": 1
+								},
+								"excerpt": "À l’heure des bilans, une chose est sûre : 2025 n’a pas été une année de tout repos pour les droits des femmes. Entre reculs et résistances, des avancées ont pourtant vu le jour, sur l’IVG, la santé, la lutte contre les violences ou encore l’égalité. Tour d’horizon, mois par mois, de ce qui a fait bouger les lignes à travers le monde.",
+								"icon_src": null,
+								"isTimeSensitive": false,
+								"publisher": "Elle",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/96563536-4f5d-4227-946d-3c4437b5f464.jpeg",
+								"received_rank": 22,
+								"recommended_at": 1767280977154,
+								"title": "IVG, endométriose, violences... ce qui a changé pour les femmes à travers le monde en 2025",
+								"topic": "education",
+								"url": "https://www.elle.fr/Societe/News/IVG-endometriose-violences-ce-qui-a-change-pour-les-femmes-a-travers-le-monde-en-2025-4424111?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							},
+							{
+								"id": "11932b98-e6af-4b8e-9797-ff4b00770855",
+								"scheduled_corpus_item_id": "e9b854ce-cc9d-41a2-95ff-27c38e0274dd",
+								"corpus_item_id": "11932b98-e6af-4b8e-9797-ff4b00770855",
+								"features": {
+									"t_hobbies": 1
+								},
+								"excerpt": "\"Hollow Knight: Silksong\", \"Clair Obscur: Expédition 33\" ou encore \"Ghost of Yotei\" et \"Blue Prince\" ont accaparé la lumière en l’absence de \"GTA 6\". Pourtant, 2025 a regorgé de petites pépites qui auraient mérité plus d’attention. \"The Alters\", \"South of Midnight\", \"Hell is Us\", \"Bionic Bay\"… gros...",
+								"icon_src": "https://prod-images.merino.prod.webservices.mozgcp.net/favicons/cdf6f8e89e5a91d1db07bbda844779c1a5018fe8ff01c76d67b92ff3b2493d71_11386.png",
+								"isTimeSensitive": false,
+								"publisher": "BFMTV",
+								"raw_image_src": "https://s3.us-east-1.amazonaws.com/pocket-curatedcorpusapi-prod-images/55ebe81a-6008-4b1e-a1e3-12e9a3d3dc55.jpeg",
+								"received_rank": 23,
+								"recommended_at": 1767280977154,
+								"title": "\"Hell is us\", \"The Alters\", \"Baby Steps\"... Retour sur les excellents jeux vidéo sortis en 2025 et à côté desquels vous êtes peut-être passés",
+								"topic": "hobbies",
+								"url": "https://www.bfmtv.com/tech/gaming/hell-is-us-the-alters-baby-steps-retour-sur-les-excellents-jeux-video-sortis-en-2025-et-a-cote-desquels-vous-etes-peut-etre-passes_AV-202512300416.html?utm_source=firefox-newtab-fr-fr",
+								"score": 1
+							}
+						],
+						"surfaceId": "NEW_TAB_FR_FR",
+						"status": "success"
+					}
+				}
+			},
+			"loaded": true
+		},
+		"impressions": {
+			"feed": {
+				"12903042": 1767281026455,
+				"13029998": 1767281026449,
+				"bd1c8ee2-e392-401c-9c8c-d3f1d6f73f1b": 1767281026442,
+				"01827363-2bfb-4202-8bd0-b0870517ac8b": 1767281026444,
+				"860c7563-81c3-45e1-8ae3-584a02e25ae1": 1767281026451,
+				"33daf5af-c503-4602-a1f5-7017bc5ab2bc": 1767281026457
+			}
+		},
+		"blocks": {},
+		"spocs": {
+			"spocs_endpoint": "https://spocs.getpocket.com/spocs",
+			"lastUpdated": 1767280976545,
+			"cacheUpdateTime": 1800000,
+			"onDemand": {
+				"enabled": false,
+				"loaded": false
+			},
+			"data": {
+				"newtab_stories_1": [
+					{
+						"format": "spoc",
+						"url": "https://hellofresheuro.sjv.io/c/2396016/3434976/9318",
+						"callbacks": {
+							"click": "https://ads.mozilla.org/v1/t?data=CpoIEgg0MTQxNTM3MBoLCNGi2soGENfjzigiCwjRotrKBhDX484oKgpIZWxsb0ZyZXNoMiQxZTQ0MThkNi0wMDEwLTQxNDAtYTRlOC1iNDliNmVlYzZhYzM6AkZSchBuZXd0YWJfc3Rvcmllc18xegNOQVGCAVBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMJgBAqABAagBArABAbgBBMIBJGQ1YTEyZDFjLTk2NTQtNDgyYy1hY2Q1LWY3YmQ5N2NmZWJlZfoBCDEzMDI5OTk44gGRBgquBWh0dHBzOi8vZXV3Mi5zbWFydGFkc2VydmVyLmNvbS9oL2NwP2ltZ2lkPTQxNDE1MzcwJmluc2lkPTEzMDI5OTk4JnBnaWQ9MjEwNDE2OCZmbXRpZD0xNDQwMjAmY2tpZD0wJnVpaT04MTY1MTUwNzA4OTcyODY4NzYxJmFjZD0xNzY3MjgwOTc3MDg4JnRtc3RwPTY0OTU5MTE5NTYmdGd0PWNvdW50cnklM2RGUiUzYnJlZ2lvbiUzZE5BUSUzYiUyNGR0JTNkMXQmc3lzdGd0PSUyNHFjJTNkMTMxMzI3NjMyMyUzYiUyNHFsJTNkTWVkaXVtJTNiJTI0cXBjJTNkNzYxNDAlM2IlMjRxcGMlM2Q3NiolM2IlMjRxcGMlM2Q3NjEqJTNiJTI0cXBjJTNkNzYxNColM2IlMjRxcGMlM2Q3NjE0MColM2IlMjRxdCUzZDE4NF8yMDAxXzU2ODE0dCUzYiUyNGRtYSUzZDAlM2IlMjRxbyUzZDUlM2IlMjRiJTNkMTI5OTklM2IlMjRvJTNkMTExMDAmZW52dHlwZT0wJmltcHR5cGU9MCZnZHByPTEmc2NyaXB0aWQ9MTAwMDk3Jm9waWQ9YzQ3YWI4ZjgtYzc0MS00NTMxLWE4MzItMTQ3MjVkNjdkZjM5Jm9wZHQ9MTc2NzI4MDk3NzA4OCZibGR2PTE0NTEyJnNyY2ZuPWRpZmYmcmVxaWQ9NzI0ZGVkZTktOTkxNi00ODA0LWE1Y2EtZWM5MWI0YmZiYzhiJnJlcWR0PTE3NjcyODA5NzcwODgmb3BwaWQ9YzQ3YWI4ZjgtYzc0MS00NTMxLWE4MzItMTQ3MjVkNjdkZjM5JmVxcz05NDFlNThkMzkzYjJiYmFiNDRlYzhkZDdjNGFmNzZkY2FiYjQwODYwElBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMBoMODIuMTI2LjE3Mi4wEiDwRGk8cvdoSgEwnS1a0fNu723g6_D6F1MhUE0TdXlC9A",
+							"impression": "https://ads.mozilla.org/v1/t?data=CrEIEgg0MTQxNTM3MBoLCNGi2soGENfjzigiCwjRotrKBhDX484oKgpIZWxsb0ZyZXNoMiQxZTQ0MThkNi0wMDEwLTQxNDAtYTRlOC1iNDliNmVlYzZhYzM6AkZSchBuZXd0YWJfc3Rvcmllc18xegNOQVGCAVBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMJgBAaABAagBArABAbgBBMIBJGQ1YTEyZDFjLTk2NTQtNDgyYy1hY2Q1LWY3YmQ5N2NmZWJlZfoBCDEzMDI5OTk44gGoBgrFBWh0dHBzOi8vZXV3Mi5zbWFydGFkc2VydmVyLmNvbS9oL2FpcD91aWk9ODE2NTE1MDcwODk3Mjg2ODc2MSZ0bXN0cD02NDk1OTExOTU2JmNraWQ9MCZzeXN0Z3Q9JTI0cWMlM2QxMzEzMjc2MzIzJTNiJTI0cWwlM2RNZWRpdW0lM2IlMjRxcGMlM2Q3NjE0MCUzYiUyNHFwYyUzZDc2KiUzYiUyNHFwYyUzZDc2MSolM2IlMjRxcGMlM2Q3NjE0KiUzYiUyNHFwYyUzZDc2MTQwKiUzYiUyNHF0JTNkMTg0XzIwMDFfNTY4MTR0JTNiJTI0ZG1hJTNkMCUzYiUyNHFvJTNkNSUzYiUyNGIlM2QxMjk5OSUzYiUyNG8lM2QxMTEwMCZhY2Q9MTc2NzI4MDk3NzA4OCZlbnZ0eXBlPTAmc2l0ZWlkPTcyMzUxOSZ0Z3Q9Y291bnRyeSUzZEZSJTNicmVnaW9uJTNkTkFRJTNiJTI0ZHQlM2QxdCZnZHByPTEmb3BpZD1jNDdhYjhmOC1jNzQxLTQ1MzEtYTgzMi0xNDcyNWQ2N2RmMzkmb3BkdD0xNzY3MjgwOTc3MDg4JmJsZHY9MTQ1MTImc3JjZm49ZGlmZiZyZXFpZD03MjRkZWRlOS05OTE2LTQ4MDQtYTVjYS1lYzkxYjRiZmJjOGImcmVxZHQ9MTc2NzI4MDk3NzA4OCZvcHBpZD1jNDdhYjhmOC1jNzQxLTQ1MzEtYTgzMi0xNDcyNWQ2N2RmMzkmdmlzaXQ9ViZzdGF0aWQ9NSZpbXB0eXBlPTAmaW50Z3R5cGU9MCZjYXBwPTAmbWNyZGJ0PTEmaW5zaWQ9MTMwMjk5OTgmaW1naWQ9NDE0MTUzNzAmcGdpZD0yMTA0MTY4JmZtdGlkPTE0NDAyMCZpc0xhenk9MCZzY3JpcHRpZD0xMDAwOTcSUE1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQ7IHJ2OjE0Ni4wKSBHZWNrby8yMDEwMDEwMSBGaXJlZm94LzE0Ni4wGgw4Mi4xMjYuMTcyLjASIPWSef3_ayKybCGHFCAnXSZpSK4GbayAGnGqhk4gkvtP",
+							"report": "https://ads.mozilla.org/v1/t?data=CqUEEgg0MTQxNTM3MBoLCNGi2soGENfjzigiCwjRotrKBhDX484oKgpIZWxsb0ZyZXNoMiQxZTQ0MThkNi0wMDEwLTQxNDAtYTRlOC1iNDliNmVlYzZhYzM6AkZSchBuZXd0YWJfc3Rvcmllc18xegNOQVGCAVBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMJgBBKABAagBArABAbgBBMIBJGQ1YTEyZDFjLTk2NTQtNDgyYy1hY2Q1LWY3YmQ5N2NmZWJlZeoBNGh0dHBzOi8vaGVsbG9mcmVzaGV1cm8uc2p2LmlvL2MvMjM5NjAxNi8zNDM0OTc2LzkzMTjyAakBaHR0cHM6Ly9jcmVhdGl2ZXMuc2FzY2RuLmNvbS9kaWZmLzU0MTQvYWR2ZXJ0aXNlci81MzYyOTkvSGVsbG9GcmVzaF9PZmZyZV9fX0p1c3F1X2FfODVfX29mZmVydHNfK19kZXNfY2FkZWF1eF9fX19fVHdvUGxhdGVzUGFzdGFfYzg4NzhkN2ItYzVjNC00YzU4LTkyNjItMWNmYTQ0MTA1NGUzLnBuZ_oBCDEzMDI5OTk4ggI5SGVsbG9GcmVzaCBPZmZyZSA6IEp1c3F14oCZw6AgODXigqwgb2ZmZXJ0cyArIGRlcyBjYWRlYXV4EiBJJYajmMKeLanzhy13sRJASiEBYnI8eiA9txAxjmqtAw"
+						},
+						"image_url": "https://ads-img.mozilla.org/v1/images?image_data=CqwBCqkBaHR0cHM6Ly9jcmVhdGl2ZXMuc2FzY2RuLmNvbS9kaWZmLzU0MTQvYWR2ZXJ0aXNlci81MzYyOTkvSGVsbG9GcmVzaF9PZmZyZV9fX0p1c3F1X2FfODVfX29mZmVydHNfK19kZXNfY2FkZWF1eF9fX19fVHdvUGxhdGVzUGFzdGFfYzg4NzhkN2ItYzVjNC00YzU4LTkyNjItMWNmYTQ0MTA1NGUzLnBuZxIg2s0nIIX1kVffswVEQJa9tXa5j3mK1CQdXfNqZGN37Ak",
+						"title": "HelloFresh Offre : Jusqu’à 85€ offerts + des cadeaux",
+						"domain": "",
+						"excerpt": "",
+						"sponsor": "HelloFresh",
+						"block_key": "CAISCmhlbGxvZnJlc2g",
+						"caps": {
+							"cap_key": "13029998",
+							"day": 10
+						},
+						"ranking": {
+							"priority": 74,
+							"personalization_models": null,
+							"item_score": 1
+						}
+					}
+				],
+				"newtab_stories_2": [
+					{
+						"format": "spoc",
+						"url": "https://soloist.ai/?utm_source=new-tab&utm_medium=firefox-desktop&utm_campaign=native-article-cards&utm_content=fr",
+						"callbacks": {
+							"click": "https://ads.mozilla.org/v1/t?data=CqcIEgg0MTA5NTEwORoLCNGi2soGENfjzigiCwjRotrKBhDX484oKhdTb2xvIEFJIFdlYnNpdGUgQ3JlYXRvcjIkMWU0NDE4ZDYtMDAxMC00MTQwLWE0ZTgtYjQ5YjZlZWM2YWMzOgJGUnIQbmV3dGFiX3N0b3JpZXNfMnoDTkFRggFQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjCYAQKgAQGoAQKwAQG4AQTCASRkNWExMmQxYy05NjU0LTQ4MmMtYWNkNS1mN2JkOTdjZmViZWX6AQgxMjkwMzA0MuIBkQYKrgVodHRwczovL2V1dzIuc21hcnRhZHNlcnZlci5jb20vaC9jcD9pbWdpZD00MTA5NTEwOSZpbnNpZD0xMjkwMzA0MiZwZ2lkPTIxMDQxNjgmZm10aWQ9MTQ0MDIwJmNraWQ9MCZ1aWk9Mzk5NzY2NTcxNzczMTQyMDA0MCZhY2Q9MTc2NzI4MDk3NzA4OCZ0bXN0cD02NDk1OTExOTU2JnRndD1jb3VudHJ5JTNkRlIlM2JyZWdpb24lM2ROQVElM2IlMjRkdCUzZDF0JnN5c3RndD0lMjRxYyUzZDEzMTMyNzYzMjMlM2IlMjRxbCUzZE1lZGl1bSUzYiUyNHFwYyUzZDc2MTQwJTNiJTI0cXBjJTNkNzYqJTNiJTI0cXBjJTNkNzYxKiUzYiUyNHFwYyUzZDc2MTQqJTNiJTI0cXBjJTNkNzYxNDAqJTNiJTI0cXQlM2QxODRfMjAwMV81NjgxNHQlM2IlMjRkbWElM2QwJTNiJTI0cW8lM2Q1JTNiJTI0YiUzZDEyOTk5JTNiJTI0byUzZDExMTAwJmVudnR5cGU9MCZpbXB0eXBlPTAmZ2Rwcj0xJnNjcmlwdGlkPTEwMDA5NyZvcGlkPWIwYzZjOGJiLTZhZGMtNGU3Zi1iNTIzLTIwYzIyZjNhZDAxOSZvcGR0PTE3NjcyODA5NzcwODgmYmxkdj0xNDUxMiZzcmNmbj1kaWZmJnJlcWlkPTcyNGRlZGU5LTk5MTYtNDgwNC1hNWNhLWVjOTFiNGJmYmM4YiZyZXFkdD0xNzY3MjgwOTc3MDg4Jm9wcGlkPWIwYzZjOGJiLTZhZGMtNGU3Zi1iNTIzLTIwYzIyZjNhZDAxOSZlcXM9NWRmYzNkOTZmM2QxOWM5ZDcwNTdmMDUzZDk3YzY4NDdiNDY4MmM0NRJQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjAaDDgyLjEyNi4xNzIuMBIgqa1IvGeqkWuxlJuFt2SO5Vj2Boj1iRFzZEld-HrQikc",
+							"impression": "https://ads.mozilla.org/v1/t?data=Cr4IEgg0MTA5NTEwORoLCNGi2soGENfjzigiCwjRotrKBhDX484oKhdTb2xvIEFJIFdlYnNpdGUgQ3JlYXRvcjIkMWU0NDE4ZDYtMDAxMC00MTQwLWE0ZTgtYjQ5YjZlZWM2YWMzOgJGUnIQbmV3dGFiX3N0b3JpZXNfMnoDTkFRggFQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjCYAQGgAQGoAQKwAQG4AQTCASRkNWExMmQxYy05NjU0LTQ4MmMtYWNkNS1mN2JkOTdjZmViZWX6AQgxMjkwMzA0MuIBqAYKxQVodHRwczovL2V1dzIuc21hcnRhZHNlcnZlci5jb20vaC9haXA_dWlpPTM5OTc2NjU3MTc3MzE0MjAwNDAmdG1zdHA9NjQ5NTkxMTk1NiZja2lkPTAmc3lzdGd0PSUyNHFjJTNkMTMxMzI3NjMyMyUzYiUyNHFsJTNkTWVkaXVtJTNiJTI0cXBjJTNkNzYxNDAlM2IlMjRxcGMlM2Q3NiolM2IlMjRxcGMlM2Q3NjEqJTNiJTI0cXBjJTNkNzYxNColM2IlMjRxcGMlM2Q3NjE0MColM2IlMjRxdCUzZDE4NF8yMDAxXzU2ODE0dCUzYiUyNGRtYSUzZDAlM2IlMjRxbyUzZDUlM2IlMjRiJTNkMTI5OTklM2IlMjRvJTNkMTExMDAmYWNkPTE3NjcyODA5NzcwODgmZW52dHlwZT0wJnNpdGVpZD03MjM1MTkmdGd0PWNvdW50cnklM2RGUiUzYnJlZ2lvbiUzZE5BUSUzYiUyNGR0JTNkMXQmZ2Rwcj0xJm9waWQ9YjBjNmM4YmItNmFkYy00ZTdmLWI1MjMtMjBjMjJmM2FkMDE5Jm9wZHQ9MTc2NzI4MDk3NzA4OCZibGR2PTE0NTEyJnNyY2ZuPWRpZmYmcmVxaWQ9NzI0ZGVkZTktOTkxNi00ODA0LWE1Y2EtZWM5MWI0YmZiYzhiJnJlcWR0PTE3NjcyODA5NzcwODgmb3BwaWQ9YjBjNmM4YmItNmFkYy00ZTdmLWI1MjMtMjBjMjJmM2FkMDE5JnZpc2l0PVYmc3RhdGlkPTUmaW1wdHlwZT0wJmludGd0eXBlPTAmY2FwcD0wJm1jcmRidD0wJmluc2lkPTEyOTAzMDQyJmltZ2lkPTQxMDk1MTA5JnBnaWQ9MjEwNDE2OCZmbXRpZD0xNDQwMjAmaXNMYXp5PTAmc2NyaXB0aWQ9MTAwMDk3ElBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMBoMODIuMTI2LjE3Mi4wEiDMtbVKcFFhrDIaq3-IrLIF7wze_VDoJqECsAGesgJbmA",
+							"report": "https://ads.mozilla.org/v1/t?data=CpcFEgg0MTA5NTEwORoLCNGi2soGENfjzigiCwjRotrKBhDX484oKhdTb2xvIEFJIFdlYnNpdGUgQ3JlYXRvcjIkMWU0NDE4ZDYtMDAxMC00MTQwLWE0ZTgtYjQ5YjZlZWM2YWMzOgJGUnIQbmV3dGFiX3N0b3JpZXNfMnoDTkFRggFQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjCYAQSgAQGoAQKwAQG4AQTCASRkNWExMmQxYy05NjU0LTQ4MmMtYWNkNS1mN2JkOTdjZmViZWXqAXJodHRwczovL3NvbG9pc3QuYWkvP3V0bV9zb3VyY2U9bmV3LXRhYiZ1dG1fbWVkaXVtPWZpcmVmb3gtZGVza3RvcCZ1dG1fY2FtcGFpZ249bmF0aXZlLWFydGljbGUtY2FyZHMmdXRtX2NvbnRlbnQ9ZnLyAb4BaHR0cHM6Ly9jcmVhdGl2ZXMuc2FzY2RuLmNvbS9kaWZmLzU0MTQvYWR2ZXJ0aXNlci81MzY4ODAvQ3JlZXpfdm90cmVfc2l0ZV9ncmF0dWl0ZW1lbnRfZXRfY29ubmVjdGV6X3ZvdHJlX25vbV9kZV9kb21haW5lX3NhbnNfZnJhaXMuX19fX19Tb2xvX05ld19UYWJfMTExODY5YTUtZGVmOC00ZjhjLWFiNGQtYThhYjAxYjEyZjA5LnBuZ_oBCDEyOTAzMDQyggJLQ3LDqWV6IHZvdHJlIHNpdGUgZ3JhdHVpdGVtZW50IGV0IGNvbm5lY3RleiB2b3RyZSBub20gZGUgZG9tYWluZSBzYW5zIGZyYWlzEiC7gWoU1KmY486yx5w5Jku9yhswYxb_XBp86XjhrWhpPg"
+						},
+						"image_url": "https://ads-img.mozilla.org/v1/images?image_data=CsEBCr4BaHR0cHM6Ly9jcmVhdGl2ZXMuc2FzY2RuLmNvbS9kaWZmLzU0MTQvYWR2ZXJ0aXNlci81MzY4ODAvQ3JlZXpfdm90cmVfc2l0ZV9ncmF0dWl0ZW1lbnRfZXRfY29ubmVjdGV6X3ZvdHJlX25vbV9kZV9kb21haW5lX3NhbnNfZnJhaXMuX19fX19Tb2xvX05ld19UYWJfMTExODY5YTUtZGVmOC00ZjhjLWFiNGQtYThhYjAxYjEyZjA5LnBuZxIgxTXfumaOQOiYYHx_C7_deiOtEknoiKp0GOk-x0ZpScw",
+						"title": "Créez votre site gratuitement et connectez votre nom de domaine sans frais",
+						"domain": "",
+						"excerpt": "",
+						"sponsor": "Solo AI Website Creator",
+						"block_key": "CAISF3NvbG8gYWkgd2Vic2l0ZSBjcmVhdG9y",
+						"caps": {
+							"cap_key": "12903042",
+							"day": 10
+						},
+						"ranking": {
+							"priority": 99,
+							"personalization_models": null,
+							"item_score": 1
+						}
+					}
+				],
+				"newtab_stories_3": [],
+				"newtab_stories_4": [],
+				"newtab_stories_5": [],
+				"newtab_stories_6": [],
+				"newtab_spocs": {
+					"personalized": false,
+					"items": [
+						{
+							"format": "spoc",
+							"id": "13029998",
+							"flight_id": "CAISCmhlbGxvZnJlc2g",
+							"block_key": "CAISCmhlbGxvZnJlc2g",
+							"shim": {
+								"click": "https://ads.mozilla.org/v1/t?data=CpoIEgg0MTQxNTM3MBoLCNGi2soGENfjzigiCwjRotrKBhDX484oKgpIZWxsb0ZyZXNoMiQxZTQ0MThkNi0wMDEwLTQxNDAtYTRlOC1iNDliNmVlYzZhYzM6AkZSchBuZXd0YWJfc3Rvcmllc18xegNOQVGCAVBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMJgBAqABAagBArABAbgBBMIBJGQ1YTEyZDFjLTk2NTQtNDgyYy1hY2Q1LWY3YmQ5N2NmZWJlZfoBCDEzMDI5OTk44gGRBgquBWh0dHBzOi8vZXV3Mi5zbWFydGFkc2VydmVyLmNvbS9oL2NwP2ltZ2lkPTQxNDE1MzcwJmluc2lkPTEzMDI5OTk4JnBnaWQ9MjEwNDE2OCZmbXRpZD0xNDQwMjAmY2tpZD0wJnVpaT04MTY1MTUwNzA4OTcyODY4NzYxJmFjZD0xNzY3MjgwOTc3MDg4JnRtc3RwPTY0OTU5MTE5NTYmdGd0PWNvdW50cnklM2RGUiUzYnJlZ2lvbiUzZE5BUSUzYiUyNGR0JTNkMXQmc3lzdGd0PSUyNHFjJTNkMTMxMzI3NjMyMyUzYiUyNHFsJTNkTWVkaXVtJTNiJTI0cXBjJTNkNzYxNDAlM2IlMjRxcGMlM2Q3NiolM2IlMjRxcGMlM2Q3NjEqJTNiJTI0cXBjJTNkNzYxNColM2IlMjRxcGMlM2Q3NjE0MColM2IlMjRxdCUzZDE4NF8yMDAxXzU2ODE0dCUzYiUyNGRtYSUzZDAlM2IlMjRxbyUzZDUlM2IlMjRiJTNkMTI5OTklM2IlMjRvJTNkMTExMDAmZW52dHlwZT0wJmltcHR5cGU9MCZnZHByPTEmc2NyaXB0aWQ9MTAwMDk3Jm9waWQ9YzQ3YWI4ZjgtYzc0MS00NTMxLWE4MzItMTQ3MjVkNjdkZjM5Jm9wZHQ9MTc2NzI4MDk3NzA4OCZibGR2PTE0NTEyJnNyY2ZuPWRpZmYmcmVxaWQ9NzI0ZGVkZTktOTkxNi00ODA0LWE1Y2EtZWM5MWI0YmZiYzhiJnJlcWR0PTE3NjcyODA5NzcwODgmb3BwaWQ9YzQ3YWI4ZjgtYzc0MS00NTMxLWE4MzItMTQ3MjVkNjdkZjM5JmVxcz05NDFlNThkMzkzYjJiYmFiNDRlYzhkZDdjNGFmNzZkY2FiYjQwODYwElBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMBoMODIuMTI2LjE3Mi4wEiDwRGk8cvdoSgEwnS1a0fNu723g6_D6F1MhUE0TdXlC9A",
+								"impression": "https://ads.mozilla.org/v1/t?data=CrEIEgg0MTQxNTM3MBoLCNGi2soGENfjzigiCwjRotrKBhDX484oKgpIZWxsb0ZyZXNoMiQxZTQ0MThkNi0wMDEwLTQxNDAtYTRlOC1iNDliNmVlYzZhYzM6AkZSchBuZXd0YWJfc3Rvcmllc18xegNOQVGCAVBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMJgBAaABAagBArABAbgBBMIBJGQ1YTEyZDFjLTk2NTQtNDgyYy1hY2Q1LWY3YmQ5N2NmZWJlZfoBCDEzMDI5OTk44gGoBgrFBWh0dHBzOi8vZXV3Mi5zbWFydGFkc2VydmVyLmNvbS9oL2FpcD91aWk9ODE2NTE1MDcwODk3Mjg2ODc2MSZ0bXN0cD02NDk1OTExOTU2JmNraWQ9MCZzeXN0Z3Q9JTI0cWMlM2QxMzEzMjc2MzIzJTNiJTI0cWwlM2RNZWRpdW0lM2IlMjRxcGMlM2Q3NjE0MCUzYiUyNHFwYyUzZDc2KiUzYiUyNHFwYyUzZDc2MSolM2IlMjRxcGMlM2Q3NjE0KiUzYiUyNHFwYyUzZDc2MTQwKiUzYiUyNHF0JTNkMTg0XzIwMDFfNTY4MTR0JTNiJTI0ZG1hJTNkMCUzYiUyNHFvJTNkNSUzYiUyNGIlM2QxMjk5OSUzYiUyNG8lM2QxMTEwMCZhY2Q9MTc2NzI4MDk3NzA4OCZlbnZ0eXBlPTAmc2l0ZWlkPTcyMzUxOSZ0Z3Q9Y291bnRyeSUzZEZSJTNicmVnaW9uJTNkTkFRJTNiJTI0ZHQlM2QxdCZnZHByPTEmb3BpZD1jNDdhYjhmOC1jNzQxLTQ1MzEtYTgzMi0xNDcyNWQ2N2RmMzkmb3BkdD0xNzY3MjgwOTc3MDg4JmJsZHY9MTQ1MTImc3JjZm49ZGlmZiZyZXFpZD03MjRkZWRlOS05OTE2LTQ4MDQtYTVjYS1lYzkxYjRiZmJjOGImcmVxZHQ9MTc2NzI4MDk3NzA4OCZvcHBpZD1jNDdhYjhmOC1jNzQxLTQ1MzEtYTgzMi0xNDcyNWQ2N2RmMzkmdmlzaXQ9ViZzdGF0aWQ9NSZpbXB0eXBlPTAmaW50Z3R5cGU9MCZjYXBwPTAmbWNyZGJ0PTEmaW5zaWQ9MTMwMjk5OTgmaW1naWQ9NDE0MTUzNzAmcGdpZD0yMTA0MTY4JmZtdGlkPTE0NDAyMCZpc0xhenk9MCZzY3JpcHRpZD0xMDAwOTcSUE1vemlsbGEvNS4wIChXaW5kb3dzIE5UIDEwLjA7IFdpbjY0OyB4NjQ7IHJ2OjE0Ni4wKSBHZWNrby8yMDEwMDEwMSBGaXJlZm94LzE0Ni4wGgw4Mi4xMjYuMTcyLjASIPWSef3_ayKybCGHFCAnXSZpSK4GbayAGnGqhk4gkvtP",
+								"report": "https://ads.mozilla.org/v1/t?data=CqUEEgg0MTQxNTM3MBoLCNGi2soGENfjzigiCwjRotrKBhDX484oKgpIZWxsb0ZyZXNoMiQxZTQ0MThkNi0wMDEwLTQxNDAtYTRlOC1iNDliNmVlYzZhYzM6AkZSchBuZXd0YWJfc3Rvcmllc18xegNOQVGCAVBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMJgBBKABAagBArABAbgBBMIBJGQ1YTEyZDFjLTk2NTQtNDgyYy1hY2Q1LWY3YmQ5N2NmZWJlZeoBNGh0dHBzOi8vaGVsbG9mcmVzaGV1cm8uc2p2LmlvL2MvMjM5NjAxNi8zNDM0OTc2LzkzMTjyAakBaHR0cHM6Ly9jcmVhdGl2ZXMuc2FzY2RuLmNvbS9kaWZmLzU0MTQvYWR2ZXJ0aXNlci81MzYyOTkvSGVsbG9GcmVzaF9PZmZyZV9fX0p1c3F1X2FfODVfX29mZmVydHNfK19kZXNfY2FkZWF1eF9fX19fVHdvUGxhdGVzUGFzdGFfYzg4NzhkN2ItYzVjNC00YzU4LTkyNjItMWNmYTQ0MTA1NGUzLnBuZ_oBCDEzMDI5OTk4ggI5SGVsbG9GcmVzaCBPZmZyZSA6IEp1c3F14oCZw6AgODXigqwgb2ZmZXJ0cyArIGRlcyBjYWRlYXV4EiBJJYajmMKeLanzhy13sRJASiEBYnI8eiA9txAxjmqtAw"
+							},
+							"caps": {
+								"flight": {
+									"count": 10,
+									"period": 86400
+								}
+							},
+							"domain": "",
+							"excerpt": "",
+							"raw_image_src": "https://ads-img.mozilla.org/v1/images?image_data=CqwBCqkBaHR0cHM6Ly9jcmVhdGl2ZXMuc2FzY2RuLmNvbS9kaWZmLzU0MTQvYWR2ZXJ0aXNlci81MzYyOTkvSGVsbG9GcmVzaF9PZmZyZV9fX0p1c3F1X2FfODVfX29mZmVydHNfK19kZXNfY2FkZWF1eF9fX19fVHdvUGxhdGVzUGFzdGFfYzg4NzhkN2ItYzVjNC00YzU4LTkyNjItMWNmYTQ0MTA1NGUzLnBuZxIg2s0nIIX1kVffswVEQJa9tXa5j3mK1CQdXfNqZGN37Ak",
+							"priority": 74,
+							"personalization_models": null,
+							"item_score": 1,
+							"sponsor": "HelloFresh",
+							"title": "HelloFresh Offre : Jusqu’à 85€ offerts + des cadeaux",
+							"url": "https://hellofresheuro.sjv.io/c/2396016/3434976/9318",
+							"fetchTimestamp": 1767280976545,
+							"score": 1
+						},
+						{
+							"format": "spoc",
+							"id": "12903042",
+							"flight_id": "CAISF3NvbG8gYWkgd2Vic2l0ZSBjcmVhdG9y",
+							"block_key": "CAISF3NvbG8gYWkgd2Vic2l0ZSBjcmVhdG9y",
+							"shim": {
+								"click": "https://ads.mozilla.org/v1/t?data=CqcIEgg0MTA5NTEwORoLCNGi2soGENfjzigiCwjRotrKBhDX484oKhdTb2xvIEFJIFdlYnNpdGUgQ3JlYXRvcjIkMWU0NDE4ZDYtMDAxMC00MTQwLWE0ZTgtYjQ5YjZlZWM2YWMzOgJGUnIQbmV3dGFiX3N0b3JpZXNfMnoDTkFRggFQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjCYAQKgAQGoAQKwAQG4AQTCASRkNWExMmQxYy05NjU0LTQ4MmMtYWNkNS1mN2JkOTdjZmViZWX6AQgxMjkwMzA0MuIBkQYKrgVodHRwczovL2V1dzIuc21hcnRhZHNlcnZlci5jb20vaC9jcD9pbWdpZD00MTA5NTEwOSZpbnNpZD0xMjkwMzA0MiZwZ2lkPTIxMDQxNjgmZm10aWQ9MTQ0MDIwJmNraWQ9MCZ1aWk9Mzk5NzY2NTcxNzczMTQyMDA0MCZhY2Q9MTc2NzI4MDk3NzA4OCZ0bXN0cD02NDk1OTExOTU2JnRndD1jb3VudHJ5JTNkRlIlM2JyZWdpb24lM2ROQVElM2IlMjRkdCUzZDF0JnN5c3RndD0lMjRxYyUzZDEzMTMyNzYzMjMlM2IlMjRxbCUzZE1lZGl1bSUzYiUyNHFwYyUzZDc2MTQwJTNiJTI0cXBjJTNkNzYqJTNiJTI0cXBjJTNkNzYxKiUzYiUyNHFwYyUzZDc2MTQqJTNiJTI0cXBjJTNkNzYxNDAqJTNiJTI0cXQlM2QxODRfMjAwMV81NjgxNHQlM2IlMjRkbWElM2QwJTNiJTI0cW8lM2Q1JTNiJTI0YiUzZDEyOTk5JTNiJTI0byUzZDExMTAwJmVudnR5cGU9MCZpbXB0eXBlPTAmZ2Rwcj0xJnNjcmlwdGlkPTEwMDA5NyZvcGlkPWIwYzZjOGJiLTZhZGMtNGU3Zi1iNTIzLTIwYzIyZjNhZDAxOSZvcGR0PTE3NjcyODA5NzcwODgmYmxkdj0xNDUxMiZzcmNmbj1kaWZmJnJlcWlkPTcyNGRlZGU5LTk5MTYtNDgwNC1hNWNhLWVjOTFiNGJmYmM4YiZyZXFkdD0xNzY3MjgwOTc3MDg4Jm9wcGlkPWIwYzZjOGJiLTZhZGMtNGU3Zi1iNTIzLTIwYzIyZjNhZDAxOSZlcXM9NWRmYzNkOTZmM2QxOWM5ZDcwNTdmMDUzZDk3YzY4NDdiNDY4MmM0NRJQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjAaDDgyLjEyNi4xNzIuMBIgqa1IvGeqkWuxlJuFt2SO5Vj2Boj1iRFzZEld-HrQikc",
+								"impression": "https://ads.mozilla.org/v1/t?data=Cr4IEgg0MTA5NTEwORoLCNGi2soGENfjzigiCwjRotrKBhDX484oKhdTb2xvIEFJIFdlYnNpdGUgQ3JlYXRvcjIkMWU0NDE4ZDYtMDAxMC00MTQwLWE0ZTgtYjQ5YjZlZWM2YWMzOgJGUnIQbmV3dGFiX3N0b3JpZXNfMnoDTkFRggFQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjCYAQGgAQGoAQKwAQG4AQTCASRkNWExMmQxYy05NjU0LTQ4MmMtYWNkNS1mN2JkOTdjZmViZWX6AQgxMjkwMzA0MuIBqAYKxQVodHRwczovL2V1dzIuc21hcnRhZHNlcnZlci5jb20vaC9haXA_dWlpPTM5OTc2NjU3MTc3MzE0MjAwNDAmdG1zdHA9NjQ5NTkxMTk1NiZja2lkPTAmc3lzdGd0PSUyNHFjJTNkMTMxMzI3NjMyMyUzYiUyNHFsJTNkTWVkaXVtJTNiJTI0cXBjJTNkNzYxNDAlM2IlMjRxcGMlM2Q3NiolM2IlMjRxcGMlM2Q3NjEqJTNiJTI0cXBjJTNkNzYxNColM2IlMjRxcGMlM2Q3NjE0MColM2IlMjRxdCUzZDE4NF8yMDAxXzU2ODE0dCUzYiUyNGRtYSUzZDAlM2IlMjRxbyUzZDUlM2IlMjRiJTNkMTI5OTklM2IlMjRvJTNkMTExMDAmYWNkPTE3NjcyODA5NzcwODgmZW52dHlwZT0wJnNpdGVpZD03MjM1MTkmdGd0PWNvdW50cnklM2RGUiUzYnJlZ2lvbiUzZE5BUSUzYiUyNGR0JTNkMXQmZ2Rwcj0xJm9waWQ9YjBjNmM4YmItNmFkYy00ZTdmLWI1MjMtMjBjMjJmM2FkMDE5Jm9wZHQ9MTc2NzI4MDk3NzA4OCZibGR2PTE0NTEyJnNyY2ZuPWRpZmYmcmVxaWQ9NzI0ZGVkZTktOTkxNi00ODA0LWE1Y2EtZWM5MWI0YmZiYzhiJnJlcWR0PTE3NjcyODA5NzcwODgmb3BwaWQ9YjBjNmM4YmItNmFkYy00ZTdmLWI1MjMtMjBjMjJmM2FkMDE5JnZpc2l0PVYmc3RhdGlkPTUmaW1wdHlwZT0wJmludGd0eXBlPTAmY2FwcD0wJm1jcmRidD0wJmluc2lkPTEyOTAzMDQyJmltZ2lkPTQxMDk1MTA5JnBnaWQ9MjEwNDE2OCZmbXRpZD0xNDQwMjAmaXNMYXp5PTAmc2NyaXB0aWQ9MTAwMDk3ElBNb3ppbGxhLzUuMCAoV2luZG93cyBOVCAxMC4wOyBXaW42NDsgeDY0OyBydjoxNDYuMCkgR2Vja28vMjAxMDAxMDEgRmlyZWZveC8xNDYuMBoMODIuMTI2LjE3Mi4wEiDMtbVKcFFhrDIaq3-IrLIF7wze_VDoJqECsAGesgJbmA",
+								"report": "https://ads.mozilla.org/v1/t?data=CpcFEgg0MTA5NTEwORoLCNGi2soGENfjzigiCwjRotrKBhDX484oKhdTb2xvIEFJIFdlYnNpdGUgQ3JlYXRvcjIkMWU0NDE4ZDYtMDAxMC00MTQwLWE0ZTgtYjQ5YjZlZWM2YWMzOgJGUnIQbmV3dGFiX3N0b3JpZXNfMnoDTkFRggFQTW96aWxsYS81LjAgKFdpbmRvd3MgTlQgMTAuMDsgV2luNjQ7IHg2NDsgcnY6MTQ2LjApIEdlY2tvLzIwMTAwMTAxIEZpcmVmb3gvMTQ2LjCYAQSgAQGoAQKwAQG4AQTCASRkNWExMmQxYy05NjU0LTQ4MmMtYWNkNS1mN2JkOTdjZmViZWXqAXJodHRwczovL3NvbG9pc3QuYWkvP3V0bV9zb3VyY2U9bmV3LXRhYiZ1dG1fbWVkaXVtPWZpcmVmb3gtZGVza3RvcCZ1dG1fY2FtcGFpZ249bmF0aXZlLWFydGljbGUtY2FyZHMmdXRtX2NvbnRlbnQ9ZnLyAb4BaHR0cHM6Ly9jcmVhdGl2ZXMuc2FzY2RuLmNvbS9kaWZmLzU0MTQvYWR2ZXJ0aXNlci81MzY4ODAvQ3JlZXpfdm90cmVfc2l0ZV9ncmF0dWl0ZW1lbnRfZXRfY29ubmVjdGV6X3ZvdHJlX25vbV9kZV9kb21haW5lX3NhbnNfZnJhaXMuX19fX19Tb2xvX05ld19UYWJfMTExODY5YTUtZGVmOC00ZjhjLWFiNGQtYThhYjAxYjEyZjA5LnBuZ_oBCDEyOTAzMDQyggJLQ3LDqWV6IHZvdHJlIHNpdGUgZ3JhdHVpdGVtZW50IGV0IGNvbm5lY3RleiB2b3RyZSBub20gZGUgZG9tYWluZSBzYW5zIGZyYWlzEiC7gWoU1KmY486yx5w5Jku9yhswYxb_XBp86XjhrWhpPg"
+							},
+							"caps": {
+								"flight": {
+									"count": 10,
+									"period": 86400
+								}
+							},
+							"domain": "",
+							"excerpt": "",
+							"raw_image_src": "https://ads-img.mozilla.org/v1/images?image_data=CsEBCr4BaHR0cHM6Ly9jcmVhdGl2ZXMuc2FzY2RuLmNvbS9kaWZmLzU0MTQvYWR2ZXJ0aXNlci81MzY4ODAvQ3JlZXpfdm90cmVfc2l0ZV9ncmF0dWl0ZW1lbnRfZXRfY29ubmVjdGV6X3ZvdHJlX25vbV9kZV9kb21haW5lX3NhbnNfZnJhaXMuX19fX19Tb2xvX05ld19UYWJfMTExODY5YTUtZGVmOC00ZjhjLWFiNGQtYThhYjAxYjEyZjA5LnBuZxIgxTXfumaOQOiYYHx_C7_deiOtEknoiKp0GOk-x0ZpScw",
+							"priority": 99,
+							"personalization_models": null,
+							"item_score": 1,
+							"sponsor": "Solo AI Website Creator",
+							"title": "Créez votre site gratuitement et connectez votre nom de domaine sans frais",
+							"url": "https://soloist.ai/?utm_source=new-tab&utm_medium=firefox-desktop&utm_campaign=native-article-cards&utm_content=fr",
+							"fetchTimestamp": 1767280976545,
+							"score": 1
+						}
+					]
+				}
+			},
+			"loaded": true,
+			"frequency_caps": [],
+			"blocked": [],
+			"placements": [
+				{
+					"name": "newtab_spocs",
+					"ad_types": [
+						3617
+					],
+					"zone_ids": [
+						217758,
+						217995
+					]
+				}
+			]
+		},
+		"experimentData": {
+			"utmSource": "pocket-newtab"
+		},
+		"showTopicSelection": false,
+		"report": {
+			"visible": false,
+			"data": {}
+		},
+		"sectionPersonalization": {},
+		"hideDescriptions": true,
+		"compactImages": false,
+		"imageGradient": false,
+		"newSponsoredLabel": false,
+		"titleLines": 3,
+		"descLines": 3,
+		"readTime": true
+	},
+	"Search": {
+		"fakeFocus": false,
+		"hide": false
+	},
+	"TimerWidget": {
+		"timerType": "focus",
+		"focus": {
+			"duration": 1500,
+			"initialDuration": 1500,
+			"startTime": null,
+			"isRunning": false
+		},
+		"break": {
+			"duration": 300,
+			"initialDuration": 300,
+			"startTime": null,
+			"isRunning": false
+		}
+	},
+	"ListsWidget": {
+		"selected": "taskList",
+		"lists": {
+			"taskList": {
+				"label": "",
+				"tasks": [],
+				"completed": []
+			}
+		}
+	},
+	"Wallpapers": {
+		"wallpaperList": [
+			{
+				"theme": "dark",
+				"title": "black-waves",
+				"schema": 1742810343093,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-abstract-black-waves",
+				"attachment": {
+					"hash": "013b5e3a6d79b4aa740c7976b6ba61a867e47de47abe1195420ec164bfb3c73f",
+					"size": 202368,
+					"filename": "black%20curve.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/18c7861f-0c9d-48d4-a98c-fb8999e331bd.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@pawel_czerwinski",
+						"string": "Pawel Czerwinski"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/a-close-up-of-a-cell-phone-with-a-black-background-UKSC-TQE7TA",
+						"string": "Unsplash"
+					}
+				},
+				"id": "0114fe5c-4401-40a9-b8a4-313580aeaa19",
+				"last_modified": 1743101895103,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/18c7861f-0c9d-48d4-a98c-fb8999e331bd.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "blue",
+				"schema": 1718643233937,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-blue",
+				"solid_color": "#76C1FF",
+				"id": "02c24a73-67fd-4459-b77a-6550c365d8ee",
+				"last_modified": 1718647622963,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "abstract-blue",
+				"schema": 1718906348500,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-abstract-blue",
+				"attachment": {
+					"hash": "24d6733f3ff1aa1b0b23df697b3527d9d511964cdb30620184cf1bf6484f7d62",
+					"size": 182925,
+					"filename": "abstract-blue.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/e1108381-5c19-4cb4-a630-69f9e45503fb.avif",
+					"mimetype": "image/avif"
+				},
+				"id": "081af855-daf4-4d11-9b43-b690e20acc1c",
+				"last_modified": 1718906679999,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/e1108381-5c19-4cb4-a630-69f9e45503fb.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-green",
+				"schema": 1718643966390,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-light-green",
+				"solid_color": "#DAE8E0",
+				"id": "13af9c00-685a-41a3-8b35-80936ccc6961",
+				"last_modified": 1718647622955,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "green",
+				"schema": 1718644038276,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-green",
+				"solid_color": "#A8DF8E",
+				"id": "18fd6f2c-0b3e-4b17-af01-6ad9d84eeee2",
+				"last_modified": 1718647622953,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "abstract-green",
+				"schema": 1718875716751,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-abstract-green",
+				"attachment": {
+					"hash": "0cdfae1997d508d8ae25a3f4d0169b38b31e317e588a971008134db2327ab246",
+					"size": 68945,
+					"filename": "abstract-green.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/13495d0e-f975-4218-b5f0-c841c69ce2e5.avif",
+					"mimetype": "image/avif"
+				},
+				"id": "1bbf4d6a-1720-4462-a471-8ca90cb8cffa",
+				"last_modified": 1718906680010,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/13495d0e-f975-4218-b5f0-c841c69ce2e5.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-sky",
+				"schema": 1718637445591,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-dark-sky",
+				"attachment": {
+					"hash": "6ab2a71c1d5866c10f6c8bb555b019ed6127a48112e410694bedf6fe8d5cdab9",
+					"size": 461323,
+					"filename": "dark-sky.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/e94b1e49-c518-40d6-98e3-dffab6cc370d.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@felix_mittermeier",
+						"string": "Felix Mittermeier"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/lightning-strike-under-cloudy-sky-WLGHjbC0Cq4",
+						"string": "Unsplash"
+					}
+				},
+				"id": "1d182cca-5359-4126-a8c4-e5dc868fc21e",
+				"last_modified": 1718647622999,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/e94b1e49-c518-40d6-98e3-dffab6cc370d.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "firefox-b",
+				"schema": 1762451289464,
+				"category": "firefox",
+				"attachment": {
+					"hash": "0483fd7bb1054d61301e9fcb2752009a6466f5213933f72dddd66ff909e239a2",
+					"size": 286845,
+					"filename": "desktop-wallpaper-b-1920x1080.svg",
+					"location": "main-workspace/newtab-wallpapers-v2/6f7e2155-df50-4917-81fd-9c6f16e14965.svg",
+					"mimetype": "image/svg+xml"
+				},
+				"id": "1d43f5a1-64bd-4ad4-b825-88a89878662f",
+				"last_modified": 1762459339482,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/6f7e2155-df50-4917-81fd-9c6f16e14965.svg",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "starry-canyon",
+				"schema": 1744046191375,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-starry-canyon",
+				"attachment": {
+					"hash": "394babc1cfd55065c84720869214f50ba39376c1d03eedc0d53327e252825e96",
+					"size": 290368,
+					"filename": "blue%20starry%20night.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/7d98c7ab-274a-411d-95e4-84afd4e6203c.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@markbasarabvisuals",
+						"string": "Mark Basarab"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/blue-starry-night-1OtUkD_8svc",
+						"string": "Unsplash"
+					}
+				},
+				"id": "2437199a-03d7-455b-a9ab-96b14c5b862d",
+				"last_modified": 1744052577014,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/7d98c7ab-274a-411d-95e4-84afd4e6203c.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "purple-green",
+				"schema": 1741985417348,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-abstract-purple-green",
+				"attachment": {
+					"hash": "3d9362a5a49aa9591a8892ef719207877df244503597a47a3c2b1d3f95beab6d",
+					"size": 237720,
+					"filename": "gradient%20purple%20blue.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/31dd47f1-a979-42a0-8351-33c2bb0b35cf.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@fakurian",
+						"string": "Milad Fakurian"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/purple-and-green-light-gradient-iFu2HILEng8",
+						"string": "Unsplash"
+					}
+				},
+				"id": "27c0d230-787e-4f98-bb9d-11e9994e4937",
+				"last_modified": 1742232562513,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/31dd47f1-a979-42a0-8351-33c2bb0b35cf.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "eclipse-time-lapse",
+				"schema": 1744045738328,
+				"category": "celestial",
+				"fluent_id": "newtab-wallpaper-celestial-eclipse-time-lapse",
+				"attachment": {
+					"hash": "fc6235317973afa7b3f34b91e79525ec7716d54faf6c558ab226e5c982d8cd68",
+					"size": 207752,
+					"filename": "lunar%20eclipse.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/55b678ff-15c3-49d5-bdbc-40f8413cfb8a.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@farzadme",
+						"string": "Farzad Mohsenvand"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/lunar-eclipse-illustration-TbuescuqMjA",
+						"string": "Unsplash"
+					}
+				},
+				"id": "2868b784-19d5-4f9b-9f77-047917484b19",
+				"last_modified": 1744046191277,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/55b678ff-15c3-49d5-bdbc-40f8413cfb8a.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-blue",
+				"schema": 1718644294471,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-dark-blue",
+				"solid_color": "#031A3E",
+				"id": "289ec57a-9875-450e-b0cf-46436d75c11f",
+				"last_modified": 1718647622934,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-purple",
+				"schema": 1718644320019,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-dark-purple",
+				"solid_color": "#450A54",
+				"id": "2bb4d4d4-ed76-450a-805c-e4d4af19f215",
+				"last_modified": 1718647622932,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "firefox-f",
+				"schema": 1762456642236,
+				"category": "firefox",
+				"attachment": {
+					"hash": "07e565c12279637b52212d1cf0d4f23039e743e6623896f7e72bc1e6f05be974",
+					"size": 6463,
+					"filename": "desktop-wallpaper-f-1920x1080.svg",
+					"location": "main-workspace/newtab-wallpapers-v2/9b9d40c7-a3bf-4058-836a-2ce378e8daf5.svg",
+					"mimetype": "image/svg+xml"
+				},
+				"id": "2bf99683-cde8-438b-9f8e-a1222dc7f59c",
+				"last_modified": 1762459339496,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/9b9d40c7-a3bf-4058-836a-2ce378e8daf5.svg",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-mountain",
+				"schema": 1718637174316,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-dark-mountain",
+				"attachment": {
+					"hash": "f5933a35945f5103ff98892f45ce03c59b2c3c1be35455faf45b10355492fd95",
+					"size": 308468,
+					"filename": "dark-mountain.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/af6073d2-cbb2-4e28-b642-3327d14808b2.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@heytowner",
+						"string": "John Towner"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/aerial-photo-of-brown-moutains-JgOeRuGD_Y4",
+						"string": "Unsplash"
+					}
+				},
+				"id": "2ccb7af0-28fc-48e6-9dbe-a1da930f7344",
+				"last_modified": 1718647623004,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/af6073d2-cbb2-4e28-b642-3327d14808b2.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "firefox-e",
+				"schema": 1762451428827,
+				"category": "firefox",
+				"attachment": {
+					"hash": "fe1cb48a30da9b05ba14b550918f708953ee6e44fa5a878bcbc5d3d7963176ad",
+					"size": 4567,
+					"filename": "desktop-wallpaper-e-1920x1080.svg",
+					"location": "main-workspace/newtab-wallpapers-v2/0b039df1-971b-445a-84f6-6a15da08940e.svg",
+					"mimetype": "image/svg+xml"
+				},
+				"id": "2e468f89-ac6a-474f-a789-5de0be601887",
+				"last_modified": 1762459339477,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/0b039df1-971b-445a-84f6-6a15da08940e.svg",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-green",
+				"schema": 1718644346535,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-dark-green",
+				"solid_color": "#19310D",
+				"id": "35f8a180-8579-461d-be72-3d5d889dba62",
+				"last_modified": 1718647622929,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "firefox-c",
+				"schema": 1762451342038,
+				"category": "firefox",
+				"attachment": {
+					"hash": "7785790af185a3eca30177b678ab590773b209149dc14167a61044f8abdc7e1a",
+					"size": 14552,
+					"filename": "desktop-wallpaper-c-1920x1080.svg",
+					"location": "main-workspace/newtab-wallpapers-v2/ae9afcad-83a6-49c5-91b3-8fbea798b88f.svg",
+					"mimetype": "image/svg+xml"
+				},
+				"id": "429c288c-8d92-4baa-aefb-a04719882454",
+				"last_modified": 1762459339487,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/ae9afcad-83a6-49c5-91b3-8fbea798b88f.svg",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "red",
+				"schema": 1718644265416,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-red",
+				"solid_color": "#9D242D",
+				"id": "42c4e7e1-c108-45d1-bc5a-4aa0031e9a3e",
+				"last_modified": 1718647622937,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-panda",
+				"schema": 1718637336167,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-dark-panda",
+				"attachment": {
+					"hash": "359ec1d08b10aec1ea6d5cb50ddb0ccbd7660301407ee2eb602cf877b1ab857a",
+					"size": 391823,
+					"filename": "dark-panda.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/6b8eb3cf-f232-4c7b-a179-afd174555134.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@willrust",
+						"string": "Will Rust"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/a-red-panda-yawns-in-a-tree-ERm7haDBW8k",
+						"string": "Unsplash"
+					}
+				},
+				"id": "4374cca0-fd79-4626-b55f-ccbe1eb13e2f",
+				"last_modified": 1718647623002,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/6b8eb3cf-f232-4c7b-a179-afd174555134.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "firefox-a",
+				"schema": 1762457227299,
+				"category": "firefox",
+				"attachment": {
+					"hash": "dfdeb8a64fc3a5c9d160472bc10467acc3e3ffba51da05c7b222a1315dd8a1f4",
+					"size": 19020,
+					"filename": "desktop-wallpaper-a-1920x1080.svg",
+					"location": "main-workspace/newtab-wallpapers-v2/e08c3e8c-4bda-48e4-8f36-a1d203f46536.svg",
+					"mimetype": "image/svg+xml"
+				},
+				"id": "451090be-cdf1-49fc-b1f3-bd2f3b4ac34d",
+				"last_modified": 1762459339500,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/e08c3e8c-4bda-48e4-8f36-a1d203f46536.svg",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "orange",
+				"schema": 1718644150837,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-orange",
+				"solid_color": "#FEBE5E",
+				"id": "47a48447-d3e8-4711-a74e-33dcbd64c889",
+				"last_modified": 1718647622945,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "beige",
+				"schema": 1718644062923,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-beige",
+				"solid_color": "#EDD5B8",
+				"id": "59bd06d3-fa74-4059-ada2-046d48b71285",
+				"last_modified": 1718647622950,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "abstract-blue-purple",
+				"schema": 1718906311906,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-abstract-blue-purple",
+				"attachment": {
+					"hash": "7f80fd687288944a9e90b2b4d324a3e8b33e1575b9dbf21f953b06da26b7cac4",
+					"size": 26236,
+					"filename": "abstract-noodles.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/becfadf4-4c2d-4fad-bbbc-b060d12277e5.avif",
+					"mimetype": "image/avif"
+				},
+				"id": "604378cd-ff54-4219-bed3-137889283c5e",
+				"last_modified": 1718906680002,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/becfadf4-4c2d-4fad-bbbc-b060d12277e5.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "firefox-d",
+				"schema": 1762451361798,
+				"category": "firefox",
+				"attachment": {
+					"hash": "74988ebbc20bbc957f9b082793fea4f667e307aea3e873ba01a4f094e26e8452",
+					"size": 26913,
+					"filename": "desktop-wallpaper-d-1920x1080.svg",
+					"location": "main-workspace/newtab-wallpapers-v2/3640c0ff-19a2-4f7b-a06a-fdc2232ddd4a.svg",
+					"mimetype": "image/svg+xml"
+				},
+				"id": "62aa72d9-b9f3-4f29-88f5-5120ee004e7c",
+				"last_modified": 1762459339491,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/3640c0ff-19a2-4f7b-a06a-fdc2232ddd4a.svg",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-pink",
+				"schema": 1718644236363,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-light-pink",
+				"solid_color": "#F4DBE9",
+				"id": "6ab3849e-2e09-4751-9620-1e815e0a0c03",
+				"last_modified": 1718647622940,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-blue",
+				"schema": 1718643826574,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-light-blue",
+				"solid_color": "#D4E7F6",
+				"id": "6beb382b-183d-428b-9b0e-c2f213d0c245",
+				"last_modified": 1718647622960,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "lunar-eclipse",
+				"schema": 1744045768465,
+				"category": "celestial",
+				"fluent_id": "newtab-wallpaper-celestial-lunar-eclipse",
+				"attachment": {
+					"hash": "3fa57c2d377a78cdc95ec097a4a4bc49fb126e7d6544c53b765410692d10843e",
+					"size": 527364,
+					"filename": "moon%20eclipse.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/7fd1f326-58cf-4b5c-9737-e68a8c44dc51.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@sarahleejs",
+						"string": "Jongsun Lee"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/moon-eclipse-F-pSZO_jeE8",
+						"string": "Unsplash"
+					}
+				},
+				"id": "6c40ffd3-b8e3-48a2-a0a0-53517aa37557",
+				"last_modified": 1744046191280,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/7fd1f326-58cf-4b5c-9737-e68a8c44dc51.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "hot-air-balloons",
+				"schema": 1744046930612,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-hot-air-balloons",
+				"attachment": {
+					"hash": "e95169a269ebae69c46b7202a3438903f7baf5485a878e13468ad0dc07414271",
+					"size": 297339,
+					"filename": "hot%20air%20ballons.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/ade94d3a-9a02-4b30-848f-638725a05180.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@sadswim",
+						"string": "ian dooley"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/assorted-color-hot-air-balloons-during-daytime-DuBNA1QMpPA",
+						"string": "Unsplash"
+					}
+				},
+				"id": "6c76fca3-3b93-41f1-b7f6-c863efcd3e91",
+				"last_modified": 1744052577008,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/ade94d3a-9a02-4b30-848f-638725a05180.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-panda",
+				"schema": 1718638748651,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-light-red-panda",
+				"attachment": {
+					"hash": "f9a34f02573401aea9366a9e97a4cdc92f925ad6ac8d56d0bedfaf0dff9e86b1",
+					"size": 531549,
+					"filename": "light-panda.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/dfd3762e-f77d-4b6e-ac75-32eb2549ef40.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@_melsayed",
+						"string": "Mohamed Elsayed"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/red-panda-on-snow-covered-ground-during-daytime-DWpR-BpKlw0",
+						"string": "Unsplash"
+					}
+				},
+				"id": "74260419-d829-42ef-bb9f-4d93be63472a",
+				"last_modified": 1718647622985,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/dfd3762e-f77d-4b6e-ac75-32eb2549ef40.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "black-hole",
+				"schema": 1744045732063,
+				"category": "celestial",
+				"fluent_id": "newtab-wallpaper-celestial-black-hole",
+				"attachment": {
+					"hash": "c6bcb286c3a289c21e9fae4602f8f9defc68b7c9f4888a4b7f0c9be6943826d7",
+					"size": 324019,
+					"filename": "black%20hole%20galaxy.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/9fa5c4e0-5f22-419e-b2eb-a3494520f5f2.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@gferla",
+						"string": "Guillermo Ferla"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/black-hole-galaxy-illustration-Oze6U2m1oYU",
+						"string": "Unsplash"
+					}
+				},
+				"id": "7622072d-a734-4df7-a467-cde719b60875",
+				"last_modified": 1744046191285,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/9fa5c4e0-5f22-419e-b2eb-a3494520f5f2.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-fox-anniversary",
+				"schema": 1729617910248,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-light-fox-anniversary",
+				"attachment": {
+					"hash": "649c272fed6c4ba3d15c5179efc85a1c528d39a074259386cf91be89ea2f67f3",
+					"size": 140270,
+					"filename": "light-fox-anniversary-v2.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/a5a041de-9275-4eb5-8f21-a0171c82d388.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@sr_kike_",
+						"string": "Luis Enrique Ibarra"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/brown-and-white-fox-on-green-grass-field-during-daytime-SLOm_cfWTT4",
+						"string": "Unsplash"
+					}
+				},
+				"id": "77bf5044-7821-4125-b555-10f71af37fd4",
+				"last_modified": 1729618200381,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/a5a041de-9275-4eb5-8f21-a0171c82d388.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "blue-flowers",
+				"schema": 1744047286143,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-blue-flowers",
+				"attachment": {
+					"hash": "4f20e391651c537e09c730c13c8a88408ade7bfc04e134987965718a491dd705",
+					"size": 214442,
+					"filename": "flowers.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/f5c362af-16df-488d-a8b2-bf8cf29d1c63.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@sorasagano",
+						"string": "Sora Sagano"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/closeup-photography-of-blue-petaled-flowers-on-bloom-F6ZzivdSQ5k",
+						"string": "Unsplash"
+					}
+				},
+				"id": "785549a0-c1c0-488b-9cc2-f7a18f3ba204",
+				"last_modified": 1744052577022,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/f5c362af-16df-488d-a8b2-bf8cf29d1c63.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "brown",
+				"schema": 1718644381622,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-brown",
+				"solid_color": "#401F00",
+				"id": "7a88dafb-3a82-4346-b34c-0b7d9232f497",
+				"last_modified": 1718647622926,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-fox-anniversary",
+				"schema": 1729617515102,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-dark-fox-anniversary",
+				"attachment": {
+					"hash": "eeb9526e6bcdb29b6fd5b59273d1d48ab99c4aee3d9e72584bb9eee6790e2218",
+					"size": 291301,
+					"filename": "dark-fox-anniversary-v2.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/d8b71c77-9985-41d2-b98e-51bebc60e595.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@obkim",
+						"string": "Qijin Xu"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/brown-and-white-fox-fJyO0eo6_aI",
+						"string": "Unsplash"
+					}
+				},
+				"id": "7e6ab485-8f0d-463f-8f40-1bd77a82e034",
+				"last_modified": 1729618200384,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/d8b71c77-9985-41d2-b98e-51bebc60e595.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-landscape",
+				"schema": 1718638214844,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-light-landscape",
+				"attachment": {
+					"hash": "e03ad82c9a5c6da8873cbdd21a5186a61c2eab9fe582f68e8da84cbb79b97885",
+					"size": 223179,
+					"filename": "light-landscape.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/d9289c5b-8c78-4b27-b5d8-afe7285ce7d1.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@caroliniecavalli",
+						"string": "Carolinie Cavalli"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/birds-eye-view-photography-of-mountain-Qw3w0oBH63s",
+						"string": "Unsplash"
+					}
+				},
+				"id": "8039d4b1-18c9-4a7f-9ce7-9737b224d565",
+				"last_modified": 1718647622990,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/d9289c5b-8c78-4b27-b5d8-afe7285ce7d1.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-purple",
+				"schema": 1718643868872,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-light-purple",
+				"solid_color": "#D3A3F3",
+				"id": "840007a0-7989-4a1c-a2a5-3fc422b9570d",
+				"last_modified": 1718647622958,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "white-curves",
+				"schema": 1741985132349,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-abstract-white-curves",
+				"attachment": {
+					"hash": "5ba6bb88912ce34b132b6809a25682d2d1cccdae1d877642d312e1644b86daa5",
+					"size": 319578,
+					"filename": "white%20curve.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/ea29bb39-223f-4c49-9362-b7caf75313af.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@vackground",
+						"string": "vackground.com"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/an-abstract-white-background-with-a-curved-curve-0F2pC8_DwvM",
+						"string": "Unsplash"
+					}
+				},
+				"id": "8f3f9010-0e47-4924-88f3-342f73cfbbc3",
+				"last_modified": 1742232562516,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/ea29bb39-223f-4c49-9362-b7caf75313af.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-color",
+				"schema": 1721056774979,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-light-color",
+				"attachment": {
+					"hash": "cd28bc282ba8dda5f6660389eb2a7ba66a57691504de2eba3405ec20eeddd5a0",
+					"size": 288837,
+					"filename": "light-color.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/a205885e-194a-41f9-ae47-e7da66a74041.avif",
+					"mimetype": "image/avif"
+				},
+				"id": "8f896365-c4e8-497a-b8c1-c5033e4a7456",
+				"last_modified": 1721068497119,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/a205885e-194a-41f9-ae47-e7da66a74041.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "abstract-purple",
+				"schema": 1718906291053,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-abstract-purple",
+				"attachment": {
+					"hash": "96fbb04dd5494fb8383541289d29c22ac08dcdee242a104a310f3526b902d8fd",
+					"size": 90925,
+					"filename": "abstract-purple.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/6bf5c4ac-f55b-4de3-bbf5-1b0f2f56d488.avif",
+					"mimetype": "image/avif"
+				},
+				"id": "92c5a286-da38-4135-ad41-6a3d659e3563",
+				"last_modified": 1718906680006,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/6bf5c4ac-f55b-4de3-bbf5-1b0f2f56d488.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "sand-dunes",
+				"schema": 1744047082520,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-sand-dunes",
+				"attachment": {
+					"hash": "27f42ef7095512570ac91ad165478ecb09d7343fcba161f1ed83d2edd767b547",
+					"size": 354178,
+					"filename": "white%20sand.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/7dcbd2c8-8982-4108-b044-fae72b46e97f.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@wildhoney",
+						"string": "John Fowler"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/white-sand-RsRTIofe0HE",
+						"string": "Unsplash"
+					}
+				},
+				"id": "936f5914-d192-4f87-8481-c3e74e8adb5d",
+				"last_modified": 1744052577017,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/7dcbd2c8-8982-4108-b044-fae72b46e97f.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-mountain",
+				"schema": 1718638685878,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-light-mountain",
+				"attachment": {
+					"hash": "f9fdf49580f9221ba2583d0a818d60ae79b9fd50246ef36798a264e6645b6709",
+					"size": 541196,
+					"filename": "light-mountain.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/5344443f-f427-4029-bc6b-68bc22f83355.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@daesign",
+						"string": "Sead Dedić"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/mountain-covered-with-snow-under-white-clouds-si8OYpuLVBY",
+						"string": "Unsplash"
+					}
+				},
+				"id": "98d063e5-1481-4df2-abed-e22e86b24e98",
+				"last_modified": 1718647622988,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/5344443f-f427-4029-bc6b-68bc22f83355.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "yellow",
+				"schema": 1718644107243,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-yellow",
+				"solid_color": "#FFF7B2",
+				"id": "9b0e2e3c-bf01-4e06-b051-3b439ff32592",
+				"last_modified": 1718647622947,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-beach",
+				"schema": 1718636331169,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-dark-city",
+				"attachment": {
+					"hash": "7272b542d0b28513daa9c1bdb27ae09d606c189d1c144bc6d5b550b5020c67de",
+					"size": 713257,
+					"filename": "dark-beach.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/966b18ad-3733-41c4-92f6-c89cdf1381d0.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@yespanioly",
+						"string": "Yousef Espanioly"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/seashore-DA_tplYgTow",
+						"string": "Unsplash"
+					}
+				},
+				"id": "a01be688-31cf-4f68-ac3e-e2cec09cb15a",
+				"last_modified": 1718647623009,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/966b18ad-3733-41c4-92f6-c89cdf1381d0.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "blue-purple",
+				"schema": 1756865736197,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-abstract-blue-purple",
+				"attachment": {
+					"hash": "2ce4d2b293611d478a57398e982e791c2ef6a628eb02c7ab11e47d8a001dfd02",
+					"size": 309538,
+					"filename": "wavy%20shapes.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/036ac885-33cb-41db-bcbb-52dd49254a12.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@martz90",
+						"string": "Martin Martz"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/a-blue-and-purple-background-with-wavy-shapes-1hg6NpO0kIk",
+						"string": "Unsplash"
+					}
+				},
+				"id": "b33cf5ec-52c4-4220-be05-1a3d4c998443",
+				"last_modified": 1762459339471,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/036ac885-33cb-41db-bcbb-52dd49254a12.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "palm-trees",
+				"schema": 1744047197627,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-palm-trees",
+				"attachment": {
+					"hash": "5efec5a43ee0e3816cda1f35edb4e5c82f3ae8a554cb99ba13fc578fa45b3a23",
+					"size": 440641,
+					"filename": "palm%20trees.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/32c50b87-9f4b-46cf-a467-f4aa768a1687.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@soyprome",
+						"string": "Prometey Sánchez Noskov"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/silhouette-of-coconut-palm-trees-during-golden-hour-c6M7AoevSXE",
+						"string": "Unsplash"
+					}
+				},
+				"id": "c28c67eb-4cd1-4775-8770-e0650015d19a",
+				"last_modified": 1744052577019,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/32c50b87-9f4b-46cf-a467-f4aa768a1687.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-sky",
+				"schema": 1718906680116,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-light-sky",
+				"attachment": {
+					"hash": "40a84002cfaf92fd38300e3987146f7b2ec3f5255e0427afbd30a52d7830c0e8",
+					"size": 100634,
+					"filename": "light-sky.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/45ecab20-ffb9-47b4-94ff-07a5f8b9f53f.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@frostroomhead",
+						"string": "Rodion Kutsaiev"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/cloudy-sky-8P-uQaTd8rw",
+						"string": "Unsplash"
+					}
+				},
+				"id": "c4033968-1a5e-4d8b-8961-994e2214db5d",
+				"last_modified": 1721056774861,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/45ecab20-ffb9-47b4-94ff-07a5f8b9f53f.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "gradient-orange",
+				"schema": 1718906280424,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-gradient-orange",
+				"attachment": {
+					"hash": "d99c7953bf5fd96fc9778cc6c663063aa7521e32db3d461efadb397be71b745f",
+					"size": 348323,
+					"filename": "gradient-orange.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/bd424c86-6366-4f2b-b8dc-74d21439c1fb.avif",
+					"mimetype": "image/avif"
+				},
+				"id": "d01275ae-cd01-42f1-9ccf-41734e939ee3",
+				"last_modified": 1718906680008,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/bd424c86-6366-4f2b-b8dc-74d21439c1fb.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-color",
+				"schema": 1721057236130,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-dark-color",
+				"attachment": {
+					"hash": "c433865edcc1eae2911f30caa95783adfe5642ec24e8bd41fcfc661276f93752",
+					"size": 206755,
+					"filename": "dark-color.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/d357925c-b9cd-417e-8731-14272f28f556.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@martz90",
+						"string": "Martin Martz"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/a-close-up-of-a-cell-phone-with-a-blurry-background-uuNCR2NpiNE",
+						"string": "Unsplash"
+					}
+				},
+				"id": "d4d8de2b-a32f-400d-83cc-ab136c197e7c",
+				"last_modified": 1721068497117,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/d357925c-b9cd-417e-8731-14272f28f556.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "suspension-bridge",
+				"schema": 1744047008604,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-suspension-bridge",
+				"attachment": {
+					"hash": "ea3dafc1e5cb5b8b81b487b801b34fe3b1fd19d722982b06b9aa95f4b01f2f72",
+					"size": 258311,
+					"filename": "bridge.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/c1130d05-bb6b-448d-bc66-96df1eb088bb.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@andersjilden",
+						"string": "Anders Jildén"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/grey-full-suspension-bridge-photography-during-daytime-AkUR27wtaxs",
+						"string": "Unsplash"
+					}
+				},
+				"id": "de57da1c-94fb-4275-905a-b3bbd1f0f8a5",
+				"last_modified": 1744052577011,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/c1130d05-bb6b-448d-bc66-96df1eb088bb.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "pink",
+				"schema": 1718644200528,
+				"category": "solid-colors",
+				"fluent_id": "newtab-wallpaper-pink",
+				"solid_color": "#FA87CC",
+				"id": "e3a76f3b-25ff-4285-b935-63de46bdd711",
+				"last_modified": 1718647622942,
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "starry-sky",
+				"schema": 1744045755270,
+				"category": "celestial",
+				"fluent_id": "newtab-wallpaper-celestial-starry-sky",
+				"attachment": {
+					"hash": "438c81ca6545f7a76880b9036aff9732e0a9f234d5859e12213029485ce02bdd",
+					"size": 404969,
+					"filename": "stary%20sky.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/43793431-0f4a-473b-b346-7c30df84af10.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@aperturevintage",
+						"string": "Aperture Vintage"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/starry-sky-Z6EpCdMcoUU",
+						"string": "Unsplash"
+					}
+				},
+				"id": "eadb40b9-7d96-4173-994e-ecdb7aade866",
+				"last_modified": 1744046191283,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/43793431-0f4a-473b-b346-7c30df84af10.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "light-beach",
+				"schema": 1718637553213,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-light-beach",
+				"attachment": {
+					"hash": "ad65944319e9bb3fa4261e93d465cc51be35873608dfa71d46fe734ae4517c2a",
+					"size": 465893,
+					"filename": "light-beach.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/56a7f3ae-70cc-45f2-82ec-1d39acdd3b8d.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@oulashin",
+						"string": "Sean Oulashin"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/seashore-during-golden-hour-KMn4VEeEPR8",
+						"string": "Unsplash"
+					}
+				},
+				"id": "edc18c37-9d75-4cca-a854-5bcab5275407",
+				"last_modified": 1718647622996,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/56a7f3ae-70cc-45f2-82ec-1d39acdd3b8d.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "earth-night",
+				"schema": 1744045775887,
+				"category": "celestial",
+				"fluent_id": "newtab-wallpaper-celestial-earth-night",
+				"attachment": {
+					"hash": "3e157c2f848870ae89e6339339859ee0d485c03d09328a900fc10fd82e1be60c",
+					"size": 346780,
+					"filename": "outer%20space.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/fa93a1e0-fec5-4351-adc2-5692e5b2bf32.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@nasa",
+						"string": "NASA"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/photo-of-outer-space-Q1p7bh3SHj8",
+						"string": "Unsplash"
+					}
+				},
+				"id": "ef098f84-05b0-4cb7-afee-fccd15e6c50c",
+				"last_modified": 1744046191274,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/fa93a1e0-fec5-4351-adc2-5692e5b2bf32.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "abstract-orange",
+				"schema": 1718906302556,
+				"category": "abstracts",
+				"fluent_id": "newtab-wallpaper-abstract-orange",
+				"attachment": {
+					"hash": "82b7a7378c27e82936e09fd747cb65ed28d9909b0469537c405c24961135c3d1",
+					"size": 39943,
+					"filename": "abstract-orange.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/32531fc6-1ea3-46de-a93c-f8a0c2f01916.avif",
+					"mimetype": "image/avif"
+				},
+				"id": "f7f89c99-c258-48b8-ad99-1b45465a0034",
+				"last_modified": 1718906680004,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/32531fc6-1ea3-46de-a93c-f8a0c2f01916.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "dark",
+				"title": "dark-landscape",
+				"schema": 1718616316643,
+				"category": "photographs",
+				"fluent_id": "newtab-wallpaper-dark-aurora",
+				"attachment": {
+					"hash": "dba39dab685c2bc6978354537c1bc8218a0abc455d0dd49c134c031264cfcd47",
+					"size": 437288,
+					"filename": "dark-aurora.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/10e23599-85bc-4660-ae06-7a67befbbcf9.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@lightscape",
+						"string": "Lightscape"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/northern-lights-over-snow-capped-mountian-LtnPejWDSAY",
+						"string": "Unsplash"
+					}
+				},
+				"id": "f81d9d10-7f90-4d1d-ae2e-8d49e1cf993a",
+				"last_modified": 1718647623012,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/10e23599-85bc-4660-ae06-7a67befbbcf9.avif",
+				"background_position": "center",
+				"order": 0
+			},
+			{
+				"theme": "light",
+				"title": "river",
+				"schema": 1744045761310,
+				"category": "celestial",
+				"fluent_id": "newtab-wallpaper-celestial-river",
+				"attachment": {
+					"hash": "03a1416050bcf9533b3d2094fbe3f433029eafefa178ae0520a4d7e444168209",
+					"size": 374822,
+					"filename": "satellite%20image%20of%20river.avif",
+					"location": "main-workspace/newtab-wallpapers-v2/671df231-8415-4066-8144-0ddb31394a19.avif",
+					"mimetype": "image/avif"
+				},
+				"attribution": {
+					"name": {
+						"url": "https://unsplash.com/@nasa",
+						"string": "NASA"
+					},
+					"webpage": {
+						"url": "https://unsplash.com/photos/satellite-image-of-river-whDrFMucHkc",
+						"string": "Unsplash"
+					}
+				},
+				"id": "fadd6058-24cf-4e41-b9b4-7608498f285c",
+				"last_modified": 1744046191288,
+				"wallpaperUrl": "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/newtab-wallpapers-v2/671df231-8415-4066-8144-0ddb31394a19.avif",
+				"background_position": "center",
+				"order": 0
+			}
+		],
+		"highlightSeenCounter": {
+			"value": 0
+		},
+		"categories": [
+			"abstracts",
+			"solid-colors",
+			"photographs",
+			"firefox",
+			"celestial",
+			"custom-wallpaper"
+		],
+		"uploadedWallpaper": null
+	},
+	"Weather": {
+		"initialized": true,
+		"query": "",
+		"suggestions": [
+			{
+				"title": "Weather for Bordeaux",
+				"url": "https://www.accuweather.com/fr/fr/bordeaux/131913/current-weather/131913?partner=web_mozilla_adc",
+				"provider": "accuweather",
+				"is_sponsored": false,
+				"score": 0.3,
+				"city_name": "Bordeaux",
+				"region_code": "France",
+				"current_conditions": {
+					"url": "https://www.accuweather.com/fr/fr/bordeaux/131913/current-weather/131913?partner=web_mozilla_adc",
+					"summary": "Nuageux",
+					"icon_id": 7,
+					"temperature": {
+						"c": 2,
+						"f": 35
+					}
+				},
+				"forecast": {
+					"url": "https://www.accuweather.com/fr/fr/bordeaux/131913/daily-weather-forecast/131913?partner=web_mozilla_adc",
+					"summary": "Froid la nuit de jeudi",
+					"high": {
+						"c": 5,
+						"f": 41
+					},
+					"low": {
+						"c": -4,
+						"f": 25
+					}
+				},
+				"request_id": "fceb4cb941034005ae209a7dc7157800",
+				"source": "merino"
+			}
+		],
+		"locationData": {
+			"city": "Bordeaux",
+			"adminArea": "",
+			"country": ""
+		},
+		"searchActive": false,
+		"locationSearchString": "",
+		"suggestedLocations": []
+	}
+};
+
+����x�           iV�I������       :about:home alt-data 1;63907,script version 20251217121356  ��

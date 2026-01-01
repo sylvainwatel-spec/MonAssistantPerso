@@ -74,8 +74,9 @@ class PlaywrightScraper:
             from playwright.sync_api import sync_playwright
             # Ne pas importer stealth ici si on veut l'appliquer page par page, 
             # mais on peut vérifier l'import
+            # Tester stealth ici (import seulement pour vérification)
             try:
-                from playwright_stealth import stealth_sync
+                from playwright_stealth import Stealth
                 self._has_stealth = True
             except ImportError as e:
                 self._has_stealth = False
@@ -115,27 +116,46 @@ class PlaywrightScraper:
             self.context = None # Sera rempli si persistent context
             
             if self.browser_type == "firefox":
+                self._log(f"Lancement de Firefox...")
+                
+                import os
+                
+                executable_path = self._find_browser_executable("firefox")
+                
+                # Configuration Firefox (mode standard uniquement - persistent context bloque)
+                launch_kwargs = {
+                    "headless": self.headless,
+                    "args": [
+                        "-no-remote",  # Permet plusieurs instances Firefox
+                        "-new-instance"  # Force nouvelle instance
+                    ]
+                }
+                
+                if executable_path:
+                    self._log(f"🕸️ Utilisation de Firefox système : {executable_path}")
+                    launch_kwargs["executable_path"] = executable_path
+                
+                # Lancement Firefox Standard (Persistent Context bloque avec Firefox système)
                 try:
-                    executable_path = self._find_browser_executable("firefox")
-                    launch_kwargs = {"headless": self.headless}
-                    if executable_path:
-                        self._log(f"Utilisation de Firefox système : {executable_path}")
-                        launch_kwargs["executable_path"] = executable_path
+                    self._log(f"Lancement Firefox Standard (Persistent non supporté pour Firefox)...")
+                    self.browser = self.playwright.firefox.launch(**launch_kwargs)
+                    self.context = None  # Will be created later with storage_state
+                    self._log("✅ Succès lancement Firefox Standard.")
                     
-                    self.browser = self.playwright.firefox.launch(**launch_kwargs)
-                    self.browser = self.playwright.firefox.launch(**launch_kwargs)
                 except Exception as e:
                     error_msg = str(e)
                     if "Target page, context or browser has been closed" in error_msg:
-                         self._log("⚠️ Firefox système a fermé la connexion (Protection ou conflit).")
+                        self._log("⚠️ Firefox système a fermé la connexion (Protection ou conflit).")
                     else:
-                         self._log(f"⚠️ Erreur lancement Firefox système: {error_msg}")
+                        self._log(f"⚠️ Erreur lancement Firefox: {error_msg}")
                     
-                    self._log("🔄 Utilisation du moteur de secours (Chromium Bundled)...")
+                    # Fallback Chromium Bundled
+                    self._log("🔄 Fallback sur Chromium (Bundled)...")
                     self.browser = self.playwright.chromium.launch(
                         headless=self.headless,
                         args=['--no-sandbox', '--disable-infobars', '--start-maximized']
                     )
+                    self.context = None
             elif self.browser_type in ["chrome", "msedge"]:
                 self._log(f"Lancement du navigateur système : {self.browser_type}")
                 
@@ -240,7 +260,14 @@ class PlaywrightScraper:
                     **storage_params
                 )
             
-            # Appliquer stealth au contexte si possible (n'existe pas sur context directement, mais on peut l'appliquer aux pages)
+            # Appliquer stealth au contexte entier (si disponible)
+            if hasattr(self, '_has_stealth') and self._has_stealth and not self.browser_type == "firefox":
+                try:
+                    from playwright_stealth import Stealth
+                    Stealth().apply_stealth_sync(self.context)
+                    self._log("✅ Mode stealth activé sur le contexte.")
+                except Exception as e:
+                    self._log(f"⚠️ Erreur application stealth au contexte: {e}")
             
             self._log("Navigateur Playwright prêt.")
             return self
@@ -443,19 +470,20 @@ class PlaywrightScraper:
         Returns:
             Liste de dictionnaires avec les annonces
         """
-        # Réutiliser la page existante si disponible (cas du Persistent Context)
+        # Créer ou réutiliser une page
         if self.context.pages:
-            self._log("Réutilisation de l'onglet existant.")
+            self._log("Réutilisation de l'onglet existant (Persistent Context).")
             page = self.context.pages[0]
+            # Fermer les onglets supplémentaires si présents
+            for extra_page in self.context.pages[1:]:
+                try:
+                    extra_page.close()
+                except:
+                    pass
         else:
+            self._log("Création d'un nouvel onglet.")
             page = self.context.new_page()
-        # Appliquer stealth si disponible pour contourner les protections (Cloudflare, etc.)
-        if hasattr(self, '_has_stealth') and self._has_stealth:
-            try:
-                from playwright_stealth import stealth_sync
-                stealth_sync(page)
-            except Exception as e:
-                self._log(f"Erreur application stealth: {e}")
+        # Note: Le stealth est appliqué au niveau du contexte maintenant
         
         results = []
         
@@ -472,12 +500,24 @@ class PlaywrightScraper:
             self._log(f"⚡ Injection de l'URL pour navigation (après 2s) : {search_url}")
             time.sleep(2)
             
-            # Navigation
+            # Navigation explicite vers l'URL cible
             try:
+                self._log(f"🌐 Chargement de la page...")
                 # Timeout augmenté à 2min pour laisser le temps de passer un captcha manuel si besoin
-                page.goto(search_url, wait_until="networkidle", timeout=120000)
+                response = page.goto(search_url, wait_until="networkidle", timeout=120000)
+                if response:
+                    self._log(f"✅ Page chargée (status: {response.status})")
+                else:
+                    self._log("⚠️ Navigation terminée sans response (possible si déjà sur la page)")
             except Exception as e:
-                self._log(f"Timeout ou erreur de navigation (suite possible) : {e}")
+                self._log(f"❌ Erreur de navigation: {e}")
+                # Essayer navigation de secours avec wait_until moins strict
+                try:
+                    self._log("Tentative navigation de secours (domcontentloaded)...")
+                    page.goto(search_url, wait_until="domcontentloaded", timeout=60000)
+                except Exception as e2:
+                    self._log(f"❌ Échec navigation de secours: {e2}")
+                    raise
             
             self._log("Page chargée. Analyse du contenu...")
             
@@ -570,19 +610,20 @@ class PlaywrightScraper:
         Returns:
             Liste de résultats
         """
-        # Réutiliser la page existante si disponible (cas du Persistent Context)
+        # Créer ou réutiliser une page
         if self.context.pages:
-            self._log("Réutilisation de l'onglet existant (Générique).")
+            self._log("Réutilisation de l'onglet existant (Générique - Persistent Context).")
             page = self.context.pages[0]
+            # Fermer les onglets supplémentaires si présents
+            for extra_page in self.context.pages[1:]:
+                try:
+                    extra_page.close()
+                except:
+                    pass
         else:
+            self._log("Création d'un nouvel onglet (Générique).")
             page = self.context.new_page()
-        # Appliquer stealth si disponible pour contourner les protections (Cloudflare, etc.)
-        if hasattr(self, '_has_stealth') and self._has_stealth:
-            try:
-                from playwright_stealth import stealth_sync
-                stealth_sync(page)
-            except Exception as e:
-                self._log(f"Erreur application stealth: {e}")
+        # Note: Le stealth est appliqué au niveau du contexte maintenant
         
         results = []
         

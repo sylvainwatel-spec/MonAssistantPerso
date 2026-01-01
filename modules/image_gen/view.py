@@ -135,11 +135,11 @@ class ImageGenFrame(ctk.CTkFrame):
         )
         combo_provider.pack(fill="x", padx=20, pady=(0, 10))
         
-        self.var_size = ctk.StringVar(value="256x256")
+        self.var_size = ctk.StringVar(value="8x8")
         combo_size = ctk.CTkOptionMenu(
             left_panel, 
             variable=self.var_size, 
-            values=["1024x1024", "512x512", "256x256"]
+            values=["1024x1024", "512x512", "256x256", "64x64", "32x32", "16x16", "8x8"]
         )
         combo_size.pack(fill="x", padx=20, pady=(0, 20))
         

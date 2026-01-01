@@ -36,6 +36,16 @@ class ImageGenerationService:
         settings = self.data_manager.get_settings()
         api_keys = settings.get("api_keys", {})
         
+        # Parse target size
+        try:
+            target_width, target_height = map(int, size.split('x'))
+        except:
+            target_width, target_height = 1024, 1024
+
+        success = False
+        img = None
+        message = ""
+        
         if "OpenAI" in provider:
             if image_path:
                 return False, None, "DALL-E 3 ne supporte pas l'édition d'image (Image-to-Image). Veuillez utiliser un modèle compatible (marqué Image-to-Image)."
@@ -53,10 +63,21 @@ class ImageGenerationService:
                 
                 model = "dall-e-3" if "DALL-E 3" in provider else "dall-e-2"
                 
+                # API parameter 'size' must be supported values. 
+                # DALL-E 3: 1024x1024 only (square)
+                # DALL-E 2: 256x256, 512x512, 1024x1024
+                api_size = "1024x1024" 
+                if model == "dall-e-2":
+                    # Try to match closest standard size to save cost/time? 
+                    # Actually 256x256 is supported.
+                    if target_width <= 256: api_size = "256x256"
+                    elif target_width <= 512: api_size = "512x512"
+                    else: api_size = "1024x1024"
+                
                 response = client.images.generate(
                     model=model,
                     prompt=prompt,
-                    size=size,
+                    size=api_size,
                     quality="standard",
                     n=1,
                 )
@@ -66,19 +87,25 @@ class ImageGenerationService:
                 # Download image
                 img_response = requests.get(image_url)
                 img = Image.open(BytesIO(img_response.content))
-                
-                return True, img, "Image générée avec succès"
+                success = True
+                message = "Image générée avec succès"
                 
             except Exception as e:
                 return False, None, f"Erreur lors de la génération avec OpenAI : {str(e)}"
                 
         elif provider == "Qwen-Image-Edit-2509":
-             return self._generate_qwen(prompt, image_path, image_path_2)
+             success, img, message = self._generate_qwen(prompt, image_path, image_path_2)
+             # Qwen generates usually at input resolution or fixed. We will resize after.
 
         elif provider in self.hf_models:
-             return self._generate_hf(prompt, provider, api_keys, image_path)
+             # HF providers usually default to model config (often 1024). 
+             # We just let them generate and resize later.
+             success, img, message = self._generate_hf(prompt, provider, api_keys, image_path)
         
-        return False, None, f"Provider {provider} non supporté pour le moment."
+        else:
+             return False, None, f"Provider {provider} non supporté pour le moment."
+
+        return success, img, message
 
     def _generate_qwen(self, prompt: str, image_path: str, image_path_2: str = None) -> Tuple[bool, Any, str]:
         """Generate image using local Qwen-Image-Edit-2509 pipeline."""

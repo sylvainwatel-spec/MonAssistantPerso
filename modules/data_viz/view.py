@@ -80,6 +80,9 @@ class DataVizFrame(ctk.CTkFrame):
         self.btn_analyze = ctk.CTkButton(left_panel, text="🤖 Analyser (IA)", command=self.run_analysis, state="disabled")
         self.btn_analyze.pack(pady=10, padx=20, fill="x")
 
+        self.btn_agent = ctk.CTkButton(left_panel, text="🧠 Agent Expert (Beta)", command=self.open_agent_dialog, state="disabled", fg_color="#673AB7", hover_color="#512DA8")
+        self.btn_agent.pack(pady=10, padx=20, fill="x")
+
         self.btn_export = ctk.CTkButton(left_panel, text="📤 Exporter PPTX", command=self.export_pptx, state="disabled")
         self.btn_export.pack(pady=10, padx=20, fill="x")
 
@@ -125,6 +128,7 @@ class DataVizFrame(ctk.CTkFrame):
                 
                 # Enable buttons
                 self.btn_analyze.configure(state="normal")
+                self.btn_agent.configure(state="normal")
                 self.btn_export.configure(state="normal")
                 self.lbl_status.configure(text="Fichier chargé")
                 
@@ -196,3 +200,92 @@ class DataVizFrame(ctk.CTkFrame):
             else:
                 messagebox.showerror("Erreur", "Échec de l'exportation")
                 self.lbl_status.configure(text="Erreur export")
+
+    def open_agent_dialog(self):
+        """Ouvre une boite de dialogue pour poser une question à l'agent."""
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Agent Data Expert")
+        dialog.geometry("600x500")
+        
+        # Force top level
+        dialog.transient(self)
+        dialog.grab_set()
+        
+        ctk.CTkLabel(dialog, text="Posez votre question sur les données :", font=("Arial", 14, "bold")).pack(pady=10, padx=20, anchor="w")
+        
+        txt_query = ctk.CTkTextbox(dialog, height=60)
+        txt_query.pack(fill="x", padx=20, pady=(0, 10))
+        
+        btn_generate = ctk.CTkButton(dialog, text="Générer le Code", command=lambda: _generate())
+        btn_generate.pack(pady=5)
+        
+        ctk.CTkLabel(dialog, text="Code Python proposé (Editable) :", font=("Arial", 12)).pack(pady=(15, 5), padx=20, anchor="w")
+        txt_code = ctk.CTkTextbox(dialog, height=150, font=("Consolas", 12))
+        txt_code.pack(fill="both", expand=True, padx=20, pady=(0, 10))
+        
+        lbl_info = ctk.CTkLabel(dialog, text="⚠️ Vérifiez le code avant d'exécuter !", text_color="orange")
+        lbl_info.pack(pady=5)
+        
+        btn_run = ctk.CTkButton(dialog, text="▶️ Exécuter", fg_color="green", hover_color="darkgreen", state="disabled")
+        btn_run.pack(pady=10, fill="x", padx=50)
+        
+        def _generate():
+            query = txt_query.get("0.0", "end").strip()
+            if not query:
+                return
+            
+            btn_generate.configure(state="disabled", text="Génération...")
+            lbl_info.configure(text="Réflexion en cours...", text_color="gray")
+            dialog.update()
+            
+            provider = self.cmb_provider.get()
+            
+            def _thread_gen():
+                code, error = self.service.generate_code_from_query(query, provider_override=provider)
+                
+                def _ui_update():
+                    btn_generate.configure(state="normal", text="Générer le Code")
+                    if error:
+                        messagebox.showerror("Erreur IA", error)
+                        lbl_info.configure(text="Erreur lors de la génération", text_color="red")
+                    else:
+                        txt_code.delete("0.0", "end")
+                        txt_code.insert("0.0", code)
+                        btn_run.configure(state="normal", command=lambda: _execute(code)) # Bind to generated code? Better to get from text box
+                        btn_run.configure(command=lambda: _execute())
+                        lbl_info.configure(text="Code généré. Cliquez sur Exécuter pour lancer.", text_color="green")
+                        
+                self.after(0, _ui_update)
+            
+            threading.Thread(target=_thread_gen).start()
+            
+        def _execute(code_override=None):
+            # Get code from textbox to allow edits
+            final_code = txt_code.get("0.0", "end").strip()
+            if not final_code:
+                return
+
+            btn_run.configure(state="disabled", text="Exécution...")
+            dialog.update()
+            
+            output, fig = self.service.execute_generated_code(final_code)
+            
+            # Show results in main window
+            self.txt_llm.delete("0.0", "end")
+            self.txt_llm.insert("0.0", f"--- Résultat Agent ---\n\n{output}")
+            
+            if fig:
+                # Same logic as show_chart
+                import io
+                buf = io.BytesIO()
+                fig.savefig(buf, format='png')
+                buf.seek(0)
+                img = Image.open(buf)
+                ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(500, 350))
+                self.lbl_chart.configure(image=ctk_img, text="")
+                self.lbl_chart.image = ctk_img
+                import matplotlib.pyplot as plt
+                plt.close(fig)
+            
+            dialog.destroy()
+            self.lbl_status.configure(text="Action Agent terminée")

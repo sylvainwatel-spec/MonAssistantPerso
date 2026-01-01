@@ -94,8 +94,6 @@ class DataAnalysisService:
         # Resolve key
         api_key = api_keys.get(provider)
         if not api_key:
-            # Try to match partial key (e.g. if provider is "OpenAI ...", check "OpenAI ...")
-            # But usually exact match in settings.
             return f"Clé API manquante pour le provider: {provider}"
 
         # Prepare Prompt
@@ -113,7 +111,6 @@ class DataAnalysisService:
             provider_name=provider,
             api_key=api_key,
             messages=messages,
-            # Add other kwargs like base_url if needed from settings endpoints
             base_url=settings.get("endpoints", {}).get(provider),
             model=settings.get("models", {}).get(provider)
         )
@@ -123,19 +120,16 @@ class DataAnalysisService:
         else:
             if "Endpoint manquant pour IAKA" in response:
                 return "Erreur Configuration: L'endpoint IAKA n'est pas configuré.\n\nVeuillez aller dans Administration > Connecteur Chat,\nsélectionner 'IAKA (Interne)' et entrer l'URL de l'endpoint."
-            if "Endpoint manquant pour IAKA" in response:
-                return "Erreur Configuration: L'endpoint IAKA n'est pas configuré.\n\nVeuillez aller dans Administration > Connecteur Chat,\nsélectionner 'IAKA (Interne)' et entrer l'URL de l'endpoint."
             return f"Erreur lors de l'analyse LLM: {response}"
 
-    def agent_query(self, user_query: str, provider_override: Optional[str] = None) -> Tuple[str, Optional[Any]]:
+    def generate_code_from_query(self, user_query: str, provider_override: Optional[str] = None) -> Tuple[str, Optional[str]]:
         """
-        Agentic method:
-        1. Ask LLM to generate Python code to answer the query.
-        2. Execute the code.
-        3. Return output text and optional figure.
+        Step 1: Ask LLM to generate Python code to answer the query.
+        Returns (code_str, error_message).
+        If success, error_message is None.
         """
         if self.df is None:
-            return "Veuillez d'abord importer un fichier de données.", None
+            return "", "Veuillez d'abord importer un fichier de données."
 
         # 1. Get Settings & LLM
         settings = self.data_manager.get_settings()
@@ -144,10 +138,9 @@ class DataAnalysisService:
         api_key = api_keys.get(provider)
         
         if not api_key:
-             return f"Clé API manquante pour {provider}", None
+             return "", f"Clé API manquante pour {provider}"
 
         # 2. Prepare Prompt
-        # Get simplified df info
         buffer = io.StringIO()
         self.df.info(buf=buffer)
         info_str = buffer.getvalue()
@@ -185,20 +178,28 @@ Instructions:
         )
         
         if not success:
-            return f"Erreur IA: {response}", None
+            return "", f"Erreur IA: {response}"
 
         # 3. Extract Code
         code_match = re.search(r"```python(.*?)```", response, re.DOTALL)
         if code_match:
             code = code_match.group(1).strip()
         else:
-            # Fallback: assume whole response is code if no blocks (risky but handles some LLMs)
             if "def " in response or "print(" in response or "fig" in response:
                 code = response
             else:
-                return f"L'IA n'a pas généré de code valide.\nRéponse: {response}", None
+                return "", f"L'IA n'a pas généré de code valide.\nRéponse: {response}"
+                
+        return code, None
 
-        # 4. Execute Code
+    def execute_generated_code(self, code: str) -> Tuple[str, Optional[Any]]:
+        """
+        Step 2: Execute the provided python code.
+        WARNING: This executes arbitrary code. Ensure user validation before calling.
+        """
+        if self.df is None:
+            return "Erreur: DataFrame non chargé.", None
+            
         # We need to capture stdout
         old_stdout = sys.stdout
         redirected_output = io.StringIO()
@@ -222,14 +223,12 @@ Instructions:
         sys.stdout = old_stdout
         output_text = redirected_output.getvalue()
         
-        # If no output and no figure, maybe the code didn't print anything?
         if not output_text and not fig:
             output_text = "Code exécuté avec succès, mais aucun résultat affiché."
             
-        # Append the code used for transparency (optional)
-        # output_text += f"\n\n--- Code généré ---\n{code}"
-        
         return output_text, fig
+
+    def export_to_pptx(self, output_path: str, llm_analysis: str = "") -> bool:
         """Export analysis to a PowerPoint presentation."""
         try:
             prs = Presentation()
