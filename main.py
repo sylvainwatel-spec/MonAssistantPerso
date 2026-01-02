@@ -75,6 +75,7 @@ class App(ctk.CTk):
         y = max(0, y)
 
         self.geometry(f"{width}x{height}+{x}+{y}")
+        self.minsize(1000, 800)
         
         # Icon setup
         try:

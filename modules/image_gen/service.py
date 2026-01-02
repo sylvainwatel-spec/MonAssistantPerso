@@ -4,13 +4,10 @@ from openai import OpenAI
 from io import BytesIO
 from PIL import Image
 from typing import Tuple, Any
-from huggingface_hub import InferenceClient
-try:
-    import torch
-    from diffusers import QwenImageEditPlusPipeline
-except ImportError:
-    torch = None
-    QwenImageEditPlusPipeline = None
+# Lazy imports
+# from huggingface_hub import InferenceClient
+# import torch
+# from diffusers import QwenImageEditPlusPipeline
 
 class ImageGenerationService:
     """Service for generating images using various providers."""
@@ -111,8 +108,11 @@ class ImageGenerationService:
         """Generate image using local Qwen-Image-Edit-2509 pipeline."""
         if not image_path or not os.path.exists(image_path):
              return False, None, "Une image source est requise pour Qwen-Image-Edit."
-             
-        if QwenImageEditPlusPipeline is None:
+
+        try:
+             import torch
+             from diffusers import QwenImageEditPlusPipeline
+        except ImportError:
              return False, None, "La librairie 'diffusers' n'est pas installée correctement pour Qwen."
 
         try:
@@ -171,6 +171,7 @@ class ImageGenerationService:
         model_id = self.hf_models.get(provider)
         
         try:
+            from huggingface_hub import InferenceClient
             # Use standard InferenceClient
             client = InferenceClient(token=key)
             

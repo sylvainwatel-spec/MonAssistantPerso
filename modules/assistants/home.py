@@ -168,8 +168,8 @@ class HomeFrame(ctk.CTkFrame):
         # (Background logic moved to end of __init__)
         
         # --- Container for Content ---
-        # Changed to CTkFrame to allow background image transparency
-        self.content_scroll = ctk.CTkFrame(
+        # Changed to CTkScrollableFrame to allow vertical scrolling
+        self.content_scroll = ctk.CTkScrollableFrame(
             self, 
             fg_color="transparent", 
             width=800

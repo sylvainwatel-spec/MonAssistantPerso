@@ -15,6 +15,9 @@ class DocAnalystFrame(ctk.CTkFrame):
         
         self.documents = [] # List of {"name": filename, "content": text}
         self.chat_history = [] # List of {"role": "...", "content": "..."}
+        
+        self.suggestion_window = None
+        self.suggestion_frame = None
 
         self.build_ui()
 
@@ -59,6 +62,8 @@ class DocAnalystFrame(ctk.CTkFrame):
         self.msg_entry = ctk.CTkEntry(input_frame, placeholder_text="Posez votre question sur le document...")
         self.msg_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
         self.msg_entry.bind("<Return>", self.send_message)
+        self.msg_entry.bind("<KeyRelease>", self.check_mentions)
+        self.msg_entry.bind("<FocusOut>", lambda e: self.after(200, self.hide_suggestions))
         
         self.btn_send = ctk.CTkButton(input_frame, text="Envoyer", width=100, command=self.send_message)
         self.btn_send.pack(side="right")
@@ -161,7 +166,9 @@ class DocAnalystFrame(ctk.CTkFrame):
         self.update_document_label()
         
         if loaded_count > 0:
-            msg = f"{loaded_count} document(s) ajouté(s)."
+            # Collect names of newly added documents (last 'loaded_count' items)
+            new_docs = [d['name'] for d in self.documents[-loaded_count:]]
+            msg = f"Document(s) ajouté(s) : {', '.join(new_docs)}"
             if errors:
                 msg += f"\nErreurs non chargées: {', '.join(errors)}"
             self.append_chat("System", msg)
@@ -188,7 +195,22 @@ class DocAnalystFrame(ctk.CTkFrame):
             self.lbl_filename.configure(text="Aucun fichier chargé", text_color="gray")
         else:
             total_chars = sum(len(d['content']) for d in self.documents)
-            self.lbl_filename.configure(text=f"✅ {count} document(s)\n(~{total_chars} caractères)", text_color="green")
+            
+            # Context Limit Warnings (Approximation: 1 token ~= 4 chars)
+            if total_chars > 120000: # ~30k tokens
+                color = "red"
+                icon = "⛔ ATTENTION: Très volumineux"
+            elif total_chars > 32000: # ~8k tokens (standard context)
+                color = "orange"
+                icon = "⚠️ Volumineux"
+            else:
+                color = "green"
+                icon = "✅"
+                
+            self.lbl_filename.configure(
+                text=f"{icon} {count} document(s)\n(~{total_chars} caractères)", 
+                text_color=color
+            )
 
     def send_message(self, event=None):
         if not self.documents:
@@ -287,3 +309,123 @@ class DocAnalystFrame(ctk.CTkFrame):
             messagebox.showinfo("Succès", "Export réussi !")
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors de l'export : {e}")
+
+    # --- Autocomplete Logic ---
+    def check_mentions(self, event):
+        # Don't trigger on internal navigation keys
+        if event.keysym in ("Up", "Down", "Left", "Right", "Return", "Escape"):
+             if event.keysym == "Escape":
+                 self.hide_suggestions()
+             return
+
+        text = self.msg_entry.get()
+        cursor_pos = self.msg_entry._entry.index("insert")
+        
+        # Look backwards from cursor for '@'
+        # Simple implementation: detect if we are currently typing a word starting with @
+        # Get text up to cursor
+        current_text = text[:cursor_pos]
+        
+        # Find last @
+        last_at = current_text.rfind("@")
+        
+        if last_at != -1:
+            # Check if there are spaces between @ and cursor (allow spaces in filenames? usually no for mentions but files have spaces)
+            # Let's say mention ends at space for now, or ensure we are "in" the mention
+            # Actually, standard behavior is @trigger until space.
+            query = current_text[last_at+1:]
+            
+            # If query contains space, abort (unless we want to support spaces in mentions, which is hard)
+            # For simplicity, we abort on space to avoid false positives
+            if " " in query:
+                self.hide_suggestions()
+                return
+
+            self.show_suggestions(query)
+        else:
+            self.hide_suggestions()
+
+    def show_suggestions(self, query):
+        # Filter documents
+        matches = [d["name"] for d in self.documents if query.lower() in d["name"].lower()]
+        
+        if not matches:
+            self.hide_suggestions()
+            return
+
+        # Create window if not exists
+        if self.suggestion_window is None or not self.suggestion_window.winfo_exists():
+            self.suggestion_window = ctk.CTkToplevel(self)
+            self.suggestion_window.wm_overrideredirect(True)
+            self.suggestion_window.wm_attributes("-topmost", True)
+            # transparent not supported on Toplevel directly in this context without specific system calls
+            # We just let it have default background which will be covered by suggestion_frame
+            
+            # Position logic
+            entry_x = self.msg_entry.winfo_rootx()
+            entry_y = self.msg_entry.winfo_rooty()
+            entry_h = self.msg_entry.winfo_height()
+            
+            # Offset slightly
+            self.suggestion_window.geometry(f"+{entry_x + 10}+{entry_y - (len(matches) * 35) - 10}")
+
+            self.suggestion_frame = ctk.CTkFrame(self.suggestion_window, corner_radius=10, fg_color=("gray90", "gray20"), border_width=1, border_color="gray50")
+            self.suggestion_frame.pack(fill="both", expand=True)
+
+        # Update content
+        # Clear old
+        for widget in self.suggestion_frame.winfo_children():
+            widget.destroy()
+
+        # Add buttons
+        for doc_name in matches:
+             btn = ctk.CTkButton(
+                 self.suggestion_frame, 
+                 text=doc_name, 
+                 anchor="w",
+                 fg_color="transparent", 
+                 text_color=("black", "white"),
+                 hover_color=("gray80", "gray30"),
+                 height=30,
+                 command=lambda n=doc_name: self.insert_mention(n, query)
+             )
+             btn.pack(fill="x", padx=5, pady=2)
+             
+        # Resize window
+        total_h = len(matches) * 34 + 10
+        width = 250
+        
+        entry_x = self.msg_entry.winfo_rootx()
+        entry_y = self.msg_entry.winfo_rooty()
+        # appear above
+        self.suggestion_window.geometry(f"{width}x{total_h}+{entry_x}+{entry_y - total_h - 5}")
+
+    def hide_suggestions(self):
+        if self.suggestion_window:
+            self.suggestion_window.destroy()
+            self.suggestion_window = None
+            self.suggestion_frame = None
+
+    def insert_mention(self, filename, query):
+        current_text = self.msg_entry.get()
+        cursor_pos = self.msg_entry._entry.index("insert")
+        
+        # We need to replace the last occurance of '@query' before cursor
+        # Re-locate start index
+        start_pos = cursor_pos - len(query) - 1 # -1 for @
+        
+        # Construct new text
+        prefix = current_text[:start_pos]
+        suffix = current_text[cursor_pos:]
+        
+        new_text = prefix + f"@{filename} " + suffix
+        
+        self.msg_entry.delete(0, "end")
+        self.msg_entry.insert(0, new_text)
+        
+        # Correct cursor placement is hard without index math, but appending at end is safe
+        # Or calculate new pos
+        new_cursor = start_pos + len(filename) + 2 # +1 for @, +1 for space
+        self.msg_entry._entry.icursor(new_cursor)
+        
+        self.hide_suggestions()

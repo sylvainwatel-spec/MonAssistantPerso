@@ -1,5 +1,6 @@
-import yfinance as yf
-import pandas as pd
+# Lazy imports
+# import yfinance as yf
+# import pandas as pd
 from typing import Dict, Any, Tuple, Optional
 from datetime import datetime
 
@@ -16,6 +17,7 @@ class FinancialService:
     def get_stock_price(self, symbol: str) -> Tuple[bool, Dict[str, Any], str]:
         """Récupère le prix actuel via yfinance."""
         try:
+            import yfinance as yf
             ticker = yf.Ticker(symbol)
             # fast_info is faster than history
             info = ticker.fast_info
@@ -52,12 +54,14 @@ class FinancialService:
         except Exception as e:
             return False, None, f"Erreur yfinance : {e}"
 
-    def get_historical_data(self, symbol: str, period: str = "1y") -> Tuple[bool, Optional[pd.DataFrame], float]:
+    def get_historical_data(self, symbol: str, period: str = "1y") -> Tuple[bool, Optional[Any], float]:
         """
         Récupère l'historique et calcule la moyenne.
         Returns: (success, dataframe, average_close_price)
         """
         try:
+            import yfinance as yf
+            import pandas as pd
             ticker = yf.Ticker(symbol)
             hist = ticker.history(period=period)
             

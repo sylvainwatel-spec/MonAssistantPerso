@@ -1,26 +1,9 @@
-
-import pandas as pd
 import io
 import os
-import matplotlib.pyplot as plt
 from typing import Optional, Tuple, Any, Dict
-from pptx import Presentation
-from pptx.util import Inches, Pt
 import re
 import sys
 import traceback
-try:
-    from docx import Document
-except ImportError:
-    Document = None
-try:
-    from pypdf import PdfReader
-except ImportError:
-    PdfReader = None
-try:
-    from pptx import Presentation as PptxPresentation
-except ImportError:
-    PptxPresentation = None
 
 from core.services.llm_service import LLMService
 
@@ -32,6 +15,20 @@ class DataAnalysisService:
 
     def load_file(self, file_path: str) -> bool:
         """Load a CSV or Excel file into a pandas DataFrame."""
+        import pandas as pd
+        try:
+            from docx import Document
+        except ImportError:
+            Document = None
+        try:
+            from pypdf import PdfReader
+        except ImportError:
+            PdfReader = None
+        try:
+            from pptx import Presentation as PptxPresentation
+        except ImportError:
+            PptxPresentation = None
+
         try:
             filename = os.path.basename(file_path)
             if file_path.endswith('.csv'):
@@ -109,6 +106,8 @@ class DataAnalysisService:
         Generate a histogram for the first numeric column.
         Returns a matplotlib Figure object or None.
         """
+        import matplotlib.pyplot as plt
+
         if self.df is None:
             return None
 
@@ -249,6 +248,9 @@ Instructions:
         if self.df is None:
             return "Erreur: DataFrame non chargé.", None
             
+        import pandas as pd
+        import matplotlib.pyplot as plt
+
         # We need to capture stdout
         old_stdout = sys.stdout
         redirected_output = io.StringIO()
@@ -280,6 +282,10 @@ Instructions:
     def export_to_pptx(self, output_path: str, llm_analysis: str = "") -> bool:
         """Export analysis to a PowerPoint presentation."""
         try:
+            from pptx import Presentation
+            from pptx.util import Inches, Pt
+            import matplotlib.pyplot as plt
+
             prs = Presentation()
 
             # Slide 1: Title

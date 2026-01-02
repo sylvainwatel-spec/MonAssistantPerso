@@ -89,4 +89,19 @@ Réponds aux questions de l'utilisateur en te basant UNIQUEMENT sur ces document
         messages.append({"role": "user", "content": user_question})
 
         # Call LLM Service
-        return LLMService.generate_response(actual_provider, api_key, messages, **kwargs)
+        success, response = LLMService.generate_response(actual_provider, api_key, messages, **kwargs)
+
+        # Better Error Handling for Context Issues
+        if not success:
+            lower_resp = response.lower()
+            if "max_tokens" in lower_resp and "at least 1" in lower_resp:
+                return False, (
+                    "⚠️ Contenu trop volumineux pour ce modèle.\n\n"
+                    "Les documents dépassent la fenêtre de contexte autorisée.\n"
+                    "Solutions :\n"
+                    "1. Retirer des documents de la liste.\n"
+                    "2. Utiliser un modèle avec un plus grand contexte (ex: Gemini 1.5 Pro).\n\n"
+                    f"Erreur originale : {response}"
+                )
+        
+        return success, response
