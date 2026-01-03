@@ -105,3 +105,46 @@ Réponds aux questions de l'utilisateur en te basant UNIQUEMENT sur ces document
                 )
         
         return success, response
+
+    def get_all_conversations(self):
+        return self.data_manager.get_doc_conversations()
+    
+    def delete_conversation(self, conversation_id):
+        self.data_manager.delete_doc_conversation(conversation_id)
+
+    def rename_conversation(self, conversation_id, new_title):
+        self.data_manager.update_doc_conversation_title(conversation_id, new_title)
+
+    def save_conversation(self, conv_id, title, messages, documents):
+        """
+        Saves the conversation state.
+        If title is 'Nouvelle conversation' and we have messages, generate a better title.
+        """
+        import datetime
+        
+        # Determine if we should generate a title
+        # Only if we have user content to base it on
+        is_new_title_needed = (title == "Nouvelle conversation" or not title) and len(messages) > 0
+        
+        if is_new_title_needed:
+            # Try to generate title from first user message
+            first_msg = next((m['content'] for m in messages if m['role'] == 'user'), None)
+            if first_msg:
+                # Simple heuristic: First 8 words
+                # Or use LLM? using LLM is better but adds latency/cost. 
+                # Let's stick to simple truncation first for speed, or "Analysing [DocName]" if available.
+                # Actually, user requested "on conserverait le titre ?", implying they might want meaningful titles.
+                # Let's try simple meaningful title: "Analyse: [First few words]"
+                short_text = " ".join(first_msg.split()[:5])
+                title = f"{short_text}..."
+        
+        conversation = {
+            "id": conv_id,
+            "title": title,
+            "updated_at": str(datetime.datetime.now()),
+            "messages": messages,
+            "documents": documents
+        }
+        
+        self.data_manager.save_doc_conversation(conversation)
+        return title

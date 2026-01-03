@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
 import threading
+import uuid
 try:
     from docx import Document
 except ImportError:
@@ -16,10 +17,15 @@ class DocAnalystFrame(ctk.CTkFrame):
         self.documents = [] # List of {"name": filename, "content": text}
         self.chat_history = [] # List of {"role": "...", "content": "..."}
         
+        self.current_conversation_id = None
+        self.current_title = "Nouvelle conversation"
+        
         self.suggestion_window = None
         self.suggestion_frame = None
 
         self.build_ui()
+        # Load history initially
+        self.after(100, self.refresh_history_list)
 
     def build_ui(self):
         # 1. Header
@@ -37,19 +43,40 @@ class DocAnalystFrame(ctk.CTkFrame):
         )
         btn_back.pack(side="left", padx=10, pady=10)
         
-        title = ctk.CTkLabel(header, text="📄 Analyse de Documents (Beta)", font=("Arial", 20, "bold"))
-        title.pack(side="left", padx=20)
+        self.lbl_title = ctk.CTkLabel(header, text="📄 Analyse de Documents (Beta)", font=("Arial", 20, "bold"))
+        self.lbl_title.pack(side="left", padx=20)
 
         # 2. Main Content
         content = ctk.CTkFrame(self, fg_color="transparent")
         content.pack(fill="both", expand=True, padx=20, pady=10)
-        content.grid_columnconfigure(0, weight=3) # Chat area
-        content.grid_columnconfigure(1, weight=1) # Controls
+        
+        # New Layout: Sidebar (1) | Chat (3) | Document Controls (1)
+        content.grid_columnconfigure(0, weight=1) # Sidebar
+        content.grid_columnconfigure(1, weight=4) # Chat area
+        content.grid_columnconfigure(2, weight=1) # Controls
         content.grid_rowconfigure(0, weight=1)
 
-        # --- Left: Chat Area ---
+        # --- Left: Sidebar (History) ---
+        sidebar_panel = ctk.CTkFrame(content, width=200)
+        sidebar_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        
+        ctk.CTkLabel(sidebar_panel, text="Historique", font=("Arial", 14, "bold")).pack(pady=10)
+        
+        self.btn_new_chat = ctk.CTkButton(
+            sidebar_panel,
+            text="+ Nouvelle conv.",
+            fg_color="green",
+            command=self.start_new_conversation
+        )
+        self.btn_new_chat.pack(pady=(0, 10), padx=10, fill="x")
+        
+        self.scroll_history = ctk.CTkScrollableFrame(sidebar_panel, fg_color="transparent")
+        self.scroll_history.pack(fill="both", expand=True, padx=5, pady=5)
+
+
+        # --- Middle: Chat Area ---
         chat_panel = ctk.CTkFrame(content)
-        chat_panel.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
+        chat_panel.grid(row=0, column=1, sticky="nsew", padx=(0, 10))
         chat_panel.grid_rowconfigure(0, weight=1)
         chat_panel.grid_columnconfigure(0, weight=1)
 
@@ -82,7 +109,7 @@ class DocAnalystFrame(ctk.CTkFrame):
 
         # --- Right: Controls ---
         controls_panel = ctk.CTkFrame(content, width=250)
-        controls_panel.grid(row=0, column=1, sticky="nsew")
+        controls_panel.grid(row=0, column=2, sticky="nsew")
         
         ctk.CTkLabel(controls_panel, text="Document", font=("Arial", 14, "bold")).pack(pady=20)
         
@@ -143,6 +170,142 @@ class DocAnalystFrame(ctk.CTkFrame):
             self.var_provider.set(default_provider)
         else:
             self.var_provider.set(self.hf_models[0])
+            
+            
+    # --- Conversation Management ---
+    
+    def start_new_conversation(self):
+        self.current_conversation_id = None
+        self.current_title = "Nouvelle conversation"
+        self.documents = []
+        self.chat_history = []
+        
+        self.update_document_label()
+        
+        self.chat_display.configure(state="normal")
+        self.chat_display.delete("1.0", "end")
+        self.chat_display.configure(state="disabled")
+        
+        self.lbl_title.configure(text="📄 Analyse de Documents (Nouv. conv.)")
+        self.append_chat("System", "Nouvelle conversation démarrée.")
+
+    def refresh_history_list(self):
+        # Clear sidebar
+        for widget in self.scroll_history.winfo_children():
+            widget.destroy()
+            
+        conversations = self.service.get_all_conversations()
+        # Sort by updated_at desc usually
+        try:
+            conversations.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
+        except:
+            pass # Handle legacy or malformed dates gracefully
+
+        for conv in conversations:
+            f = ctk.CTkFrame(self.scroll_history, fg_color="transparent")
+            f.pack(fill="x", pady=2)
+            
+            # Determine highlighting
+            is_active = (self.current_conversation_id == conv["id"])
+            bg_color = ("gray85", "gray25") if is_active else "transparent"
+            text_weight = "bold" if is_active else "normal"
+
+            # Title Button
+            btn = ctk.CTkButton(
+                f,
+                text=conv.get("title", "Sans titre"),
+                anchor="w",
+                fg_color=bg_color,
+                text_color=("black", "white"),
+                hover_color=("gray80", "gray30"),
+                font=("Arial", 12, text_weight),
+                height=30,
+                command=lambda c=conv: self.load_conversation(c)
+            )
+            btn.pack(side="left", fill="x", expand=True)
+
+            # Rename Button
+            rename_btn = ctk.CTkButton(
+                f,
+                text="✎",
+                width=30,
+                fg_color="transparent",
+                text_color="gray",
+                hover_color=("gray90", "gray40"),
+                command=lambda cid=conv["id"]: self.rename_conversation_ui(cid)
+            )
+            rename_btn.pack(side="right", padx=(2, 0))
+            
+            # Delete Button
+            del_btn = ctk.CTkButton(
+                f,
+                text="X",
+                width=30,
+                fg_color="transparent",
+                text_color="red",
+                hover_color=("mistyrose", "darkred"),
+                command=lambda cid=conv["id"]: self.delete_conversation_ui(cid)
+            )
+            del_btn.pack(side="right")
+
+    def rename_conversation_ui(self, conversation_id):
+        dialog = ctk.CTkInputDialog(text="Nouveau nom de conversation :", title="Renommer")
+        new_title = dialog.get_input()
+        if new_title:
+            self.service.rename_conversation(conversation_id, new_title)
+            
+            # Update current title if we are renaming the active conversation
+            if self.current_conversation_id == conversation_id:
+                self.current_title = new_title
+                
+            self.refresh_history_list()
+
+    def load_conversation(self, conversation):
+        self.current_conversation_id = conversation["id"]
+        self.current_title = conversation.get("title", "Sans titre")
+        self.documents = conversation.get("documents", [])
+        self.chat_history = conversation.get("messages", [])
+        
+        # Restore UI
+        self.lbl_title.configure(text=f"📄 {self.current_title}")
+        self.update_document_label()
+        
+        self.chat_display.configure(state="normal")
+        self.chat_display.delete("1.0", "end")
+        
+        # Replay history
+        for msg in self.chat_history:
+            sender = "Vous" if msg["role"] == "user" else "Assistant"
+            self.chat_display.insert("end", f"\n[{sender}]: {msg['content']}\n")
+            
+        self.chat_display.see("end")
+        self.chat_display.configure(state="disabled")
+
+    def delete_conversation_ui(self, conversation_id):
+        if messagebox.askyesno("Confirmer", "Supprimer cette conversation ?"):
+            self.service.delete_conversation(conversation_id)
+            if self.current_conversation_id == conversation_id:
+                self.start_new_conversation()
+            self.refresh_history_list()
+
+    def _save_current_state(self):
+        # Generate ID if new
+        if not self.current_conversation_id:
+            self.current_conversation_id = str(uuid.uuid4())
+            
+        new_title = self.service.save_conversation(
+            self.current_conversation_id,
+            self.current_title,
+            self.chat_history,
+            self.documents
+        )
+        
+        if new_title != self.current_title:
+            self.current_title = new_title
+            self.lbl_title.configure(text=f"📄 {self.current_title}")
+            
+        self.refresh_history_list()
+
 
     def upload_document(self):
         file_paths = filedialog.askopenfilenames(
@@ -172,22 +335,22 @@ class DocAnalystFrame(ctk.CTkFrame):
             if errors:
                 msg += f"\nErreurs non chargées: {', '.join(errors)}"
             self.append_chat("System", msg)
-            self.chat_history = [] # Reset history to encourage fresh start or maybe keep it? Let's reset for now or user choice.
-            # Actually, if we add docs, maybe we want to keep context? 
-            # Review plan: "Append a system message...". Plan didn't explicitly say reset history on APPEND,
-            # but usually new context means new convo. I will keep the reset for safety to avoid confusion between old/new context.
-            self.chat_history = [] 
+            
+            # Save state after upload (always save to create/update session)
+            self._save_current_state()
+            
         elif errors:
             messagebox.showerror("Erreurs", "\n".join(errors))
 
     def clear_documents(self):
-        self.documents = []
-        self.chat_history = []
-        self.update_document_label()
-        self.append_chat("System", "Liste des documents vidée.")
-        self.chat_display.configure(state="normal")
-        self.chat_display.delete("1.0", "end")
-        self.chat_display.configure(state="disabled")
+        if messagebox.askyesno("Confirmation", "Cela effacera les documents de la conversation ACTUELLE."):
+            self.documents = []
+            # We don't necessarily clear chat history, just docs? 
+            # User said "Vider la liste", implying docs. But usually context depends on docs.
+            # I will keep history but warn.
+            self.update_document_label()
+            self.append_chat("System", "Liste des documents vidée.")
+            self._save_current_state()
 
     def update_document_label(self):
         count = len(self.documents)
@@ -233,6 +396,9 @@ class DocAnalystFrame(ctk.CTkFrame):
         # Show loading indicator
         self.progress_bar.grid(row=2, column=0, sticky="ew", padx=20, pady=(0, 10))
         self.progress_bar.start()
+        
+        # Save before sending (async)
+        # self._save_current_state() # wait for response to save complete pair?
 
         # Threaded call
         thread = threading.Thread(target=self._chat_thread, args=(msg, provider))
@@ -264,6 +430,10 @@ class DocAnalystFrame(ctk.CTkFrame):
             # Add to history
             self.chat_history.append({"role": "user", "content": user_msg})
             self.chat_history.append({"role": "assistant", "content": response})
+            
+            # Save state
+            self._save_current_state()
+            
         else:
             self.append_chat("System", f"Erreur: {response}")
 

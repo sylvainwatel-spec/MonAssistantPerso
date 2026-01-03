@@ -8,6 +8,7 @@ from utils.resource_handler import get_writable_path
 DATA_FILE = "assistants.json"
 SETTINGS_FILE = "settings.json"
 KEY_FILE = ".secret.key"
+DOC_CONVERSATIONS_FILE = "doc_conversations.json"
 
 class DataManager:
     def __init__(self):
@@ -15,6 +16,7 @@ class DataManager:
         self.filepath = get_writable_path(DATA_FILE)
         self.settings_path = get_writable_path(SETTINGS_FILE)
         self.key_path = get_writable_path(KEY_FILE)
+        self.doc_conversations_path = get_writable_path(DOC_CONVERSATIONS_FILE)
         
         self._load_or_create_key()
         self._ensure_files_exist()
@@ -55,6 +57,9 @@ class DataManager:
                     "endpoints": {},
                     "models": {}
                 }, f)
+        if not os.path.exists(self.doc_conversations_path):
+            with open(self.doc_conversations_path, 'w') as f:
+                json.dump([], f)
 
     def get_all_assistants(self):
         with open(self.filepath, 'r') as f:
@@ -166,6 +171,50 @@ class DataManager:
         assistants = self.get_all_assistants()
         assistants = [a for a in assistants if a["id"] != assistant_id]
         self._save_to_file(assistants)
+
+
+    def get_doc_conversations(self):
+        """Retrieves list of document analysis conversations."""
+        try:
+            with open(self.doc_conversations_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return []
+
+    def save_doc_conversation(self, conversation):
+        """Saves or updates a document analysis conversation."""
+        conversations = self.get_doc_conversations()
+        
+        # Check if exists and update
+        found = False
+        for i, c in enumerate(conversations):
+            if c["id"] == conversation["id"]:
+                conversations[i] = conversation
+                found = True
+                break
+        
+        if not found:
+            conversations.append(conversation)
+            
+        with open(self.doc_conversations_path, 'w', encoding='utf-8') as f:
+            json.dump(conversations, f, indent=4)
+
+    def delete_doc_conversation(self, conversation_id):
+        """Deletes a document analysis conversation."""
+        conversations = self.get_doc_conversations()
+        conversations = [c for c in conversations if c["id"] != conversation_id]
+        with open(self.doc_conversations_path, 'w', encoding='utf-8') as f:
+            json.dump(conversations, f, indent=4)
+
+    def update_doc_conversation_title(self, conversation_id, new_title):
+        """Updates the title of a specific conversation."""
+        conversations = self.get_doc_conversations()
+        for c in conversations:
+            if c["id"] == conversation_id:
+                c["title"] = new_title
+                break
+        with open(self.doc_conversations_path, 'w', encoding='utf-8') as f:
+            json.dump(conversations, f, indent=4)
 
 
     def _save_to_file(self, data):
