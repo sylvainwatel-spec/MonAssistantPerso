@@ -16,6 +16,7 @@ except Exception:
 import matplotlib
 matplotlib.use("Agg")
 import customtkinter as ctk
+import webbrowser
 from PIL import Image
 
 # Ensure utils can be imported
@@ -225,6 +226,13 @@ class App(ctk.CTk):
 
     def show_scraping(self) -> None:
         self.switch_frame(manager.get('scraping'))
+
+    def open_url(self, url: str) -> None:
+        """Opens a URL in the default web browser."""
+        try:
+            webbrowser.open(url)
+        except Exception as e:
+            print(f"Error opening URL: {e}")
 
 if __name__ == "__main__":
     app = App()

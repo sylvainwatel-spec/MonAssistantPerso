@@ -52,7 +52,7 @@ class FeatureCard(ctk.CTkFrame):
         # Event bindings for hover and click
         self.bind("<Enter>", self.on_enter)
         self.bind("<Leave>", self.on_leave)
-        self.bind("<Button-1>", lambda e: self.command())
+        self.bind("<Button-1>", lambda e=None: self.command())
         
         # Layout
         self.grid_columnconfigure(0, weight=1)
@@ -69,7 +69,7 @@ class FeatureCard(ctk.CTkFrame):
             text_color=color
         )
         self.lbl_icon.grid(row=0, column=0, pady=(25, 10))
-        self.lbl_icon.bind("<Button-1>", lambda e: self.command())
+        self.lbl_icon.bind("<Button-1>", lambda e=None: self.command())
         self.lbl_icon.bind("<Enter>", self.on_enter)
         self.lbl_icon.bind("<Leave>", self.on_leave)
 
@@ -81,7 +81,7 @@ class FeatureCard(ctk.CTkFrame):
             text_color=("gray15", "gray90")
         )
         self.lbl_title.grid(row=1, column=0, padx=15)
-        self.lbl_title.bind("<Button-1>", lambda e: self.command())
+        self.lbl_title.bind("<Button-1>", lambda e=None: self.command())
         self.lbl_title.bind("<Enter>", self.on_enter)
         self.lbl_title.bind("<Leave>", self.on_leave)
         
@@ -95,7 +95,7 @@ class FeatureCard(ctk.CTkFrame):
             justify="center"
         )
         self.lbl_desc.grid(row=2, column=0, padx=20, pady=(5, 10))
-        self.lbl_desc.bind("<Button-1>", lambda e: self.command())
+        self.lbl_desc.bind("<Button-1>", lambda e=None: self.command())
         self.lbl_desc.bind("<Enter>", self.on_enter)
         self.lbl_desc.bind("<Leave>", self.on_leave)
         
@@ -107,7 +107,7 @@ class FeatureCard(ctk.CTkFrame):
             text_color=color
         )
         self.lbl_action.grid(row=3, column=0, pady=(0, 20))
-        self.lbl_action.bind("<Button-1>", lambda e: self.command())
+        self.lbl_action.bind("<Button-1>", lambda e=None: self.command())
         self.lbl_action.bind("<Enter>", self.on_enter)
         self.lbl_action.bind("<Leave>", self.on_leave)
 

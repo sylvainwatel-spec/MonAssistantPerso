@@ -124,7 +124,7 @@ class ScrapeGraphConnectorFrame(ctk.CTkFrame):
         item_frame.pack(fill="x", padx=5, pady=2)
         self.sidebar_widgets.append(item_frame)
 
-        item_frame.bind("<Button-1>", lambda e, p=provider: self.select_provider(p))
+        item_frame.bind("<Button-1>", lambda e=None, p=provider: self.select_provider(p))
         item_frame.grid_columnconfigure(1, weight=1)
 
         indicator_text = "●" if is_active else ""
@@ -135,12 +135,12 @@ class ScrapeGraphConnectorFrame(ctk.CTkFrame):
             font=("Arial", 16),
         )
         indicator.grid(row=0, column=0, padx=(10, 5), pady=10)
-        indicator.bind("<Button-1>", lambda e, p=provider: self.select_provider(p))
+        indicator.bind("<Button-1>", lambda e=None, p=provider: self.select_provider(p))
 
         font_weight = "bold" if is_active else "normal"
         lbl_name = ctk.CTkLabel(item_frame, text=provider, font=("Arial", 13, font_weight))
         lbl_name.grid(row=0, column=1, sticky="w", padx=5)
-        lbl_name.bind("<Button-1>", lambda e, p=provider: self.select_provider(p))
+        lbl_name.bind("<Button-1>", lambda e=None, p=provider: self.select_provider(p))
 
         if is_active:
             lbl_status = ctk.CTkLabel(
@@ -150,7 +150,7 @@ class ScrapeGraphConnectorFrame(ctk.CTkFrame):
                 text_color="#4CAF50",
             )
             lbl_status.grid(row=0, column=2, padx=10)
-            lbl_status.bind("<Button-1>", lambda e, p=provider: self.select_provider(p))
+            lbl_status.bind("<Button-1>", lambda e=None, p=provider: self.select_provider(p))
 
     def select_provider(self, provider):
         self.selected_provider = provider

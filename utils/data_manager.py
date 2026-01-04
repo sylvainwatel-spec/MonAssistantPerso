@@ -1,6 +1,8 @@
 import json
 import os
 import uuid
+import datetime
+from typing import List, Dict, Any, Optional
 from cryptography.fernet import Fernet
 
 from utils.resource_handler import get_writable_path
@@ -16,10 +18,40 @@ class DataManager:
         self.filepath = get_writable_path(DATA_FILE)
         self.settings_path = get_writable_path(SETTINGS_FILE)
         self.key_path = get_writable_path(KEY_FILE)
-        self.doc_conversations_path = get_writable_path(DOC_CONVERSATIONS_FILE)
+        
+        # New structured directory for conversations
+        self.conv_root = get_writable_path("conversations")
+        self.doc_conv_dir = os.path.join(self.conv_root, "doc_analyst")
+        self.assistants_conv_dir = os.path.join(self.conv_root, "assistants")
+        
+        # Legacy support/migration
+        self.old_doc_conversations_path = get_writable_path(DOC_CONVERSATIONS_FILE)
+        self.doc_conversations_path = os.path.join(self.doc_conv_dir, DOC_CONVERSATIONS_FILE)
         
         self._load_or_create_key()
+        self._ensure_dirs_exist()
+        self._migrate_data()
         self._ensure_files_exist()
+
+    def _ensure_dirs_exist(self):
+        """Creates the dedicated directory structure for conversations."""
+        os.makedirs(self.conv_root, exist_ok=True)
+        os.makedirs(self.doc_conv_dir, exist_ok=True)
+        os.makedirs(self.assistants_conv_dir, exist_ok=True)
+        # Create other placeholders if needed
+        for module in ["scraping", "financial", "data_viz"]:
+            os.makedirs(os.path.join(self.conv_root, module), exist_ok=True)
+
+    def _migrate_data(self):
+        """Migrates data from old root location to new structured subdirectories."""
+        # 1. Migrate doc_conversations.json
+        if os.path.exists(self.old_doc_conversations_path) and not os.path.exists(self.doc_conversations_path):
+            try:
+                import shutil
+                shutil.move(self.old_doc_conversations_path, self.doc_conversations_path)
+                print(f"DEBUG: Migrated {DOC_CONVERSATIONS_FILE} to {self.doc_conversations_path}")
+            except Exception as e:
+                print(f"Error migrating doc conversations: {e}")
 
     def _load_or_create_key(self):
         if os.path.exists(self.key_path):
@@ -215,6 +247,81 @@ class DataManager:
                 break
         with open(self.doc_conversations_path, 'w', encoding='utf-8') as f:
             json.dump(conversations, f, indent=4)
+
+    # --- Generic Assistant History Management (Multi-Session) ---
+
+    def _get_history_path(self, module: str, assistant_id: str) -> str:
+        """Returns the path to the history file for a specific assistant."""
+        module_dir = os.path.join(self.conv_root, module)
+        os.makedirs(module_dir, exist_ok=True)
+        return os.path.join(module_dir, f"history_{assistant_id}.json")
+
+    def get_assistant_conversations(self, module: str, assistant_id: str) -> List[Dict[str, Any]]:
+        """Loads all conversations for a specific assistant."""
+        path = self._get_history_path(module, assistant_id)
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    
+                    # Migration logic : if it's a list of messages (old format), wrap it in a conversation object
+                    if isinstance(data, list) and len(data) > 0 and "role" in data[0]:
+                        old_history = data
+                        new_format = [{
+                            "id": str(uuid.uuid4()),
+                            "title": "Ancienne conversation",
+                            "updated_at": str(datetime.datetime.now()), # Note: need import datetime
+                            "messages": old_history
+                        }]
+                        # Save converted format immediately
+                        self.save_assistant_conversations(module, assistant_id, new_format)
+                        return new_format
+                        
+                    return data if isinstance(data, list) else []
+            except Exception as e:
+                print(f"Error loading conversations for {assistant_id}: {e}")
+                return []
+        return []
+
+    def save_assistant_conversations(self, module: str, assistant_id: str, conversations: List[Dict[str, Any]]):
+        """Saves all conversations for a specific assistant."""
+        path = self._get_history_path(module, assistant_id)
+        try:
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(conversations, f, indent=4)
+        except Exception as e:
+            print(f"Error saving conversations for {assistant_id}: {e}")
+
+    def save_assistant_conversation(self, module: str, assistant_id: str, conversation: Dict[str, Any]):
+        """Saves or updates a single conversation for a specific assistant."""
+        conversations = self.get_assistant_conversations(module, assistant_id)
+        
+        found = False
+        for i, c in enumerate(conversations):
+            if c["id"] == conversation["id"]:
+                conversations[i] = conversation
+                found = True
+                break
+        
+        if not found:
+            conversations.append(conversation)
+            
+        self.save_assistant_conversations(module, assistant_id, conversations)
+
+    def delete_assistant_conversation(self, module: str, assistant_id: str, conversation_id: str):
+        """Deletes a specific conversation for an assistant."""
+        conversations = self.get_assistant_conversations(module, assistant_id)
+        conversations = [c for c in conversations if c["id"] != conversation_id]
+        self.save_assistant_conversations(module, assistant_id, conversations)
+
+    def rename_assistant_conversation(self, module: str, assistant_id: str, conversation_id: str, new_title: str):
+        """Renames a specific conversation for an assistant."""
+        conversations = self.get_assistant_conversations(module, assistant_id)
+        for c in conversations:
+            if c["id"] == conversation_id:
+                c["title"] = new_title
+                break
+        self.save_assistant_conversations(module, assistant_id, conversations)
 
 
     def _save_to_file(self, data):

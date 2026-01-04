@@ -531,7 +531,7 @@ class AdminFrame(ctk.CTkFrame):
             cursor="hand2"
         )
         link_label.grid(row=2, column=1, sticky="w", pady=(0, 15))
-        link_label.bind("<Button-1>", lambda e: self.app.open_url("https://www.alphavantage.co/support/#api-key"))
+        link_label.bind("<Button-1>", lambda e=None: self.app.open_url("https://www.alphavantage.co/support/#api-key"))
 
     def save_financial_key(self):
         new_key = self.financial_api_key_var.get().strip()
