@@ -55,6 +55,13 @@ class ScrapingFrame(ctk.CTkFrame):
             text_color=solution_color
         )
         lbl_solution.pack(pady=(0, 10))
+
+        # Profile Selection in Config Panel
+        ctk.CTkLabel(config_frame, text="Profil Analyse", font=("Arial", 12, "bold")).pack(anchor="w", padx=20, pady=(5, 0))
+        self.var_profile = ctk.StringVar(value="Aucun")
+        self.cmb_profile = ctk.CTkOptionMenu(config_frame, variable=self.var_profile, values=["Aucun"], command=self.on_profile_changed)
+        self.cmb_profile.pack(pady=5, padx=20, fill="x")
+        self.update_profile_list()
         
         # URL Input
         lbl_url = ctk.CTkLabel(config_frame, text="URL Cible :", font=("Arial", 12, "bold"))
@@ -129,6 +136,33 @@ class ScrapingFrame(ctk.CTkFrame):
         
         self.last_results = None
         self.append_chat("System", "Bienvenue dans l'outil de scraping. Configurez l'URL et lancez l'extraction.")
+
+    def update_profile_list(self):
+        """Met à jour la liste des profils disponibles."""
+        profiles = self.app.data_manager.get_all_profiles()
+        profile_names = ["Aucun"] + [p["name"] for p in profiles]
+        self.cmb_profile.configure(values=profile_names)
+        
+        # Sélectionner le profil actuel du module
+        current_profile_id = self.app.data_manager.get_module_profile("scraping")
+        if current_profile_id:
+            profile = next((p for p in profiles if p["id"] == current_profile_id), None)
+            if profile:
+                self.var_profile.set(profile["name"])
+            else:
+                self.var_profile.set("Aucun")
+        else:
+            self.var_profile.set("Aucun")
+            
+    def on_profile_changed(self, selected_name):
+        """Gère le changement de profil."""
+        if selected_name == "Aucun":
+            self.app.data_manager.set_module_profile("scraping", None)
+        else:
+            profiles = self.app.data_manager.get_all_profiles()
+            profile = next((p for p in profiles if p["name"] == selected_name), None)
+            if profile:
+                self.app.data_manager.set_module_profile("scraping", profile["id"])
 
     def start_scraping(self):
         url = self.entry_url.get()
@@ -294,6 +328,20 @@ class ScrapingFrame(ctk.CTkFrame):
             Analyse ces données et présente une synthèse claire et structurée. Mets en avant les points clés, les tendances ou les anomalies.
             """
             
+            # Inject Profile Context
+            module_config = self.app.data_manager.get_effective_module_config("scraping")
+            if module_config:
+                profile_intro = "Tu es un expert en analyse de données."
+                if module_config.get("role"): profile_intro = f"Rôle : {module_config['role']}"
+                
+                profile_context = ""
+                if module_config.get("context"): profile_context += f"\nContexte : {module_config['context']}"
+                if module_config.get("objective"): profile_context += f"\nObjectif : {module_config['objective']}"
+                if module_config.get("limits"): profile_context += f"\nLimites : {module_config['limits']}"
+                if module_config.get("response_format"): profile_context += f"\nFormat : {module_config['response_format']}"
+                
+                prompt = f"{profile_intro}\n{profile_context}\n\n{prompt}"
+            
             messages = [{"role": "user", "content": prompt}]
             
             success, response = LLMService.generate_response(provider, api_key, messages)
@@ -342,8 +390,18 @@ class ScrapingFrame(ctk.CTkFrame):
             # Lite Context Construction
             context = str(self.last_results)[:30000] 
             
+            system_prompt = f"Tu es un assistant qui aide l'utilisateur à comprendre ces données de scraping :\n---\n{context}\n---\nRéponds précisément à la question."
+            
+            # Inject Profile Context
+            module_config = self.app.data_manager.get_effective_module_config("scraping")
+            if module_config:
+                if module_config.get("role"): system_prompt = f"{module_config['role']}. " + system_prompt
+                if module_config.get("context"): system_prompt += f"\nContexte: {module_config['context']}"
+                if module_config.get("objective"): system_prompt += f"\nObjectif: {module_config['objective']}"
+                if module_config.get("limits"): system_prompt += f"\nLimites: {module_config['limits']}"
+
             messages = [
-                {"role": "system", "content": f"Tu es un assistant qui aide l'utilisateur à comprendre ces données de scraping :\n---\n{context}\n---\nRéponds précisément à la question."},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_msg}
             ]
             

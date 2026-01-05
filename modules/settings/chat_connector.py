@@ -1,10 +1,11 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from datetime import datetime
-from core.services.llm_service import LLMService as LLMConnectionTester
+from core.services.llm_service import LLMService
 
 class ChatConnectorFrame(ctk.CTkFrame):
-    """Page de configuration du connecteur LLM pour le chat."""
+    """Page de configuration du connecteur LLM pour le chat.
+    Refactored to support Provider + Dynamic Model."""
     
     def __init__(self, master, app):
         super().__init__(master, fg_color="transparent")
@@ -15,47 +16,43 @@ class ChatConnectorFrame(ctk.CTkFrame):
             self.settings = self.app.data_manager.get_settings()
         except Exception as e:
             print(f"Error loading settings: {e}")
-            self.settings = {
-                "chat_provider": "OpenAI GPT-4o mini",
-                "scrapegraph_provider": "OpenAI GPT-4o mini",
-                "api_keys": {},
-                "endpoints": {}
-            }
-        
-        self.active_chat_provider = self.settings.get("chat_provider", "OpenAI GPT-4o mini")
-        self.api_keys = self.settings.get("api_keys", {})
-        self.active_chat_provider = self.settings.get("chat_provider", "OpenAI GPT-4o mini")
+            self.settings = {}
+
+        # Load Providers and Keys
+        self.active_chat_provider = self.settings.get("chat_provider", "OpenAI")
         self.api_keys = self.settings.get("api_keys", {})
         self.endpoints = self.settings.get("endpoints", {})
         self.models = self.settings.get("models", {})
-
-        # List of all supported LLMs for chat
-        self.llm_options = [
-            "Google Gemini 2.5 Flash-Lite",
-            "OpenAI GPT-4o mini",
-            "Anthropic Claude Opus 4.5",
-            "Meta Llama 3 (via Groq)",
-            "Mistral NeMo",
-            "DeepSeek-V3",
-            "DeepSeek-VL",
-            "Hugging Face (Mistral/Mixtral)",
-            "Hugging Face"
+        
+        # Simplified Provider List (No Models info here)
+        self.providers = [
+            "OpenAI",
+            "Google Gemini",
+            "Anthropic Claude",
+            "Groq", # Llama 3 via Groq
+            "Mistral AI",
+            "Hugging Face",
+            "DeepSeek",
+            "IAKA (Interne)"
         ]
+        
+        # Define Free Providers (Totally free or Free Tier without Credit Card often)
+        self.FREE_PROVIDERS = ["Groq", "Hugging Face", "IAKA (Interne)"]
 
         # UI State
-        self.selected_provider = self.active_chat_provider
-        
-        # Log textbox reference
+        self.selected_provider = self.determine_selected_provider()
+        self.sidebar_widgets = []
         self.log_textbox = None
+        self.show_free_only = ctk.BooleanVar(value=False)
 
         # --- Layout ---
-        self.grid_columnconfigure(1, weight=1)  # Right panel expands
-        self.grid_rowconfigure(1, weight=1)    # Content area expands
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=1)
 
         # 1. Header (Top)
         self.create_header()
 
-        # 2. Sidebar (Left) - List of LLMs
+        # 2. Sidebar (Left) - List of Providers
         self.sidebar = ctk.CTkScrollableFrame(self, width=250, corner_radius=0, fg_color=("gray90", "gray15"))
         self.sidebar.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
 
@@ -64,12 +61,23 @@ class ChatConnectorFrame(ctk.CTkFrame):
         self.detail_panel.grid(row=1, column=1, sticky="nsew", padx=20, pady=20)
         self.detail_panel.grid_columnconfigure(0, weight=1)
 
-        # Track widgets for safe clearing
-        self.sidebar_widgets = []
-
         # Initial Render
         self.refresh_sidebar()
         self.refresh_detail_panel()
+
+    def determine_selected_provider(self):
+        """Analyze active provider to determine selection, handling migration."""
+        current = self.active_chat_provider
+        # Map legacy names (e.g. 'OpenAI GPT-4o mini') to new Providers ('OpenAI')
+        if "OpenAI" in current: return "OpenAI"
+        if "Gemini" in current or "Google" in current: return "Google Gemini"
+        if "Claude" in current or "Anthropic" in current: return "Anthropic Claude"
+        if "Groq" in current: return "Groq"
+        if "Mistral" in current: return "Mistral AI"
+        if "DeepSeek" in current: return "DeepSeek"
+        if "Hugging Face" in current: return "Hugging Face"
+        if "IAKA" in current: return "IAKA (Interne)"
+        return "OpenAI"
 
     def create_header(self):
         header = ctk.CTkFrame(self, height=60, corner_radius=0)
@@ -90,226 +98,221 @@ class ChatConnectorFrame(ctk.CTkFrame):
         title.pack(side="left", padx=20)
 
     def refresh_sidebar(self):
-        # Clear existing widgets safely
         for widget in self.sidebar_widgets:
-            try:
-                widget.destroy()
-            except:
-                pass
+            try: widget.destroy()
+            except: pass
         self.sidebar_widgets = []
+        
+        # Filter Toggle
+        toggle_frame = ctk.CTkFrame(self.sidebar, fg_color="transparent")
+        toggle_frame.pack(fill="x", padx=10, pady=(10, 0))
+        self.sidebar_widgets.append(toggle_frame)
+        
+        switch = ctk.CTkSwitch(
+            toggle_frame, 
+            text="Gratuits uniquement", 
+            variable=self.show_free_only, 
+            command=self.refresh_sidebar,
+            font=("Arial", 11)
+        )
+        switch.pack(anchor="w")
 
         lbl = ctk.CTkLabel(
             self.sidebar,
-            text="Modèles Disponibles",
+            text="Fournisseurs",
             font=("Arial", 14, "bold"),
             text_color="gray60",
         )
         lbl.pack(pady=(10, 5), padx=10, anchor="w")
         self.sidebar_widgets.append(lbl)
 
-        for provider in self.llm_options:
-            self.create_sidebar_item(provider)
+        for provider in self.providers:
+            # Filter logic
+            if self.show_free_only.get() and provider not in self.FREE_PROVIDERS:
+                continue
+                
+            # Check if this provider is effectively the active one
+            # Logic: If active_chat_provider starts with this provider name or matches
+            is_active = self.is_provider_active(provider)
+            self.create_sidebar_item(provider, is_active)
 
-    def create_sidebar_item(self, provider):
-        is_active = provider == self.active_chat_provider
+    def is_provider_active(self, provider):
+        """Check if provider matches active provider string (partial match for migration)."""
+        # If active_chat_provider is "OpenAI" and provider is "OpenAI" -> True
+        # If active_chat_provider is "OpenAI GPT-4o" and provider is "OpenAI" -> True
+        p_clean = provider.split(" ")[0] # "OpenAI", "Google", "Mistral"
+        return p_clean in self.active_chat_provider
+
+    def create_sidebar_item(self, provider, is_active):
         is_selected = provider == self.selected_provider
-
         btn_color = ("gray80", "gray25") if is_selected else "transparent"
+        
         item_frame = ctk.CTkFrame(self.sidebar, fg_color=btn_color, corner_radius=6)
         item_frame.pack(fill="x", padx=5, pady=2)
         self.sidebar_widgets.append(item_frame)
-
-        item_frame.bind("<Button-1>", lambda e=None, p=provider: self.select_provider(p))
-        item_frame.grid_columnconfigure(1, weight=1)
-
+        
+        item_frame.bind("<Button-1>", lambda e, p=provider: self.select_provider(p))
+        
+        # Indicator (Active)
         indicator_text = "●" if is_active else ""
-        indicator = ctk.CTkLabel(
-            item_frame,
-            text=indicator_text,
-            text_color="#4CAF50",
-            font=("Arial", 16),
-        )
-        indicator.grid(row=0, column=0, padx=(10, 5), pady=10)
-        indicator.bind("<Button-1>", lambda e=None, p=provider: self.select_provider(p))
+        indicator = ctk.CTkLabel(item_frame, text=indicator_text, text_color="#4CAF50", font=("Arial", 16))
+        indicator.pack(side="left", padx=(10, 5), pady=10)
+        indicator.bind("<Button-1>", lambda e, p=provider: self.select_provider(p))
 
+        # Name
         font_weight = "bold" if is_active else "normal"
         lbl_name = ctk.CTkLabel(item_frame, text=provider, font=("Arial", 13, font_weight))
-        lbl_name.grid(row=0, column=1, sticky="w", padx=5)
-        lbl_name.bind("<Button-1>", lambda e=None, p=provider: self.select_provider(p))
+        lbl_name.pack(side="left", padx=5)
+        lbl_name.bind("<Button-1>", lambda e, p=provider: self.select_provider(p))
+        
+        # Free Bagde (Right aligned, before Active status)
+        if provider in self.FREE_PROVIDERS:
+            lbl_free = ctk.CTkLabel(
+                item_frame, 
+                text="GRATUIT", 
+                font=("Arial", 9, "bold"), 
+                text_color="white",
+                fg_color="#4CAF50", # Green badge
+                corner_radius=4,
+                padx=4
+            )
+            lbl_free.pack(side="right", padx=(5, 5))
+            lbl_free.bind("<Button-1>", lambda e, p=provider: self.select_provider(p))
 
         if is_active:
-            lbl_status = ctk.CTkLabel(
-                item_frame,
-                text="ACTIF",
-                font=("Arial", 10, "bold"),
-                text_color="#4CAF50",
-            )
-            lbl_status.grid(row=0, column=2, padx=10)
-            lbl_status.bind("<Button-1>", lambda e=None, p=provider: self.select_provider(p))
+            lbl_status = ctk.CTkLabel(item_frame, text="ACTIF", font=("Arial", 10, "bold"), text_color="#2196F3")
+            lbl_status.pack(side="right", padx=5)
+            lbl_status.bind("<Button-1>", lambda e, p=provider: self.select_provider(p))
 
     def select_provider(self, provider):
         self.selected_provider = provider
+        # Do NOT refresh sidebar here otherwise we lose scroll position or exact state sometimes, 
+        # but needed to update selection highlight. 
+        # Since list is small, it's fine.
         self.refresh_sidebar()
         self.refresh_detail_panel()
 
     def refresh_detail_panel(self):
-        # Clear existing widgets
-        for widget in self.detail_panel.winfo_children():
-            widget.destroy()
+        for widget in self.detail_panel.winfo_children(): widget.destroy()
 
-        if not self.selected_provider:
-            return
+        if not self.selected_provider: return
 
         # Header
-        ctk.CTkLabel(
-            self.detail_panel,
-            text=self.selected_provider,
-            font=("Arial", 24, "bold"),
-        ).pack(anchor="w", pady=(0, 5))
+        ctk.CTkLabel(self.detail_panel, text=self.selected_provider, font=("Arial", 24, "bold")).pack(anchor="w", pady=(0, 5))
 
-        # API Key Section
+        # --- API Key Section ---
         key_frame = ctk.CTkFrame(self.detail_panel)
         key_frame.pack(fill="x", pady=10)
-        ctk.CTkLabel(
-            key_frame,
-            text="Clé API",
-            font=("Arial", 12, "bold"),
-        ).pack(anchor="w", padx=20, pady=(15, 5))
+        ctk.CTkLabel(key_frame, text="Clé API", font=("Arial", 12, "bold")).pack(anchor="w", padx=20, pady=(15, 5))
 
-        current_key = self.api_keys.get(self.selected_provider, "")
+        # Try to resolve key: first by exact provider name, then legacy map if needed
+        current_key = self.get_provider_key(self.selected_provider)
+        
         self.entry_key = ctk.CTkEntry(key_frame, width=400, show="*")
         self.entry_key.insert(0, current_key)
         self.entry_key.pack(side="left", padx=(20, 10), pady=5, fill="x", expand=True)
 
-        self.btn_show_hide = ctk.CTkButton(
-            key_frame,
-            text="👁️",
-            width=40,
-            height=30,
-            fg_color=("gray70", "gray30"),
-            text_color="white",
-            border_width=0,
-            command=self.toggle_key_visibility,
-        )
+        self.btn_show_hide = ctk.CTkButton(key_frame, text="👁️", width=40, font=("Arial", 12), fg_color=("gray70", "gray30"), command=self.toggle_key_visibility)
         self.btn_show_hide.pack(side="left", padx=(0, 20))
 
-        # Endpoint URL Section (Only for IAKA)
+        # --- Endpoint (IAKA/DeepSeek) --- 
         self.entry_endpoint = None
-        if self.selected_provider == "IAKA (Interne)":
-            endpoint_frame = ctk.CTkFrame(self.detail_panel)
-            endpoint_frame.pack(fill="x", pady=10)
-            ctk.CTkLabel(
-                endpoint_frame,
-                text="Endpoint URL",
-                font=("Arial", 12, "bold"),
-            ).pack(anchor="w", padx=20, pady=(15, 5))
-
-            current_endpoint = self.endpoints.get(self.selected_provider, "")
-            self.entry_endpoint = ctk.CTkEntry(endpoint_frame, width=400)
-            self.entry_endpoint.insert(0, current_endpoint)
-            self.entry_endpoint = ctk.CTkEntry(endpoint_frame, width=400)
-            self.entry_endpoint.insert(0, current_endpoint)
+        if "IAKA" in self.selected_provider or "DeepSeek" in self.selected_provider or "OpenAI" in self.selected_provider: 
+            # Allow base_url override for OpenAI compatible providers too if needed, but mainly IAKA
+            ep_frame = ctk.CTkFrame(self.detail_panel)
+            ep_frame.pack(fill="x", pady=10)
+            ctk.CTkLabel(ep_frame, text="Endpoint URL", font=("Arial", 12, "bold")).pack(anchor="w", padx=20, pady=(15, 5))
+            current_ep = self.endpoints.get(self.selected_provider, "")
+            self.entry_endpoint = ctk.CTkEntry(ep_frame, width=400)
+            self.entry_endpoint.insert(0, current_ep)
             self.entry_endpoint.pack(side="left", padx=20, pady=5, fill="x", expand=True)
 
-            # Model Name Section (Only for IAKA) configuration
-            self.entry_model = None
-            model_frame = ctk.CTkFrame(self.detail_panel)
-            model_frame.pack(fill="x", pady=10)
-            ctk.CTkLabel(
-                model_frame,
-                text="Nom du modèle",
-                font=("Arial", 12, "bold"),
-            ).pack(anchor="w", padx=20, pady=(15, 5))
+        # --- Model Selector ---
+        model_frame = ctk.CTkFrame(self.detail_panel)
+        model_frame.pack(fill="x", pady=10)
+        ctk.CTkLabel(model_frame, text="Modèle", font=("Arial", 12, "bold")).pack(anchor="w", padx=20, pady=(15, 5))
 
-            current_model = self.models.get(self.selected_provider, "mistral-small")
-            self.entry_model = ctk.CTkEntry(model_frame, width=400)
-            self.entry_model.insert(0, current_model)
-            self.entry_model.pack(side="left", padx=20, pady=5, fill="x", expand=True)
-
-        btn_save_key = ctk.CTkButton(
-            key_frame,
-            text="Enregistrer la clé",
-            width=150,
-            command=self.save_current_key,
-        )
-        btn_save_key.pack(anchor="e", padx=20, pady=(10, 15))
-
-        # Test connection button
-        btn_test = ctk.CTkButton(
-            key_frame,
-            text="Tester la connexion",
-            width=150,
-            fg_color=("#FF9800", "#F57C00"),
-            hover_color=("#FB8C00", "#E65100"),
-            command=self.test_connection,
-        )
-        btn_test.pack(anchor="e", padx=20, pady=(0, 15))
-
-        # Logs Section
-        logs_frame = ctk.CTkFrame(self.detail_panel, fg_color=("gray95", "gray20"))
-        logs_frame.pack(fill="both", expand=True, pady=(10, 10))
+        self.combo_model = ctk.CTkComboBox(model_frame, width=300)
+        self.combo_model.pack(side="left", padx=(20, 10), pady=5)
         
-        ctk.CTkLabel(
-            logs_frame,
-            text="📋 Logs de Connexion",
-            font=("Arial", 12, "bold"),
-        ).pack(anchor="w", padx=15, pady=(10, 5))
+        # Load saved model or default
+        saved_model = self.models.get(self.selected_provider, "")
+        if saved_model:
+            self.combo_model.set(saved_model)
+        else:
+            self.combo_model.set("Cliquez sur Rafraîchir ->")
 
-        self.log_textbox = ctk.CTkTextbox(
-            logs_frame,
-            height=150,
-            font=("Consolas", 10),
-            fg_color=("white", "gray25"),
-            text_color=("gray20", "gray90"),
-            wrap="word",
+        btn_refresh = ctk.CTkButton(
+            model_frame, 
+            text="🔄 Rafraîchir", 
+            width=100,
+            command=self.fetch_models_list
         )
-        self.log_textbox.pack(fill="both", expand=True, padx=15, pady=(0, 15))
-        self.log_textbox.insert("1.0", "Aucun test effectué pour le moment.\nCliquez sur 'Tester la connexion' pour vérifier votre clé API.")
-        self.log_textbox.configure(state="disabled")
+        btn_refresh.pack(side="left", padx=10)
 
-        # Activation Section
-        if self.selected_provider != self.active_chat_provider:
-            action_frame = ctk.CTkFrame(self.detail_panel, fg_color="transparent")
-            action_frame.pack(fill="x", pady=30)
-            lbl_info = ctk.CTkLabel(
-                action_frame,
-                text="Voulez-vous utiliser ce modèle comme LLM par défaut pour le chat ?",
-                text_color="gray",
-            )
-            lbl_info.pack(anchor="w", pady=(0, 10))
+        # Actions Bar
+        action_frame = ctk.CTkFrame(self.detail_panel, fg_color="transparent")
+        action_frame.pack(fill="x", pady=20)
+
+        # Left Side: Test
+        btn_test = ctk.CTkButton(
+            action_frame, 
+            text="Tester la connexion", 
+            command=self.test_connection, 
+            fg_color=("gray70", "gray30"), 
+            hover_color=("gray60", "gray40"),
+            width=140
+        )
+        btn_test.pack(side="left", padx=0)
+
+        # Right Side: Application Actions
+        if not self.is_provider_active(self.selected_provider):
             btn_activate = ctk.CTkButton(
-                action_frame,
-                text="Définir comme LLM Chat par Défaut",
-                fg_color="#4CAF50",
-                hover_color="#388E3C",
-                height=40,
-                font=("Arial", 12, "bold"),
-                command=self.set_as_active,
+                action_frame, 
+                text="Définir comme Défaut", 
+                command=self.set_active, 
+                fg_color="#2196F3", 
+                hover_color="#1976D2",
+                width=160
             )
-            btn_activate.pack(fill="x")
+            btn_activate.pack(side="right", padx=(10, 0))
+
+        btn_save = ctk.CTkButton(
+            action_frame, 
+            text="Enregistrer", 
+            command=self.save_config, 
+            fg_color="#4CAF50", 
+            hover_color="#388E3C",
+            width=120
+        )
+        btn_save.pack(side="right", padx=0)
+
+        # Logs
+        self.create_log_area()
+
+    def get_provider_key(self, provider):
+        """Retrieve key, handling legacy keys."""
+        if provider in self.api_keys: return self.api_keys[provider]
+        # Legacy fallback logic
+        if "OpenAI" in provider:
+             # Try finding any key starting with OpenAI
+             for k in self.api_keys:
+                 if "OpenAI" in k and self.api_keys[k]: return self.api_keys[k]
+        return ""
+
+    def create_log_area(self):
+        logs_frame = ctk.CTkFrame(self.detail_panel, fg_color=("gray95", "gray20"))
+        logs_frame.pack(fill="both", expand=True, pady=(20, 10))
+        ctk.CTkLabel(logs_frame, text="📋 Logs", font=("Arial", 12, "bold")).pack(anchor="w", padx=15, pady=(10, 5))
+        self.log_textbox = ctk.CTkTextbox(logs_frame, height=100, font=("Consolas", 10))
+        self.log_textbox.pack(fill="both", expand=True, padx=15, pady=(0, 15))
 
     def add_log(self, message, status="info"):
-        """Add a log entry to the log textbox with timestamp and icon."""
-        if not self.log_textbox:
-            return
-        
         timestamp = datetime.now().strftime("%H:%M:%S")
-        
-        # Icons based on status
-        icons = {
-            "success": "✅",
-            "error": "❌",
-            "info": "ℹ️",
-            "warning": "⚠️"
-        }
-        icon = icons.get(status, "ℹ️")
-        
-        log_entry = f"[{timestamp}] {icon} {message}\n"
-        
-        self.log_textbox.configure(state="normal")
-        self.log_textbox.delete("1.0", "end")  # Clear previous logs
-        self.log_textbox.insert("1.0", log_entry)
-        self.log_textbox.configure(state="disabled")
+        icons = {"success": "✅", "error": "❌", "info": "ℹ️"}
+        log_entry = f"[{timestamp}] {icons.get(status, 'ℹ️')} {message}\n"
+        self.log_textbox.insert("end", log_entry)
+        self.log_textbox.see("end")
 
     def toggle_key_visibility(self):
         if self.entry_key.cget("show") == "*":
@@ -319,123 +322,100 @@ class ChatConnectorFrame(ctk.CTkFrame):
             self.entry_key.configure(show="*")
             self.btn_show_hide.configure(text="👁️")
 
-    def save_current_key(self):
-        new_key = self.entry_key.get().strip()
-        self.api_keys[self.selected_provider] = new_key
-        
-        # Save endpoint if applicable
-        if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
-            new_endpoint = self.entry_endpoint.get().strip()
-            self.endpoints[self.selected_provider] = new_endpoint
-            
-        # Save model if applicable
-        if self.selected_provider == "IAKA (Interne)" and self.entry_model:
-            new_model = self.entry_model.get().strip()
-            self.models[self.selected_provider] = new_model
-            
-        try:
-            # Get current scrapegraph_provider to preserve it
-            scrapegraph_provider = self.settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
-            self.app.data_manager.save_configuration(
-                self.active_chat_provider, 
-                scrapegraph_provider,
-                self.api_keys, 
-                self.endpoints,
-                self.models
-            )
-            messagebox.showinfo("Succès", f"Configuration pour {self.selected_provider} enregistrée.")
-            self.add_log(f"Configuration enregistrée pour {self.selected_provider}", "success")
-        except Exception as e:
-            messagebox.showerror("Erreur", f"Erreur lors de la sauvegarde : {e}")
-            self.add_log(f"Erreur sauvegarde: {str(e)}", "error")
+    def fetch_models_list(self):
+        """Call LLMService to get models."""
+        api_key = self.entry_key.get().strip()
+        if not api_key:
+            messagebox.showerror("Erreur", "Veuillez entrer une clé API d'abord.")
+            return
 
-    def set_as_active(self):
-        # Save key first if changed
-        current_input_key = self.entry_key.get().strip()
-        if current_input_key != self.api_keys.get(self.selected_provider, ""):
-            self.api_keys[self.selected_provider] = current_input_key
-            
-        # Save endpoint if changed (for IAKA)
-        if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
-            current_input_endpoint = self.entry_endpoint.get().strip()
-            if current_input_endpoint != self.endpoints.get(self.selected_provider, ""):
-                self.endpoints[self.selected_provider] = current_input_endpoint
+        self.add_log(f"Récupération des modèles pour {self.selected_provider}...", "info")
         
-        # Save model if changed (for IAKA)
-        if self.selected_provider == "IAKA (Interne)" and self.entry_model:
-            current_input_model = self.entry_model.get().strip()
-            if current_input_model != self.models.get(self.selected_provider, ""):
-                self.models[self.selected_provider] = current_input_model
+        kwargs = {}
+        if self.entry_endpoint:
+            kwargs['base_url'] = self.entry_endpoint.get().strip()
+            
+        models = LLMService.fetch_models(self.selected_provider, api_key, **kwargs)
+        
+        if models and not models[0].startswith("Erreur"):
+            # Annotate Free Models
+            display_models = []
+            for m in models:
+                is_free = False
+                
+                # Logic to identify free models
+                if self.selected_provider in ["Groq", "Hugging Face", "IAKA (Interne)"]:
+                    is_free = True
+                elif "Gemini" in self.selected_provider and "flash" in m.lower():
+                    is_free = True # Gemini Flash is free tier
+                
+                if is_free:
+                    display_models.append(f"{m} (GRATUIT)")
+                else:
+                    display_models.append(m)
+            
+            self.combo_model.configure(values=display_models)
+            self.combo_model.set(display_models[0])
+            self.add_log(f"{len(models)} modèles trouvés.", "success")
+        else:
+            self.add_log(f"Erreur récupération: {models[0]}", "error")
+            # If error, maybe allow manual entry or keep previous
+            
+    def save_config(self):
+        api_key = self.entry_key.get().strip()
+        # Clean model name (remove Free annotation)
+        model = self.combo_model.get().replace(" (GRATUIT)", "").strip()
+        
+        self.api_keys[self.selected_provider] = api_key
+        self.models[self.selected_provider] = model
+        
+        if self.entry_endpoint:
+            self.endpoints[self.selected_provider] = self.entry_endpoint.get().strip()
+            
+        self.save_to_manager()
+        self.add_log(f"Configuration sauvegardée pour {self.selected_provider}.", "success")
 
+    def set_active(self):
+        self.save_config() # Ensure saved
         self.active_chat_provider = self.selected_provider
-        try:
-            # Get current scrapegraph_provider to preserve it
-            scrapegraph_provider = self.settings.get("scrapegraph_provider", "OpenAI GPT-4o mini")
-            self.app.data_manager.save_configuration(
-                self.active_chat_provider, 
-                scrapegraph_provider,
-                self.api_keys, 
-                self.endpoints,
-                self.models
-            )
-            self.settings = self.app.data_manager.get_settings()
-            self.refresh_sidebar()
-            self.refresh_detail_panel()
-            messagebox.showinfo("Succès", f"{self.active_chat_provider} est maintenant le LLM par défaut pour le chat.")
-            self.add_log(f"{self.active_chat_provider} défini comme LLM chat par défaut", "success")
-        except Exception as e:
-            messagebox.showerror("Erreur", f"Erreur lors de l'activation : {e}")
-            self.add_log(f"Erreur activation: {str(e)}", "error")
+        self.save_to_manager()
+        self.refresh_sidebar()
+        self.refresh_detail_panel()
+        messagebox.showinfo("Succès", f"{self.selected_provider} est le fournisseur actif.")
+        self.add_log(f"Activé: {self.selected_provider} ({self.models.get(self.selected_provider)})", "success")
+
+    def save_to_manager(self):
+        # We save the 'active_chat_provider' as the Provider Name (e.g. "OpenAI")
+        # Services must look up models[provider]
+        self.app.data_manager.save_configuration(
+            chat_provider=self.active_chat_provider,
+            scrapegraph_provider=self.settings.get("scrapegraph_provider", "OpenAI"),
+            api_keys=self.api_keys,
+            endpoints=self.endpoints,
+            models=self.models # IMPORTANT: New arg
+        )
 
     def test_connection(self):
-        """Test de connexion au LLM provider sélectionné."""
         api_key = self.entry_key.get().strip()
+        # Clean model name (remove Free annotation)
+        model = self.combo_model.get().replace(" (GRATUIT)", "").strip()
         
-        # Vérification de la présence de la clé API
-        if not api_key:
-            self.add_log(f"Aucune clé API saisie pour {self.selected_provider}", "error")
-            messagebox.showerror("Erreur", f"Aucune clé API saisie pour {self.selected_provider}.")
-            return
-        
-        # Log de début de test
-        self.add_log(f"Test de connexion en cours pour {self.selected_provider}...", "info")
-        
-        # Récupération de l'endpoint si nécessaire
-        endpoint = None
-        if self.selected_provider == "IAKA (Interne)" and self.entry_endpoint:
-            endpoint = self.entry_endpoint.get().strip()
+        kwargs = {}
+        if self.entry_endpoint:
+            kwargs['base_url'] = self.entry_endpoint.get().strip()
             
-        # Récupération du modèle si nécessaire
-        model_name = None
-        if self.selected_provider == "IAKA (Interne)" and self.entry_model:
-            model_name = self.entry_model.get().strip()
-        
-        # Test de connexion via le module LLMConnectionTester
-        success, message = LLMConnectionTester.test_provider(self.selected_provider, api_key, base_url=endpoint, model=model_name)
+        self.add_log("Test de connexion...", "info")
+        success, msg = LLMService.generate_response(
+            self.selected_provider, 
+            api_key, 
+            [{"role":"user", "content":"Hello"}],
+            model=model,
+            **kwargs
+        )
         
         if success:
-            # Connexion réussie
-            self.add_log(message, "success")
-            messagebox.showinfo("Succès", f"✅ Connexion réussie à {self.selected_provider}.\n\nLa clé API est valide !")
+            self.add_log(f"Test réussi: {msg[:50]}...", "success")
+            messagebox.showinfo("Succès", f"Connexion OK !\nModèle: {model}")
         else:
-            # Connexion échouée - Analyse de l'erreur pour donner une synthèse
-            error_str = message
-            
-            # Synthèse des erreurs courantes
-            if "authentication" in error_str.lower() or "api_key" in error_str.lower() or "401" in error_str:
-                error_summary = "Clé API invalide ou expirée"
-            elif "quota" in error_str.lower() or "429" in error_str:
-                error_summary = "Quota dépassé ou limite de requêtes atteinte"
-            elif "network" in error_str.lower() or "connection" in error_str.lower():
-                error_summary = "Problème de connexion réseau"
-            elif "model" in error_str.lower():
-                error_summary = "Modèle non disponible ou non autorisé"
-            elif "not found" in error_str.lower() or "404" in error_str:
-                error_summary = "Ressource non trouvée"
-            else:
-                error_summary = "Erreur inconnue"
-            
-            # Afficher le message d'erreur COMPLET dans les logs
-            error_msg = f"Échec: {error_summary}\n\nMessage d'erreur complet:\n{error_str}"
-            self.add_log(error_msg, "error")
-            messagebox.showerror("Erreur", f"❌ Échec de la connexion à {self.selected_provider}\n\n{error_summary}\n\nDétails:\n{error_str[:300]}")
+            self.add_log(f"Echec: {msg}", "error")
+            messagebox.showerror("Erreur", f"Echec: {msg}")

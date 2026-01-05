@@ -49,12 +49,55 @@ class AssistantDetailFrame(ctk.CTkFrame):
         self.scrollable_frame.pack(fill="both", expand=True, padx=40, pady=(0, 20))
         self.scrollable_frame.grid_columnconfigure(0, weight=1)
         
+        # Profile selection (Optionnel)
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="👤 Profil (Optionnel)",
+            font=("Arial", 14, "bold")
+        ).grid(row=0, column=0, pady=(10, 5), sticky="w")
+        
+        # Récupérer les profils disponibles
+        profiles = self.app.data_manager.get_all_profiles()
+        profile_names = ["Aucun"] + [p["name"] for p in profiles]
+        self.profile_map = {p["name"]: p for p in profiles}
+        
+        # Déterminer le profil actuel
+        current_profile_name = "Aucun"
+        if self.assistant.get("use_profile") and self.assistant.get("profile_id"):
+            current_profile = self.app.data_manager.get_profile_by_id(self.assistant["profile_id"])
+            if current_profile:
+                current_profile_name = current_profile["name"]
+        
+        self.profile_var = ctk.StringVar(value=current_profile_name)
+        self.profile_dropdown = ctk.CTkOptionMenu(
+            self.scrollable_frame,
+            values=profile_names,
+            variable=self.profile_var,
+            width=400,
+            command=self.on_profile_selected
+        )
+        self.profile_dropdown.grid(row=1, column=0, pady=(0, 5), sticky="w")
+        
+        # Info label avec indicateur si profil actif
+        if current_profile_name != "Aucun":
+            info_text = f"✅ Profil actif : {current_profile_name}"
+        else:
+            info_text = "💡 Sélectionnez un profil pour pré-remplir les champs ci-dessous"
+        
+        self.profile_info_label = ctk.CTkLabel(
+            self.scrollable_frame,
+            text=info_text,
+            font=("Arial", 10),
+            text_color="gray"
+        )
+        self.profile_info_label.grid(row=2, column=0, pady=(0, 20), sticky="w")
+        
         # Nom
         ctk.CTkLabel(
             self.scrollable_frame,
             text="📝 Nom de l'assistant *",
             font=("Arial", 14, "bold")
-        ).grid(row=0, column=0, pady=(10, 5), sticky="w")
+        ).grid(row=3, column=0, pady=(0, 5), sticky="w")
         
         self.entry_name = ctk.CTkEntry(
             self.scrollable_frame,
@@ -62,14 +105,14 @@ class AssistantDetailFrame(ctk.CTkFrame):
             font=("Arial", 12)
         )
         self.entry_name.insert(0, self.assistant.get("name", ""))
-        self.entry_name.grid(row=1, column=0, pady=(0, 20), sticky="ew")
+        self.entry_name.grid(row=4, column=0, pady=(0, 20), sticky="ew")
         
         # Description
         ctk.CTkLabel(
             self.scrollable_frame,
             text="💬 Description courte *",
             font=("Arial", 14, "bold")
-        ).grid(row=2, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=5, column=0, pady=(0, 5), sticky="w")
         
         self.entry_desc = ctk.CTkEntry(
             self.scrollable_frame,
@@ -77,7 +120,7 @@ class AssistantDetailFrame(ctk.CTkFrame):
             font=("Arial", 12)
         )
         self.entry_desc.insert(0, self.assistant.get("description", ""))
-        self.entry_desc.grid(row=3, column=0, pady=(0, 20), sticky="ew")
+        self.entry_desc.grid(row=6, column=0, pady=(0, 20), sticky="ew")
         
         # Rôle
         ctk.CTkLabel(
@@ -243,6 +286,36 @@ class AssistantDetailFrame(ctk.CTkFrame):
         )
         radio_playwright.pack(side="left")
     
+    def on_profile_selected(self, selected_name):
+        """Pré-remplit les champs quand un profil est sélectionné."""
+        if selected_name == "Aucun":
+            # Mettre à jour le label
+            self.profile_info_label.configure(text="💡 Sélectionnez un profil pour pré-remplir les champs ci-dessous")
+            return
+        
+        profile = self.profile_map.get(selected_name)
+        if not profile:
+            return
+        
+        # Mettre à jour le label
+        self.profile_info_label.configure(text=f"✅ Profil actif : {selected_name}")
+        
+        # Pré-remplir les champs avec les valeurs du profil
+        self.text_role.delete("1.0", "end")
+        self.text_role.insert("1.0", profile.get("role", ""))
+        
+        self.text_context.delete("1.0", "end")
+        self.text_context.insert("1.0", profile.get("context", ""))
+        
+        self.text_objective.delete("1.0", "end")
+        self.text_objective.insert("1.0", profile.get("objective", ""))
+        
+        self.text_limits.delete("1.0", "end")
+        self.text_limits.insert("1.0", profile.get("limits", ""))
+        
+        self.text_response_format.delete("1.0", "end")
+        self.text_response_format.insert("1.0", profile.get("response_format", ""))
+    
     def save_changes(self):
         """Sauvegarde les modifications de l'assistant."""
         name = self.entry_name.get().strip()
@@ -266,6 +339,17 @@ class AssistantDetailFrame(ctk.CTkFrame):
             messagebox.showerror("Erreur", "La description est obligatoire.")
             return
         
+        # Déterminer le profil sélectionné
+        selected_profile_name = self.profile_var.get()
+        profile_id = None
+        use_profile = False
+        
+        if selected_profile_name != "Aucun":
+            profile = self.profile_map.get(selected_profile_name)
+            if profile:
+                profile_id = profile["id"]
+                use_profile = True
+        
         # Mettre à jour l'assistant
         self.app.data_manager.update_assistant(
             assistant_id=self.assistant["id"],
@@ -279,7 +363,9 @@ class AssistantDetailFrame(ctk.CTkFrame):
             target_url=target_url,
             url_instructions=url_instructions,
             provider=provider,
-            scraping_solution=scraping_solution
+            scraping_solution=scraping_solution,
+            profile_id=profile_id,
+            use_profile=use_profile
         )
         
         # Afficher un message de succès

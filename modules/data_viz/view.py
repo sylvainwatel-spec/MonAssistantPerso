@@ -61,21 +61,44 @@ class DataVizFrame(ctk.CTkFrame):
 
         # LLM Selection
         ctk.CTkLabel(left_panel, text="Modèle IA", font=("Arial", 12)).pack(pady=(10, 0))
-        self.available_providers = [
-            "IAKA (Interne)",
-            "OpenAI GPT-4o mini", 
-            "Google Gemini 1.5 Flash", 
-            "Google Gemini 2.5 Flash-Lite", 
-            "Anthropic Claude Opus 4.5", 
-            "Meta Llama 3 (via Groq)", 
-            "Mistral NeMo", 
-            "DeepSeek-V3", 
-            "DeepSeek-VL", 
-            "Hugging Face (Mistral/Mixtral)"
+        
+        # Liste officielle
+        OFFICIAL_PROVIDERS = [
+            "OpenAI",
+            "Google Gemini",
+            "Anthropic Claude",
+            "Groq",
+            "Mistral AI",
+            "Hugging Face",
+            "DeepSeek",
+            "IAKA (Interne)"
         ]
+        
+        # Get configured providers
+        settings = self.app.data_manager.get_settings()
+        api_keys = settings.get("api_keys", {})
+        
+        # Filter
+        self.available_providers = [p for p in OFFICIAL_PROVIDERS if p in api_keys and api_keys[p] and api_keys[p].strip()]
+        
+        if not self.available_providers:
+            self.available_providers = ["OpenAI (Défaut)"]
+            
         self.cmb_provider = ctk.CTkOptionMenu(left_panel, values=self.available_providers)
         self.cmb_provider.pack(pady=(5, 10), padx=20, fill="x")
-        self.cmb_provider.set("Meta Llama 3 (via Groq)")
+        
+        # Default Selection: Priority to IAKA
+        if "IAKA (Interne)" in self.available_providers:
+            self.cmb_provider.set("IAKA (Interne)")
+        else:
+            self.cmb_provider.set(self.available_providers[0])
+
+        # Profile Selection
+        ctk.CTkLabel(left_panel, text="Profil (Optionnel)", font=("Arial", 12)).pack(pady=(5, 0))
+        self.var_profile = ctk.StringVar(value="Aucun")
+        self.cmb_profile = ctk.CTkOptionMenu(left_panel, variable=self.var_profile, values=["Aucun"], command=self.on_profile_changed)
+        self.cmb_profile.pack(pady=(5, 10), padx=20, fill="x")
+        self.update_profile_list()
 
         self.btn_analyze = ctk.CTkButton(left_panel, text="🤖 Analyser (IA)", command=self.run_analysis, state="disabled")
         self.btn_analyze.pack(pady=10, padx=20, fill="x")
@@ -109,6 +132,33 @@ class DataVizFrame(ctk.CTkFrame):
         self.chart_frame.pack(fill="x", expand=True)
         self.lbl_chart = ctk.CTkLabel(self.chart_frame, text="Le graphique apparaîtra ici")
         self.lbl_chart.place(relx=0.5, rely=0.5, anchor="center")
+
+    def update_profile_list(self):
+        """Met à jour la liste des profils disponibles."""
+        profiles = self.app.data_manager.get_all_profiles()
+        profile_names = ["Aucun"] + [p["name"] for p in profiles]
+        self.cmb_profile.configure(values=profile_names)
+        
+        # Sélectionner le profil actuel du module
+        current_profile_id = self.app.data_manager.get_module_profile("data_viz")
+        if current_profile_id:
+            profile = next((p for p in profiles if p["id"] == current_profile_id), None)
+            if profile:
+                self.var_profile.set(profile["name"])
+            else:
+                self.var_profile.set("Aucun")
+        else:
+            self.var_profile.set("Aucun")
+            
+    def on_profile_changed(self, selected_name):
+        """Gère le changement de profil."""
+        if selected_name == "Aucun":
+            self.app.data_manager.set_module_profile("data_viz", None)
+        else:
+            profiles = self.app.data_manager.get_all_profiles()
+            profile = next((p for p in profiles if p["name"] == selected_name), None)
+            if profile:
+                self.app.data_manager.set_module_profile("data_viz", profile["id"])
 
     def import_file(self):
         file_path = filedialog.askopenfilename(

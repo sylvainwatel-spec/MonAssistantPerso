@@ -33,40 +33,154 @@ class CreateAssistantFrame(ctk.CTkFrame):
         )
         title.grid(row=0, column=0, pady=(0, 30), sticky="w")
 
+        current_row = 1
+
+        # === SECTION 1: INFORMATIONS ESSENTIELLES ===
+        
+        # Nom
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="📝 Nom de l'assistant *",
+            font=("Arial", 14, "bold")
+        ).grid(row=current_row, column=0, pady=(0, 5), sticky="w")
+        current_row += 1
+        
+        self.entry_name = ctk.CTkEntry(
+            self.scrollable_frame,
+            placeholder_text="Ex: Assistant Marketing Facebook",
+            height=40,
+            font=("Arial", 12)
+        )
+        self.entry_name.grid(row=current_row, column=0, pady=(0, 20), sticky="ew")
+        current_row += 1
+
+        # Description
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="💬 Description courte *",
+            font=("Arial", 14, "bold")
+        ).grid(row=current_row, column=0, pady=(0, 5), sticky="w")
+        current_row += 1
+        
+        self.entry_desc = ctk.CTkEntry(
+            self.scrollable_frame,
+            placeholder_text="Ex: Spécialisé en publicité Facebook",
+            height=40,
+            font=("Arial", 12)
+        )
+        self.entry_desc.grid(row=current_row, column=0, pady=(0, 20), sticky="ew")
+        current_row += 1
+
+        # Profile selection
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="👤 Profil",
+            font=("Arial", 14, "bold")
+        ).grid(row=current_row, column=0, pady=(0, 5), sticky="w")
+        current_row += 1
+        
+        # Récupérer les profils disponibles
+        profiles = self.app.data_manager.get_all_profiles()
+        profile_names = ["Aucun"] + [p["name"] for p in profiles]
+        self.profile_map = {p["name"]: p for p in profiles}
+        
+        self.profile_var = ctk.StringVar(value="Aucun")
+        self.profile_dropdown = ctk.CTkOptionMenu(
+            self.scrollable_frame,
+            values=profile_names,
+            variable=self.profile_var,
+            width=400,
+            command=self.on_profile_selected
+        )
+        self.profile_dropdown.grid(row=current_row, column=0, pady=(0, 5), sticky="w")
+        current_row += 1
+        
+        # Bouton "Créer un nouveau profil"
+        btn_create_profile = ctk.CTkButton(
+            self.scrollable_frame,
+            text="+ Créer un nouveau profil",
+            command=self.app.show_profile_create,
+            fg_color="transparent",
+            text_color=("#2196F3", "#42A5F5"),
+            hover_color=("gray90", "gray25"),
+            height=28,
+            font=("Arial", 11)
+        )
+        btn_create_profile.grid(row=current_row, column=0, pady=(0, 5), sticky="w")
+        current_row += 1
+        
+        # Info label
+        self.profile_info_label = ctk.CTkLabel(
+            self.scrollable_frame,
+            text="💡 Sélectionnez un profil ou créez-en un nouveau",
+            font=("Arial", 10),
+            text_color="gray"
+        )
+        self.profile_info_label.grid(row=current_row, column=0, pady=(0, 20), sticky="w")
+        current_row += 1
+
+        # === SECTION 2: CONFIGURATION TECHNIQUE ===
+
         # Provider selection
         settings = self.app.data_manager.get_settings()
-        provider_list = list(settings.get("api_keys", {}).keys())
+        api_keys = settings.get("api_keys", {})
+        
+        # Liste officielle des providers (tel que défini dans l'admin)
+        OFFICIAL_PROVIDERS = [
+            "OpenAI",
+            "Google Gemini",
+            "Anthropic Claude",
+            "Groq",
+            "Mistral AI",
+            "Hugging Face",
+            "DeepSeek",
+            "IAKA (Interne)"
+        ]
+        
+        # Filtrer : Doit être officiel ET avoir une clé configurée
+        provider_list = [p for p in OFFICIAL_PROVIDERS if p in api_keys and api_keys[p] and api_keys[p].strip()]
+        
+        # Fallback if no provider configured
         if not provider_list:
-            provider_list = [settings.get("current_provider", "OpenAI GPT-4o mini")]
+            provider_list = ["OpenAI (Défaut)"]
+            
+        default_provider = settings.get("current_provider", provider_list[0])
+        if "IAKA (Interne)" in provider_list:
+            default_provider = "IAKA (Interne)"
+        elif default_provider not in provider_list:
+            default_provider = provider_list[0]
         
         ctk.CTkLabel(
             self.scrollable_frame,
             text="🤖 Provider LLM",
             font=("Arial", 14, "bold")
-        ).grid(row=1, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=current_row, column=0, pady=(0, 5), sticky="w")
+        current_row += 1
         
-        self.provider_var = ctk.StringVar(value=settings.get("current_provider", provider_list[0]))
+        self.provider_var = ctk.StringVar(value=default_provider)
         self.provider_dropdown = ctk.CTkOptionMenu(
             self.scrollable_frame,
             values=provider_list,
             variable=self.provider_var,
             width=400
         )
-        self.provider_dropdown.grid(row=2, column=0, pady=(0, 20), sticky="w")
+        self.provider_dropdown.grid(row=current_row, column=0, pady=(0, 20), sticky="w")
+        current_row += 1
 
         # Scraping Solution selection
         ctk.CTkLabel(
             self.scrollable_frame,
             text="🔧 Solution de Scraping",
             font=("Arial", 14, "bold")
-        ).grid(row=3, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=current_row, column=0, pady=(0, 5), sticky="w")
+        current_row += 1
         
-        # Récupérer la solution par défaut depuis les settings
         default_solution = settings.get("scraping_solution", "scrapegraphai")
         
         self.scraping_solution_var = ctk.StringVar(value=default_solution)
         scraping_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
-        scraping_frame.grid(row=4, column=0, pady=(0, 20), sticky="w")
+        scraping_frame.grid(row=current_row, column=0, pady=(0, 20), sticky="w")
+        current_row += 1
         
         radio_scrapegraph = ctk.CTkRadioButton(
             scraping_frame,
@@ -84,126 +198,117 @@ class CreateAssistantFrame(ctk.CTkFrame):
         )
         radio_playwright.pack(side="left")
 
-        # Nom
-        ctk.CTkLabel(
-            self.scrollable_frame,
-            text="📝 Nom de l'assistant *",
-            font=("Arial", 14, "bold")
-        ).grid(row=5, column=0, pady=(0, 5), sticky="w")
+        # === SECTION 3: CONTEXTE DÉTAILLÉ (Masqué par défaut) ===
         
-        self.entry_name = ctk.CTkEntry(
-            self.scrollable_frame,
-            placeholder_text="Ex: Assistant Marketing",
-            height=40,
-            font=("Arial", 12)
-        )
-        self.entry_name.grid(row=6, column=0, pady=(0, 20), sticky="ew")
-
-        # Description
-        ctk.CTkLabel(
-            self.scrollable_frame,
-            text="💬 Description courte *",
-            font=("Arial", 14, "bold")
-        ).grid(row=7, column=0, pady=(0, 5), sticky="w")
+        self.context_section = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
+        self.context_section_row = current_row
+        # Ne pas grid() ce frame pour l'instant, il sera affiché conditionnellement
         
-        self.entry_desc = ctk.CTkEntry(
-            self.scrollable_frame,
-            placeholder_text="Ex: Spécialisé en stratégie marketing digital",
-            height=40,
-            font=("Arial", 12)
-        )
-        self.entry_desc.grid(row=8, column=0, pady=(0, 20), sticky="ew")
-
+        context_row = 0
+        
         # Rôle
         ctk.CTkLabel(
-            self.scrollable_frame,
+            self.context_section,
             text="🎭 Rôle",
             font=("Arial", 14, "bold")
-        ).grid(row=9, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=context_row, column=0, pady=(0, 5), sticky="w")
+        context_row += 1
         
         self.text_role = ctk.CTkTextbox(
-            self.scrollable_frame,
+            self.context_section,
             height=80,
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_role.grid(row=10, column=0, pady=(0, 20), sticky="ew")
-        self.text_role.insert("1.0", "Ex: Expert en marketing digital avec 10 ans d'expérience...")
+        self.text_role.grid(row=context_row, column=0, pady=(0, 20), sticky="ew")
+        context_row += 1
 
         # Contexte
         ctk.CTkLabel(
-            self.scrollable_frame,
+            self.context_section,
             text="🌍 Contexte",
             font=("Arial", 14, "bold")
-        ).grid(row=11, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=context_row, column=0, pady=(0, 5), sticky="w")
+        context_row += 1
         
         self.text_context = ctk.CTkTextbox(
-            self.scrollable_frame,
-            height=120,
+            self.context_section,
+            height=100,
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_context.grid(row=12, column=0, pady=(0, 20), sticky="ew")
-        self.text_context.insert("1.0", "Ex: Vous travaillez pour une agence de marketing digital...")
+        self.text_context.grid(row=context_row, column=0, pady=(0, 20), sticky="ew")
+        context_row += 1
 
         # Objectif
         ctk.CTkLabel(
-            self.scrollable_frame,
+            self.context_section,
             text="🎯 Objectif",
             font=("Arial", 14, "bold")
-        ).grid(row=13, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=context_row, column=0, pady=(0, 5), sticky="w")
+        context_row += 1
         
         self.text_objective = ctk.CTkTextbox(
-            self.scrollable_frame,
+            self.context_section,
             height=80,
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_objective.grid(row=14, column=0, pady=(0, 20), sticky="ew")
-        self.text_objective.insert("1.0", "Ex: Aider à créer des campagnes marketing efficaces...")
+        self.text_objective.grid(row=context_row, column=0, pady=(0, 20), sticky="ew")
+        context_row += 1
 
         # Limites
         ctk.CTkLabel(
-            self.scrollable_frame,
+            self.context_section,
             text="⚠️ Limites",
             font=("Arial", 14, "bold")
-        ).grid(row=15, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=context_row, column=0, pady=(0, 5), sticky="w")
+        context_row += 1
         
         self.text_limits = ctk.CTkTextbox(
-            self.scrollable_frame,
+            self.context_section,
             height=80,
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_limits.grid(row=16, column=0, pady=(0, 20), sticky="ew")
-        self.text_limits.insert("1.0", "Ex: Ne pas donner de conseils financiers ou juridiques...")
+        self.text_limits.grid(row=context_row, column=0, pady=(0, 20), sticky="ew")
+        context_row += 1
 
         # Format de réponse
         ctk.CTkLabel(
-            self.scrollable_frame,
+            self.context_section,
             text="📋 Format de réponse",
             font=("Arial", 14, "bold")
-        ).grid(row=17, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=context_row, column=0, pady=(0, 5), sticky="w")
+        context_row += 1
         
         self.text_response_format = ctk.CTkTextbox(
-            self.scrollable_frame,
+            self.context_section,
             height=80,
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_response_format.grid(row=18, column=0, pady=(0, 30), sticky="ew")
-        self.text_response_format.insert("1.0", "Ex: Réponses structurées avec bullet points et exemples concrets...")
+        self.text_response_format.grid(row=context_row, column=0, pady=(0, 20), sticky="ew")
+        context_row += 1
+        
+        # Afficher la section contexte par défaut (profil = "Aucun")
+        self.context_section.grid(row=self.context_section_row, column=0, sticky="ew")
+        current_row += 1
 
-        # URL Analysis Section (Moved to bottom)
+        # === SECTION 4: RECHERCHE WEB (Optionnel) ===
+
+        # URL Analysis Section
         ctk.CTkLabel(
             self.scrollable_frame,
             text="🌐 URL à analyser (Optionnel)",
             font=("Arial", 14, "bold")
-        ).grid(row=19, column=0, pady=(0, 5), sticky="w")
+        ).grid(row=current_row, column=0, pady=(0, 5), sticky="w")
+        current_row += 1
 
         self.url_frame = ctk.CTkFrame(self.scrollable_frame, fg_color="transparent")
-        self.url_frame.grid(row=20, column=0, pady=(0, 20), sticky="ew")
+        self.url_frame.grid(row=current_row, column=0, pady=(0, 20), sticky="ew")
         self.url_frame.grid_columnconfigure(0, weight=1)
+        current_row += 1
 
         self.entry_url = ctk.CTkEntry(
             self.url_frame,
@@ -224,30 +329,24 @@ class CreateAssistantFrame(ctk.CTkFrame):
         )
         self.btn_analyze.grid(row=0, column=1)
 
-        # Instructions URL (simplifié avec IA)
+        # Instructions URL
         ctk.CTkLabel(
             self.scrollable_frame,
-            text="📝 Données à extraire (décrivez en français ce que vous voulez)",
+            text="📝 Données à extraire",
             font=("Arial", 12),
             text_color="gray"
-        ).grid(row=21, column=0, pady=(5, 5), sticky="w")
+        ).grid(row=current_row, column=0, pady=(5, 5), sticky="w")
+        current_row += 1
         
         self.text_url_instructions = ctk.CTkTextbox(
             self.scrollable_frame,
-            height=100,
+            height=80,
             font=("Arial", 12),
             wrap="word"
         )
-        self.text_url_instructions.grid(row=22, column=0, pady=(0, 20), sticky="ew")
-        self.text_url_instructions.insert("1.0", """Décrivez simplement ce que vous voulez extraire, par exemple:
-
-"Trouve les annonces avec le titre, le prix et la localisation"
-
-ou
-
-"Extrait les articles avec leur titre, auteur, date de publication et résumé"
-
-L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteurs CSS !""")
+        self.text_url_instructions.grid(row=current_row, column=0, pady=(0, 20), sticky="ew")
+        self.text_url_instructions.insert("1.0", "Décrivez simplement ce que vous voulez extraire, par exemple:\n\n\"Trouve les annonces avec le titre, le prix et la localisation\"")
+        current_row += 1
 
         # Bouton de création
         btn_save = ctk.CTkButton(
@@ -261,7 +360,7 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
             hover_color=("#45A049", "#2E7D32"),
             command=self.save,
         )
-        btn_save.grid(row=23, column=0, pady=(0, 20))
+        btn_save.grid(row=current_row, column=0, pady=(0, 20))
 
     def analyze_url(self):
         """Lance l'analyse de l'URL dans un thread séparé."""
@@ -286,9 +385,9 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
                 if len(text_content) > max_chars:
                     text_content = text_content[:max_chars] + "\n... (Tronqué)"
                 
-                # Mise à jour de l'UI
-                # On n'inclut plus l'URL dans le texte ajouté
-                self.text_context.insert("end", f"\n\n--- Contenu analysé ---\n{text_content}")
+                # Mise à jour de l'UI - Ajouter au contexte si visible
+                if self.context_section.winfo_ismapped():
+                    self.text_context.insert("end", f"\n\n--- Contenu analysé ---\n{text_content}")
                 messagebox.showinfo("Succès", "Analyse terminée ! Le contenu a été ajouté au contexte.")
             else:
                 messagebox.showerror("Erreur", "Impossible de récupérer le contenu de la page.")
@@ -296,6 +395,35 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
             messagebox.showerror("Erreur", f"Une erreur est survenue : {e}")
         finally:
             self.btn_analyze.configure(state="normal", text="🔍 Analyser")
+
+    def on_profile_selected(self, selected_name):
+        """Affiche/masque les champs de contexte selon le profil sélectionné."""
+        if selected_name == "Aucun":
+            # Afficher la section contexte
+            self.context_section.grid(row=self.context_section_row, column=0, sticky="ew")
+            self.profile_info_label.configure(text="💡 Remplissez les champs de contexte ci-dessous")
+        else:
+            # Masquer la section contexte
+            self.context_section.grid_forget()
+            profile = self.profile_map.get(selected_name)
+            if profile:
+                self.profile_info_label.configure(text=f"✅ Contexte défini par le profil : {selected_name}")
+                
+                # Pré-remplir les champs masqués pour la sauvegarde
+                self.text_role.delete("1.0", "end")
+                self.text_role.insert("1.0", profile.get("role", ""))
+                
+                self.text_context.delete("1.0", "end")
+                self.text_context.insert("1.0", profile.get("context", ""))
+                
+                self.text_objective.delete("1.0", "end")
+                self.text_objective.insert("1.0", profile.get("objective", ""))
+                
+                self.text_limits.delete("1.0", "end")
+                self.text_limits.insert("1.0", profile.get("limits", ""))
+                
+                self.text_response_format.delete("1.0", "end")
+                self.text_response_format.insert("1.0", profile.get("response_format", ""))
 
     def save(self):
         """Sauvegarde l'assistant avec tous les champs."""
@@ -320,6 +448,17 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
             messagebox.showerror("Erreur", "La description est obligatoire.")
             return
 
+        # Déterminer le profil sélectionné
+        selected_profile_name = self.profile_var.get()
+        profile_id = None
+        use_profile = False
+        
+        if selected_profile_name != "Aucun":
+            profile = self.profile_map.get(selected_profile_name)
+            if profile:
+                profile_id = profile["id"]
+                use_profile = True
+
         # Sauvegarder l'assistant
         self.app.data_manager.save_assistant(
             name=name,
@@ -332,13 +471,14 @@ L'IA comprendra automatiquement la structure de la page. Pas besoin de sélecteu
             target_url=target_url,
             url_instructions=url_instructions,
             provider=provider,
-            scraping_solution=scraping_solution
+            scraping_solution=scraping_solution,
+            profile_id=profile_id,
+            use_profile=use_profile
         )
 
         # Mettre à jour le provider actif
         settings = self.app.data_manager.get_settings()
         settings["current_provider"] = provider
-        # save_configuration attend: chat_provider, scrapegraph_provider, api_keys, endpoints
         self.app.data_manager.save_configuration(
             chat_provider=provider,
             scrapegraph_provider=settings.get("scrapegraph_provider", ""),

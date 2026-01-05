@@ -3,12 +3,12 @@ Pillow
 cryptography
 pyinstaller
 openai
-google-generativeai
+google-generativeai>=0.8.6
 anthropic
 groq
 mistralai
 openpyxl
-requests
+requests>=2.32.0
 beautifulsoup4
 playwright
 playwright-stealth

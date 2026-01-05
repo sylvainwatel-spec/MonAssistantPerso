@@ -38,6 +38,9 @@ from modules.doc_analyst.view import DocAnalystFrame
 from modules.data_viz.view import DataVizFrame
 from modules.financial.view import FinancialAnalysisFrame
 from modules.scraping.view import ScrapingFrame
+from modules.profiles.list import ListProfilesFrame
+from modules.profiles.create import CreateProfileFrame
+from modules.profiles.detail import ProfileDetailFrame
 
 # Register pages with PluginManager
 manager.register('home', HomeFrame)
@@ -53,6 +56,9 @@ manager.register('doc_analyst', DocAnalystFrame)
 manager.register('data_viz', DataVizFrame)
 manager.register('financial', FinancialAnalysisFrame)
 manager.register('scraping', ScrapingFrame)
+manager.register('profiles_list', ListProfilesFrame)
+manager.register('profiles_create', CreateProfileFrame)
+manager.register('profiles_detail', ProfileDetailFrame)
 
 # Configuration du thème
 ctk.set_appearance_mode("System")
@@ -226,6 +232,15 @@ class App(ctk.CTk):
 
     def show_scraping(self) -> None:
         self.switch_frame(manager.get('scraping'))
+
+    def show_profiles(self) -> None:
+        self.switch_frame(manager.get('profiles_list'))
+    
+    def show_profile_create(self) -> None:
+        self.switch_frame(manager.get('profiles_create'))
+    
+    def show_profile_detail(self, profile_data: Any) -> None:
+        self.switch_frame(manager.get('profiles_detail'), profile_data=profile_data)
 
     def open_url(self, url: str) -> None:
         """Opens a URL in the default web browser."""

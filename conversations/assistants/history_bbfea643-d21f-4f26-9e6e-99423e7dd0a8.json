@@ -1,0 +1,76 @@
+[
+    {
+        "id": "0b0e0b68-9929-4492-99f7-78ea7a48ccf5",
+        "title": "Liste tous les LLM accesibles...",
+        "updated_at": "2026-01-04 19:14:46.092454",
+        "messages": [
+            {
+                "role": "Syst\u00e8me",
+                "content": "Connexion \u00e0 Test...",
+                "timestamp": "2026-01-04 19:12:14.406381"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "Description : test avec profil g\u00e9n\u00e9rique",
+                "timestamp": "2026-01-04 19:12:14.456779"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "\ud83d\udd0d Test de connexion au LLM Chat (Hugging Face (Mistral/Mixtral))...",
+                "timestamp": "2026-01-04 19:12:14.627110"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "\u2705 LLM Chat: Connexion r\u00e9ussie \u00e0 Hugging Face (Mistral/Mixtral)",
+                "timestamp": "2026-01-04 19:12:17.845658"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501",
+                "timestamp": "2026-01-04 19:12:17.871227"
+            },
+            {
+                "role": "Utilisateur",
+                "content": "Liste tous les LLM accesibles gratuitement via API et classe du meilleur au moins bon, par rapport aux jetons et donn\u00e9es utilisables",
+                "timestamp": "2026-01-04 19:13:30.827153"
+            },
+            {
+                "role": "Assistant",
+                "content": "Pour r\u00e9pondre \u00e0 ta demande, je vais lister les mod\u00e8les de langage (LLM) accessibles gratuitement via une API et les classer en fonction des crit\u00e8res de jetons et de donn\u00e9es utilisables. Voici une liste non exhaustive, bas\u00e9e sur les informations disponibles au moment de cette r\u00e9ponse :\n\n### 1. **Hugging Face Inference API**\n   - **Mod\u00e8les Disponibles**: Beaucoup de mod\u00e8les sont disponibles, y compris des versions de BERT, DistilBERT, T5, etc.\n   - **Jetons**: Le nombre de jetons varie selon le mod\u00e8le, mais Hugging Face offre un quota gratuit limit\u00e9 (g\u00e9n\u00e9ralement quelques milliers de jetons par mois).\n   - **Donn\u00e9es Utilisables**: Les mod\u00e8les sont entra\u00een\u00e9s sur des jeux de donn\u00e9es vari\u00e9s, souvent issus de sources publiques.\n   - **Avantages**: Large gamme de mod\u00e8les, interface facile \u00e0 utiliser, communaut\u00e9 active.\n   - **Inconv\u00e9nients**: Quota gratuit limit\u00e9, performances peuvent varier selon le mod\u00e8le.\n\n### 2. **OpenAI (GPT-3.5 Turbo via API)**\n   - **Mod\u00e8les Disponibles**: GPT-3.5 Turbo.\n   - **Jetons**: OpenAI offre un quota gratuit limit\u00e9 (g\u00e9n\u00e9ralement quelques milliers de jetons par mois).\n   - **Donn\u00e9es Utilisables**: Tr\u00e8s large base de donn\u00e9es, incluant une vari\u00e9t\u00e9 de textes, de la litt\u00e9rature \u00e0 des articles techniques.\n   - **Avantages**: Performances excellentes, capacit\u00e9 \u00e0 g\u00e9n\u00e9rer des r\u00e9ponses complexes et coh\u00e9rentes.\n   - **Inconv\u00e9nients**: Quota gratuit limit\u00e9, peut \u00eatre co\u00fbteux au-del\u00e0 du quota.\n\n### 3. **Anthropic (Claude)**\n   - **Mod\u00e8les Disponibles**: Claude.\n   - **Jetons**: Anthropic offre un quota gratuit limit\u00e9 (g\u00e9n\u00e9ralement quelques milliers de jetons par mois).\n   - **Donn\u00e9es Utilisables**: Large base de donn\u00e9es, avec une emphase sur la conversation et la compr\u00e9hension contextuelle.\n   - **Avantages**: Bonne performance en termes de conversation et de compr\u00e9hension contextuelle.\n   - **Inconv\u00e9nients**: Quota gratuit limit\u00e9, peut \u00eatre co\u00fbteux au-del\u00e0 du quota.\n\n### 4. **Aleph Alpha (Luminous)**\n   - **Mod\u00e8les Disponibles**: Luminous.\n   - **Jetons**: Aleph Alpha offre un quota gratuit limit\u00e9 (g\u00e9n\u00e9ralement quelques milliers de jetons par mois).\n   - **Donn\u00e9es Utilisables**: Large base de donn\u00e9es, avec une emphase sur la g\u00e9n\u00e9ration de texte cr\u00e9atif.\n   - **Avantages**: Bonne performance en termes de g\u00e9n\u00e9ration de texte cr\u00e9atif.\n   - **Inconv\u00e9nients**: Quota gratuit limit\u00e9, peut \u00eatre co\u00fbteux au-del\u00e0 du quota.\n\n### 5. **Cohere (Command)**\n   - **Mod\u00e8les Disponibles**: Command.\n   - **Jetons**: Cohere offre un quota gratuit limit\u00e9 (g\u00e9n\u00e9ralement quelques milliers de jetons par mois).\n   - **Donn\u00e9es Utilisables**: Large base de donn\u00e9es, avec une emphase sur la g\u00e9n\u00e9ration de texte et la classification.\n   - **Avantages**: Bonne performance en termes de g\u00e9n\u00e9ration de texte et de classification.\n   - **Inconv\u00e9nients**: Quota gratuit limit\u00e9, peut \u00eatre co\u00fbteux au-del\u00e0 du quota.\n\n### 6. **AI21 Labs (J1-Jumbo)**\n   - **Mod\u00e8les Disponibles**: J1-Jumbo.\n   - **Jetons**: AI21 Labs offre un quota gratuit limit\u00e9 (g\u00e9n\u00e9ralement quelques milliers de jetons par mois).\n   - **Donn\u00e9es Utilisables**: Large base de donn\u00e9es, avec une emphase sur la g\u00e9n\u00e9ration de texte et la traduction.\n   - **Avantages**: Bonne performance en termes de g\u00e9n\u00e9ration de texte et de traduction.\n   - **Inconv\u00e9nients**: Quota gratuit limit\u00e9, peut \u00eatre co\u00fbteux au-del\u00e0 du quota.\n\n### 7. **Google Vertex AI (PaLM)**\n   - **Mod\u00e8les Disponibles**: PaLM.\n   - **Jetons**: Google offre un quota gratuit limit\u00e9 (g\u00e9n\u00e9ralement quelques milliers de jetons par mois).\n   - **Donn\u00e9es Utilisables**: Large base de donn\u00e9es, avec une emphase sur la g\u00e9n\u00e9ration de texte et la compr\u00e9hension contextuelle.\n   - **Avantages**: Bonne performance en termes de g\u00e9n\u00e9ration de texte et de compr\u00e9hension contextuelle.\n   - **Inconv\u00e9nients**: Quota gratuit limit\u00e9, peut \u00eatre co\u00fbteux au-del\u00e0 du quota.\n\n### Classement Final (du meilleur au moins bon)\n1. **Hugging Face Inference API** - Large gamme de mod\u00e8les, communaut\u00e9 active, et performances vari\u00e9es.\n2. **OpenAI (GPT-3.5 Turbo)** - Excellentes performances, mais quota gratuit limit\u00e9.\n3. **Anthropic (Claude)** - Bonne performance en conversation, mais quota gratuit limit\u00e9.\n4. **Aleph Alpha (Luminous)** - Bonne performance en g\u00e9n\u00e9ration de texte cr\u00e9atif, mais quota gratuit limit\u00e9.\n5. **Cohere (Command)** - Bonne performance en g\u00e9n\u00e9ration de texte et classification, mais quota gratuit limit\u00e9.\n6. **AI21 Labs (J1-Jumbo)** - Bonne performance en g\u00e9n\u00e9ration de texte et traduction, mais quota gratuit limit\u00e9.\n7. **Google Vertex AI (PaLM)** - Bonne performance, mais quota gratuit limit\u00e9.\n\nCe classement prend en compte la flexibilit\u00e9 des mod\u00e8les, la qualit\u00e9 des r\u00e9ponses, et les limitations en termes de quotas gratuits. Si tu as des besoins sp\u00e9cifiques ou des crit\u00e8res suppl\u00e9mentaires, n'h\u00e9site pas \u00e0 me les pr\u00e9ciser pour une analyse plus d\u00e9taill\u00e9e.",
+                "timestamp": "2026-01-04 19:14:46.070953"
+            }
+        ]
+    },
+    {
+        "id": "20287b21-4d39-4a1a-ab84-7b695ff30192",
+        "title": "Nouvelle conversation",
+        "updated_at": "2026-01-04 19:22:57.228184",
+        "messages": [
+            {
+                "role": "Syst\u00e8me",
+                "content": "Connexion \u00e0 Test...",
+                "timestamp": "2026-01-04 19:22:55.106278"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "Description : test avec profil g\u00e9n\u00e9rique",
+                "timestamp": "2026-01-04 19:22:55.165500"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "\ud83d\udd0d Test de connexion au LLM Chat (Hugging Face (Mistral/Mixtral))...",
+                "timestamp": "2026-01-04 19:22:55.432151"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "\u2705 LLM Chat: Connexion r\u00e9ussie \u00e0 Hugging Face (Mistral/Mixtral)",
+                "timestamp": "2026-01-04 19:22:57.160839"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501",
+                "timestamp": "2026-01-04 19:22:57.226547"
+            }
+        ]
+    }
+]

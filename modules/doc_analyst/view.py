@@ -141,6 +141,19 @@ class DocAnalystFrame(ctk.CTkFrame):
         self.combo_provider.pack(pady=10, padx=20, fill="x")
         self.update_provider_list()
 
+        # Profile Selection
+        ctk.CTkLabel(controls_panel, text="Profil (Optionnel)", font=("Arial", 12)).pack(pady=(10, 0))
+        
+        self.var_profile = ctk.StringVar(value="Aucun")
+        self.combo_profile = ctk.CTkOptionMenu(
+            controls_panel, 
+            variable=self.var_profile, 
+            values=["Aucun"],
+            command=self.on_profile_changed
+        )
+        self.combo_profile.pack(pady=5, padx=20, fill="x")
+        self.update_profile_list()
+
         # Export Button at Bottom
         self.btn_export = ctk.CTkButton(
             controls_panel, 
@@ -155,21 +168,65 @@ class DocAnalystFrame(ctk.CTkFrame):
 
         
     def update_provider_list(self):
-        # Hardcoded Hugging Face models for Document Analysis
-        self.hf_models = [
-            "IAKA (Interne)",
-            "Qwen 2.5 72B (Hugging Face)"
+        # Liste officielle des providers
+        OFFICIAL_PROVIDERS = [
+            "OpenAI",
+            "Google Gemini",
+            "Anthropic Claude",
+            "Groq",
+            "Mistral AI",
+            "Hugging Face",
+            "DeepSeek",
+            "IAKA (Interne)"
         ]
         
-        self.combo_provider.configure(values=self.hf_models)
-        
         settings = self.app.data_manager.get_settings()
+        api_keys = settings.get("api_keys", {})
+        
+        # Filtrer les providers configurés
+        self.available_providers = [p for p in OFFICIAL_PROVIDERS if p in api_keys and api_keys[p] and api_keys[p].strip()]
+        
+        if not self.available_providers:
+            self.available_providers = ["OpenAI (Défaut)"]
+            
+        self.combo_provider.configure(values=self.available_providers)
+        
+        # Logique de sélection par défaut : Priorité à IAKA
         default_provider = settings.get("doc_analyst_provider")
         
-        if default_provider and default_provider in self.hf_models:
+        if "IAKA (Interne)" in self.available_providers:
+             self.var_provider.set("IAKA (Interne)")
+        elif default_provider and default_provider in self.available_providers:
             self.var_provider.set(default_provider)
         else:
-            self.var_provider.set(self.hf_models[0])
+            self.var_provider.set(self.available_providers[0])
+
+    def update_profile_list(self):
+        """Met à jour la liste des profils disponibles."""
+        profiles = self.app.data_manager.get_all_profiles()
+        profile_names = ["Aucun"] + [p["name"] for p in profiles]
+        self.combo_profile.configure(values=profile_names)
+        
+        # Sélectionner le profil actuel du module
+        current_profile_id = self.app.data_manager.get_module_profile("doc_analyst")
+        if current_profile_id:
+            profile = next((p for p in profiles if p["id"] == current_profile_id), None)
+            if profile:
+                self.var_profile.set(profile["name"])
+            else:
+                self.var_profile.set("Aucun")
+        else:
+            self.var_profile.set("Aucun")
+            
+    def on_profile_changed(self, selected_name):
+        """Gère le changement de profil."""
+        if selected_name == "Aucun":
+            self.app.data_manager.set_module_profile("doc_analyst", None)
+        else:
+            profiles = self.app.data_manager.get_all_profiles()
+            profile = next((p for p in profiles if p["name"] == selected_name), None)
+            if profile:
+                self.app.data_manager.set_module_profile("doc_analyst", profile["id"])
             
             
     # --- Conversation Management ---

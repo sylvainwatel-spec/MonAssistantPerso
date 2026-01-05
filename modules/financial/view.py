@@ -61,6 +61,13 @@ class FinancialAnalysisFrame(ctk.CTkFrame):
         btn_add = ctk.CTkButton(list_panel, text="+ Ajouter Action", command=self.add_stock)
         btn_add.pack(pady=10, padx=10, fill="x")
 
+        # Profile Selection in Left Panel
+        ctk.CTkLabel(list_panel, text="Profil Conseil", font=("Arial", 12)).pack(pady=(10, 0))
+        self.var_profile = ctk.StringVar(value="Aucun")
+        self.cmb_profile = ctk.CTkOptionMenu(list_panel, variable=self.var_profile, values=["Aucun"], command=self.on_profile_changed)
+        self.cmb_profile.pack(pady=5, padx=10, fill="x")
+        self.update_profile_list()
+
         # --- RIGHT: Detail View ---
         self.detail_panel = ctk.CTkFrame(content)
         self.detail_panel.grid(row=0, column=1, sticky="nsew")
@@ -110,6 +117,33 @@ class FinancialAnalysisFrame(ctk.CTkFrame):
             btn.pack(fill="x", pady=2)
             
             # Remove button context menu or separate small button? simpler for now: just list
+
+    def update_profile_list(self):
+        """Met à jour la liste des profils disponibles."""
+        profiles = self.app.data_manager.get_all_profiles()
+        profile_names = ["Aucun"] + [p["name"] for p in profiles]
+        self.cmb_profile.configure(values=profile_names)
+        
+        # Sélectionner le profil actuel du module
+        current_profile_id = self.app.data_manager.get_module_profile("financial")
+        if current_profile_id:
+            profile = next((p for p in profiles if p["id"] == current_profile_id), None)
+            if profile:
+                self.var_profile.set(profile["name"])
+            else:
+                self.var_profile.set("Aucun")
+        else:
+            self.var_profile.set("Aucun")
+            
+    def on_profile_changed(self, selected_name):
+        """Gère le changement de profil."""
+        if selected_name == "Aucun":
+            self.app.data_manager.set_module_profile("financial", None)
+        else:
+            profiles = self.app.data_manager.get_all_profiles()
+            profile = next((p for p in profiles if p["name"] == selected_name), None)
+            if profile:
+                self.app.data_manager.set_module_profile("financial", profile["id"])
             
     def add_stock(self):
         symbol = simpledialog.askstring("Ajouter Action", "Entrez le symbole (ex: AAPL) :")
@@ -247,15 +281,24 @@ class FinancialAnalysisFrame(ctk.CTkFrame):
         Variation: {self.current_stock_data.get("10. change percent")}
         Haut/Bas: {self.current_stock_data.get("03. high")} / {self.current_stock_data.get("04. low")}
         
-        Agis comme un conseiller financier expert.
-        Analyse la situation en t'appuyant particulièrement sur la position du prix par rapport à sa moyenne annuelle.
-        
         Est-ce un bon point d'entrée pour un investissement long terme ?
         Réponse structurée :
         1. Analyse Technique Rapide
         2. Comparaison avec la Moyenne (Opportunité ou Surchauffe ?)
         3. Conseil : ACHETER, VENDRE ou CONSERVER.
         """
+        
+        # Inject Profile Context
+        module_config = self.app.data_manager.get_effective_module_config("financial")
+        if module_config:
+            profile_context = "\n--- Context from Profile ---\n"
+            if module_config.get("role"): profile_context += f"Role Override: {module_config['role']}\n"
+            if module_config.get("context"): profile_context += f"Context: {module_config['context']}\n"
+            if module_config.get("objective"): profile_context += f"Objective: {module_config['objective']}\n"
+            if module_config.get("limits"): profile_context += f"Limits: {module_config['limits']}\n"
+            if module_config.get("response_format"): profile_context += f"Preferred Format: {module_config['response_format']}\n"
+            
+            context = profile_context + "\n" + context
         
         # Use Chat Logic (via generic connector if possible, or simple request)
         # For simplicity, using one of the configured providers from settings manually or via app's llm service if strictly exposed.

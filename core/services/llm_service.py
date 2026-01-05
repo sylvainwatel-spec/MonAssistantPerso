@@ -14,7 +14,13 @@ class LLMService:
     def generate_openai(api_key: str, messages: List[Dict[str, str]], model: str = "gpt-4o-mini", **kwargs) -> Tuple[bool, str]:
         try:
             from openai import OpenAI
-            client = OpenAI(api_key=api_key)
+            
+            # Extract base_url if present
+            base_url = kwargs.pop('base_url', None)
+            if base_url == "":
+                base_url = None
+                
+            client = OpenAI(api_key=api_key, base_url=base_url)
             if not model:
                 model = "gpt-4o-mini"
             response = client.chat.completions.create(
@@ -151,7 +157,12 @@ class LLMService:
             )
             return True, response.choices[0].message.content
         except Exception as e:
-            return False, f"Erreur Compatible OpenAI: {str(e)}"
+            error_msg = str(e)
+            if "402" in error_msg or "Insufficient Balance" in error_msg:
+                return False, "Solde insuffisant (Erreur 402). Veuillez recharger votre compte DeepSeek/Provider."
+            if "401" in error_msg or "Authentication" in error_msg:
+                return False, "Erreur d'authentification (Erreur 401). Vérifiez votre clé API."
+            return False, f"Erreur Compatible OpenAI: {error_msg}"
             
     # --- Testing Methods (Existing) ---
     
@@ -571,6 +582,7 @@ class LLMService:
             "Meta Llama 3 (via Groq)": cls.test_groq_llama,
             "Mistral NeMo": cls.test_mistral,
             "DeepSeek-V3": cls.test_deepseek,
+            "DeepSeek": cls.test_deepseek,
             "DeepSeek-VL": cls.test_deepseek_vl,
             "Hugging Face (Mistral/Mixtral)": cls.test_huggingface,
             "IAKA (Interne)": lambda k: cls.test_iaka(k, kwargs.get('base_url', ''), kwargs.get('model', 'mistral-small'))
@@ -614,23 +626,149 @@ class LLMService:
             return cls.generate_mistral(api_key, messages, **kwargs)
         elif "DeepSeek" in provider_name:
             # DeepSeek is OpenAI compatible
-            return cls.generate_openai_compatible(api_key, messages, base_url="https://api.deepseek.com", model="deepseek-chat", **kwargs)
+            # Allow overriding model and base_url from kwargs
+            base_url = kwargs.pop('base_url', None)
+            if not base_url:
+                base_url = "https://api.deepseek.com"
+                
+            model = kwargs.pop('model', None)
+            if not model:
+                model = "deepseek-chat"
+            
+            return cls.generate_openai_compatible(api_key, messages, base_url=base_url, model=model, **kwargs)
         elif "IAKA" in provider_name:
             # Handle IAKA specifically
-            base_url = kwargs.get('base_url')
-            model_name = kwargs.get('model', 'mistral-small')
+            base_url = kwargs.pop('base_url', None)
+            model_name = kwargs.pop('model', 'mistral-small')
             
             if not base_url:
                 return False, "Endpoint manquant pour IAKA"
                 
             clean_base_url = base_url.rstrip('/')
             full_url = f"{clean_base_url}/{model_name}/v1"
-            
-            # base_url is already in kwargs, but we want to pass the modified full_url
-            # and we don't want to pass base_url twice.
-            kwargs.pop('base_url', None)
-            kwargs.pop('model', None)
 
             return cls.generate_openai_compatible(api_key, messages, base_url=full_url, model=model_name, **kwargs)
         
         return False, f"Provider {provider_name} non supporté pour la génération."
+
+    # --- Model Fetching Methods ---
+
+    @staticmethod
+    def fetch_models(provider_name: str, api_key: str, **kwargs) -> List[str]:
+        """
+        Fetches the list of available models for a given provider.
+        
+        Args:
+            provider_name: Name of the provider (e.g., "OpenAI", "Groq")
+            api_key: API Key for authentication
+            **kwargs: Additional args (base_url, etc.)
+            
+        Returns:
+            List of model names (strings)
+        """
+        try:
+            if "OpenAI" in provider_name:
+                return LLMService._fetch_openai_models(api_key, **kwargs)
+            elif "Gemini" in provider_name or "Google" in provider_name:
+                return LLMService._fetch_gemini_models(api_key)
+            elif "Groq" in provider_name:
+                return LLMService._fetch_groq_models(api_key)
+            elif "Mistral" in provider_name:
+                return LLMService._fetch_mistral_models(api_key)
+            elif "Anthropic" in provider_name or "Claude" in provider_name:
+                # Anthropic doesn't have a public list models endpoint yet easily distinct
+                # Returning a static list of known models for now
+                return [
+                    "claude-3-5-sonnet-20240620",
+                    "claude-3-opus-20240229",
+                    "claude-3-sonnet-20240229",
+                    "claude-3-haiku-20240307"
+                ]
+            elif "Hugging Face" in provider_name:
+                return LLMService._fetch_huggingface_models(api_key)
+            elif "DeepSeek" in provider_name:
+                 # DeepSeek is OpenAI compatible
+                return LLMService._fetch_openai_models(api_key, base_url="https://api.deepseek.com")
+            elif "IAKA" in provider_name:
+                 # IAKA is OpenAI compatible but endpoint might vary
+                 base_url = kwargs.get('base_url')
+                 if not base_url:
+                     return ["Erreur: Endpoint manquant"]
+                 # Clean URL for listing models if possible, often just base_url without /chat/completions
+                 # Try to list models if supported
+                 try:
+                     clean_base_url = base_url.rstrip('/')
+                     # Assume standardized /v1 or similar if not provided, 
+                     # but standard OpenAI client handles this if base_url is correct root.
+                     return LLMService._fetch_openai_models(api_key, base_url=clean_base_url)
+                 except:
+                     return ["mistral-small", "mistral-medium", "mistral-large"] # Fallback
+
+            return ["Modèle par défaut"]
+        except Exception as e:
+            print(f"Error fetching models for {provider_name}: {e}")
+            import traceback
+            traceback.print_exc()
+            return [f"Erreur: {str(e)}"]
+
+    @staticmethod
+    def _fetch_openai_models(api_key: str, base_url: str = None) -> List[str]:
+        from openai import OpenAI
+        # Handle empty string as None to avoid connection errors
+        if base_url == "":
+            base_url = None
+            
+        client = OpenAI(api_key=api_key, base_url=base_url)
+        models = client.models.list()
+        # Sort and filter interesting models
+        model_names = [m.id for m in models.data]
+        model_names.sort()
+        return model_names
+
+    @staticmethod
+    def _fetch_gemini_models(api_key: str) -> List[str]:
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        models = genai.list_models()
+        # Filter for generation models
+        return [m.name.replace("models/", "") for m in models if "generateContent" in m.supported_generation_methods]
+
+    @staticmethod
+    def _fetch_groq_models(api_key: str) -> List[str]:
+        from groq import Groq
+        client = Groq(api_key=api_key)
+        models = client.models.list()
+        return [m.id for m in models.data]
+
+    @staticmethod
+    def _fetch_mistral_models(api_key: str) -> List[str]:
+        from mistralai import Mistral
+        client = Mistral(api_key=api_key)
+        models_response = client.models.list()
+        # Mistral API response structure might vary slightly, usually .data
+        if hasattr(models_response, 'data'):
+             return [m.id for m in models_response.data]
+        return ["mistral-small-latest", "mistral-medium-latest", "mistral-large-latest", "open-mixtral-8x7b", "open-mistral-7b"]
+
+    @staticmethod
+    def _fetch_huggingface_models(api_key: str) -> List[str]:
+        # Hugging Face Hub API to get popular text-generation models
+        try:
+             import requests
+             # List mostly used text-gen models
+             url = "https://huggingface.co/api/models"
+             params = {
+                 "filter": "text-generation",
+                 "sort": "downloads",
+                 "direction": "-1",
+                 "limit": 50
+             }
+             headers = {"Authorization": f"Bearer {api_key}"} if api_key else {}
+             response = requests.get(url, params=params, headers=headers)
+             if response.status_code == 200:
+                 return [m["modelId"] for m in response.json()]
+             else:
+                 return ["mistralai/Mistral-7B-Instruct-v0.2", "meta-llama/Meta-Llama-3-8B-Instruct", "HuggingFaceH4/zephyr-7b-beta"]
+        except ImportError:
+             return ["mistralai/Mistral-7B-Instruct-v0.2", "meta-llama/Meta-Llama-3-8B-Instruct", "HuggingFaceH4/zephyr-7b-beta"]
+

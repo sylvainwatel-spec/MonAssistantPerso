@@ -150,9 +150,13 @@ class HomeFrame(ctk.CTkFrame):
             print(f"DEBUG: HomeFrame background error: {e}")
 
 
-        # Admin Button (Right aligned in Header)
+        # Right Actions Container
+        self.right_actions = ctk.CTkFrame(self.header_frame, fg_color="transparent")
+        self.right_actions.pack(side="right", padx=10, pady=5)
+
+        # Admin Button
         btn_admin = ctk.CTkButton(
-            self.header_frame,
+            self.right_actions,
             text="⚙️",
             width=45,
             height=45,
@@ -163,7 +167,22 @@ class HomeFrame(ctk.CTkFrame):
             corner_radius=15,
             command=self.app.show_admin
         )
-        btn_admin.pack(side="right")
+        btn_admin.pack(side="left", padx=5)
+
+        # Profils Button
+        btn_profiles = ctk.CTkButton(
+            self.right_actions,
+            text="👤",
+            width=45,
+            height=45,
+            font=("Segoe UI Emoji", 20),
+            fg_color=("white", "gray17"),
+            hover_color=("gray90", "gray25"),
+            text_color="gray",
+            corner_radius=15,
+            command=self.app.show_profiles
+        )
+        btn_profiles.pack(side="left", padx=5)
 
         # (Background logic moved to end of __init__)
         
@@ -272,5 +291,6 @@ class HomeFrame(ctk.CTkFrame):
             command=self.app.show_scraping
         )
         self.card_6.grid(row=1, column=2, padx=15, pady=15, sticky="nsew")
+
 
 

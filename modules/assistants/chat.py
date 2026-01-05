@@ -480,25 +480,28 @@ class ChatFrame(ctk.CTkFrame):
 
     def build_system_prompt(self):
         """Construit le prompt système avec toutes les informations de l'assistant."""
+        # Utiliser la configuration effective qui fusionne le profil et l'assistant
+        effective_config = self.app.data_manager.get_effective_assistant_config(self.assistant["id"])
+        
         parts = []
         
-        if self.assistant.get('role'):
-            parts.append(f"Rôle : {self.assistant.get('role')}")
+        if effective_config.get('role'):
+            parts.append(f"Rôle : {effective_config.get('role')}")
         
-        if self.assistant.get('context'):
-            parts.append(f"Contexte : {self.assistant.get('context')}")
+        if effective_config.get('context'):
+            parts.append(f"Contexte : {effective_config.get('context')}")
         
-        if self.assistant.get('objective'):
-            parts.append(f"Objectif : {self.assistant.get('objective')}")
+        if effective_config.get('objective'):
+            parts.append(f"Objectif : {effective_config.get('objective')}")
         
-        if self.assistant.get('limits'):
-            parts.append(f"Limites : {self.assistant.get('limits')}")
+        if effective_config.get('limits'):
+            parts.append(f"Limites : {effective_config.get('limits')}")
         
-        if self.assistant.get('response_format'):
-            parts.append(f"Format de réponse : {self.assistant.get('response_format')}")
+        if effective_config.get('response_format'):
+            parts.append(f"Format de réponse : {effective_config.get('response_format')}")
             
         # Instructions pour l'outil de recherche
-        target_url = self.assistant.get('target_url')
+        target_url = effective_config.get('target_url')
         if target_url:
             parts.append(f"""
 IMPORTANT : Tu as accès à un outil de recherche sur le site : {target_url}
@@ -514,7 +517,7 @@ N'utilise cette commande que si c'est pertinent pour répondre à l'utilisateur.
 """)
             
             # Instructions détaillées pour le site
-            url_instructions = self.assistant.get('url_instructions')
+            url_instructions = effective_config.get('url_instructions')
             if url_instructions:
                 parts.append(f"""
 INSTRUCTIONS POUR LE SITE {target_url} :

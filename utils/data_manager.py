@@ -11,6 +11,7 @@ DATA_FILE = "assistants.json"
 SETTINGS_FILE = "settings.json"
 KEY_FILE = ".secret.key"
 DOC_CONVERSATIONS_FILE = "doc_conversations.json"
+PROFILES_FILE = "profiles.json"
 
 class DataManager:
     def __init__(self):
@@ -18,6 +19,7 @@ class DataManager:
         self.filepath = get_writable_path(DATA_FILE)
         self.settings_path = get_writable_path(SETTINGS_FILE)
         self.key_path = get_writable_path(KEY_FILE)
+        self.profiles_path = get_writable_path(PROFILES_FILE)
         
         # New structured directory for conversations
         self.conv_root = get_writable_path("conversations")
@@ -92,12 +94,15 @@ class DataManager:
         if not os.path.exists(self.doc_conversations_path):
             with open(self.doc_conversations_path, 'w') as f:
                 json.dump([], f)
+        if not os.path.exists(self.profiles_path):
+            with open(self.profiles_path, 'w') as f:
+                json.dump([], f)
 
     def get_all_assistants(self):
         with open(self.filepath, 'r') as f:
             return json.load(f)
 
-    def save_assistant(self, name, description, role="", context="", objective="", limits="", response_format="", target_url="", url_instructions="", provider="", scraping_solution="scrapegraphai"):
+    def save_assistant(self, name, description, role="", context="", objective="", limits="", response_format="", target_url="", url_instructions="", provider="", scraping_solution="scrapegraphai", profile_id=None, use_profile=False):
         """
         Sauvegarde un nouvel assistant avec tous ses champs.
         
@@ -113,6 +118,8 @@ class DataManager:
             url_instructions: Instructions pour se connecter et naviguer sur le site cible
             provider: Provider LLM à utiliser
             scraping_solution: Solution de scraping ("scrapegraphai" ou "playwright")
+            profile_id: ID du profil à utiliser (optionnel)
+            use_profile: Activer/désactiver l'utilisation du profil
         """
         assistants = self.get_all_assistants()
         new_assistant = {
@@ -128,6 +135,8 @@ class DataManager:
             "url_instructions": url_instructions,
             "provider": provider,
             "scraping_solution": scraping_solution,
+            "profile_id": profile_id,
+            "use_profile": use_profile,
             "status": "stopped"  # stopped, running
         }
         assistants.append(new_assistant)
@@ -135,7 +144,7 @@ class DataManager:
         return new_assistant
 
     def update_assistant(self, assistant_id, name=None, description=None, role=None, 
-                        context=None, objective=None, limits=None, response_format=None, target_url=None, url_instructions=None, provider=None, scraping_solution=None):
+                        context=None, objective=None, limits=None, response_format=None, target_url=None, url_instructions=None, provider=None, scraping_solution=None, profile_id=None, use_profile=None):
         """
         Met à jour un assistant existant.
         
@@ -152,6 +161,8 @@ class DataManager:
             url_instructions: Nouvelles instructions URL (optionnel)
             provider: Nouveau provider (optionnel)
             scraping_solution: Nouvelle solution de scraping (optionnel)
+            profile_id: ID du profil (optionnel)
+            use_profile: Activer/désactiver le profil (optionnel)
         """
         assistants = self.get_all_assistants()
         for assistant in assistants:
@@ -178,6 +189,10 @@ class DataManager:
                     assistant["provider"] = provider
                 if scraping_solution is not None:
                     assistant["scraping_solution"] = scraping_solution
+                if profile_id is not None:
+                    assistant["profile_id"] = profile_id
+                if use_profile is not None:
+                    assistant["use_profile"] = use_profile
                 break
         self._save_to_file(assistants)
 
@@ -204,6 +219,208 @@ class DataManager:
         assistants = [a for a in assistants if a["id"] != assistant_id]
         self._save_to_file(assistants)
 
+    # --- Profile Management ---
+
+    def get_all_profiles(self) -> List[Dict[str, Any]]:
+        """Récupère tous les profils."""
+        try:
+            with open(self.profiles_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception:
+            return []
+
+    def save_profile(self, name: str, description: str, role: str = "", context: str = "", 
+                     objective: str = "", limits: str = "", response_format: str = "") -> Dict[str, Any]:
+        """
+        Crée un nouveau profil.
+        
+        Args:
+            name: Nom du profil
+            description: Description du profil
+            role: Rôle par défaut
+            context: Contexte par défaut
+            objective: Objectif par défaut
+            limits: Limites par défaut
+            response_format: Format de réponse par défaut
+            
+        Returns:
+            Le profil créé
+        """
+        profiles = self.get_all_profiles()
+        now = datetime.datetime.now().isoformat()
+        new_profile = {
+            "id": str(uuid.uuid4()),
+            "name": name,
+            "description": description,
+            "role": role,
+            "context": context,
+            "objective": objective,
+            "limits": limits,
+            "response_format": response_format,
+            "created_at": now,
+            "updated_at": now
+        }
+        profiles.append(new_profile)
+        with open(self.profiles_path, 'w', encoding='utf-8') as f:
+            json.dump(profiles, f, indent=4)
+        return new_profile
+
+    def update_profile(self, profile_id: str, name: Optional[str] = None, 
+                       description: Optional[str] = None, role: Optional[str] = None,
+                       context: Optional[str] = None, objective: Optional[str] = None,
+                       limits: Optional[str] = None, response_format: Optional[str] = None):
+        """
+        Met à jour un profil existant.
+        
+        Args:
+            profile_id: ID du profil à modifier
+            name: Nouveau nom (optionnel)
+            description: Nouvelle description (optionnel)
+            role: Nouveau rôle (optionnel)
+            context: Nouveau contexte (optionnel)
+            objective: Nouvel objectif (optionnel)
+            limits: Nouvelles limites (optionnel)
+            response_format: Nouveau format de réponse (optionnel)
+        """
+        profiles = self.get_all_profiles()
+        for profile in profiles:
+            if profile["id"] == profile_id:
+                if name is not None:
+                    profile["name"] = name
+                if description is not None:
+                    profile["description"] = description
+                if role is not None:
+                    profile["role"] = role
+                if context is not None:
+                    profile["context"] = context
+                if objective is not None:
+                    profile["objective"] = objective
+                if limits is not None:
+                    profile["limits"] = limits
+                if response_format is not None:
+                    profile["response_format"] = response_format
+                profile["updated_at"] = datetime.datetime.now().isoformat()
+                break
+        with open(self.profiles_path, 'w', encoding='utf-8') as f:
+            json.dump(profiles, f, indent=4)
+
+    def delete_profile(self, profile_id: str):
+        """Supprime un profil."""
+        profiles = self.get_all_profiles()
+        profiles = [p for p in profiles if p["id"] != profile_id]
+        with open(self.profiles_path, 'w', encoding='utf-8') as f:
+            json.dump(profiles, f, indent=4)
+
+    def get_profile_by_id(self, profile_id: str) -> Optional[Dict[str, Any]]:
+        """Récupère un profil par son ID."""
+        profiles = self.get_all_profiles()
+        for profile in profiles:
+            if profile["id"] == profile_id:
+                return profile
+        return None
+
+    def get_effective_assistant_config(self, assistant_id: str) -> Dict[str, Any]:
+        """
+        Retourne la configuration effective d'un assistant en fusionnant
+        le profil (si utilisé) avec les surcharges de l'assistant.
+        
+        Args:
+            assistant_id: ID de l'assistant
+            
+        Returns:
+            Configuration complète avec tous les champs
+        """
+        assistant = self.get_assistant_by_id(assistant_id)
+        if not assistant:
+            return {}
+        
+        # Si pas de profil ou profil désactivé, retourner l'assistant tel quel
+        if not assistant.get("use_profile") or not assistant.get("profile_id"):
+            return assistant
+        
+        # Récupérer le profil
+        profile = self.get_profile_by_id(assistant["profile_id"])
+        if not profile:
+            # Profil introuvable, retourner l'assistant tel quel
+            return assistant
+        
+        # Fusionner : profil comme base, assistant comme surcharge
+        config = assistant.copy()
+        for field in ["role", "context", "objective", "limits", "response_format"]:
+            # Si le champ de l'assistant est vide, utiliser celui du profil
+            if not config.get(field):
+                config[field] = profile.get(field, "")
+        
+        return config
+
+    # ===== MODULE PROFILE MANAGEMENT =====
+    
+    def get_module_profile(self, module_name: str) -> Optional[str]:
+        """Récupère l'ID du profil associé à un module.
+        
+        Args:
+            module_name: Nom du module (ex: 'doc_analyst', 'data_viz')
+        
+        Returns:
+            L'ID du profil ou None si aucun profil n'est associé
+        """
+        settings = self.get_settings()
+        module_profiles = settings.get("module_profiles", {})
+        return module_profiles.get(module_name)
+    
+    def set_module_profile(self, module_name: str, profile_id: Optional[str]) -> None:
+        """Associe un profil à un module.
+        
+        Args:
+            module_name: Nom du module (ex: 'doc_analyst', 'data_viz')
+            profile_id: ID du profil à associer, ou None pour détacher
+        """
+        settings = self.get_settings()
+        
+        if "module_profiles" not in settings:
+            settings["module_profiles"] = {}
+        
+        if profile_id is None:
+            # Retirer l'association
+            if module_name in settings["module_profiles"]:
+                del settings["module_profiles"][module_name]
+        else:
+            settings["module_profiles"][module_name] = profile_id
+        
+        # Sauvegarder les settings
+        self.save_configuration(
+            chat_provider=settings.get("current_provider", ""),
+            scrapegraph_provider=settings.get("scrapegraph_provider", ""),
+            api_keys=settings.get("api_keys", {}),
+            endpoints=settings.get("endpoints", {})
+        )
+    
+    def get_effective_module_config(self, module_name: str) -> Dict[str, str]:
+        """Récupère la configuration effective d'un module (avec profil si défini).
+        
+        Args:
+            module_name: Nom du module
+        
+        Returns:
+            Dictionnaire avec les champs: role, context, objective, limits, response_format
+            Retourne un dict vide si aucun profil n'est associé
+        """
+        profile_id = self.get_module_profile(module_name)
+        
+        if not profile_id:
+            return {}
+        
+        profile = self.get_profile_by_id(profile_id)
+        if not profile:
+            return {}
+        
+        return {
+            "role": profile.get("role", ""),
+            "context": profile.get("context", ""),
+            "objective": profile.get("objective", ""),
+            "limits": profile.get("limits", ""),
+            "response_format": profile.get("response_format", "")
+        }
 
     def get_doc_conversations(self):
         """Retrieves list of document analysis conversations."""

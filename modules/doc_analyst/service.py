@@ -74,8 +74,31 @@ class DocumentAnalysisService:
         if not api_key:
             return False, f"Clé API non trouvée pour {provider}."
 
-        # Construct Prompt
-        system_prompt = f"""Tu es un analyste de documents expert.
+        # Construct Prompt using Module Profile
+        module_config = self.data_manager.get_effective_module_config("doc_analyst")
+        
+        system_intro = "Tu es un analyste de documents expert."
+        if module_config.get("role"):
+            system_intro = f"Rôle : {module_config['role']}"
+            
+        context_part = ""
+        if module_config.get("context"):
+            context_part = f"\nContexte : {module_config['context']}"
+            
+        objective_part = ""
+        if module_config.get("objective"):
+            objective_part = f"\nObjectif : {module_config['objective']}"
+            
+        limits_part = ""
+        if module_config.get("limits"):
+            limits_part = f"\nLimites : {module_config['limits']}"
+            
+        format_part = ""
+        if module_config.get("response_format"):
+            format_part = f"\nFormat de réponse : {module_config['response_format']}"
+
+        system_prompt = f"""{system_intro}{context_part}{objective_part}{limits_part}{format_part}
+
 Voici le contenu des documents que tu dois analyser :
 ---
 {document_context} 

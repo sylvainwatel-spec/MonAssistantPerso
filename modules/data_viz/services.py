@@ -150,8 +150,26 @@ class DataAnalysisService:
         if len(stats_summary) > 10000:
             stats_summary = stats_summary[:10000] + "\n...(tronqué)"
 
+        # Construct Prompt using Module Profile
+        module_config = self.data_manager.get_effective_module_config("data_viz")
+        
+        system_content = "Tu es un expert en analyse de données. Analyse le résumé statistique suivant et donne des insights pertinents, des tendances ou des points d'attention. Sois concis et professionnel."
+        
+        if module_config:
+            if module_config.get("role"):
+                system_content = f"Rôle : {module_config['role']}"
+            
+            if module_config.get("context"):
+                system_content += f"\nContexte : {module_config['context']}"
+            if module_config.get("objective"):
+                system_content += f"\nObjectif : {module_config['objective']}"
+            if module_config.get("limits"):
+                system_content += f"\nLimites : {module_config['limits']}"
+            if module_config.get("response_format"):
+                system_content += f"\nFormat de réponse : {module_config['response_format']}"
+
         messages = [
-            {"role": "system", "content": "Tu es un expert en analyse de données. Analyse le résumé statistique suivant et donne des insights pertinents, des tendances ou des points d'attention. Sois concis et professionnel."},
+            {"role": "system", "content": system_content},
             {"role": "user", "content": f"Voici les données:\n{stats_summary}"}
         ]
 
@@ -193,8 +211,19 @@ class DataAnalysisService:
         self.df.info(buf=buffer)
         info_str = buffer.getvalue()
         
+        # Profile Context
+        module_config = self.data_manager.get_effective_module_config("data_viz")
+        profile_instruction = ""
+        if module_config:
+             if module_config.get("role"): profile_instruction += f"Role: {module_config['role']}\n"
+             if module_config.get("context"): profile_instruction += f"Context: {module_config['context']}\n"
+             if module_config.get("objective"): profile_instruction += f"Objective: {module_config['objective']}\n"
+             if module_config.get("limits"): profile_instruction += f"Limits: {module_config['limits']}\n"
+             # skipping format as we need code specifically
+        
         prompt = f"""
-You are a Python Data Analyst. You have a pandas DataFrame named `df` loaded in memory.
+You are a Python Data Analyst. {profile_instruction}
+You have a pandas DataFrame named `df` loaded in memory.
 Info about `df`:
 {info_str}
 

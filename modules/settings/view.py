@@ -128,9 +128,11 @@ class AdminFrame(ctk.CTkFrame):
         title_label.grid(row=0, column=1, sticky="w", pady=(20, 5))
 
         # Current provider info
+        model_name = self.settings.get("models", {}).get(self.chat_provider, "Défaut")
+        
         provider_info = ctk.CTkLabel(
             chat_frame,
-            text=f"Modèle actuel : {self.chat_provider}",
+            text=f"Modèle actuel : {self.chat_provider} ({model_name})",
             font=("Arial", 13),
             text_color=("gray30", "gray70")
         )
