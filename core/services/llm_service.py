@@ -4,6 +4,9 @@ Handles connection testing and provider management.
 """
 
 from typing import Tuple, Optional, Any, Dict, List
+import logging
+
+logger = logging.getLogger(__name__)
 
 class LLMService:
     """Service for checking connections and generating responses from various LLM providers."""
@@ -537,6 +540,9 @@ class LLMService:
             # Construction de l'URL complète
             full_url = f"{clean_base_url}/{model_name}/v1"
             
+            logger.info(f"[IAKA] Testing connection - BaseURL: {base_url}, Model: {model_name}")
+            logger.info(f"[IAKA] Constructed Full URL: {full_url}")
+            
             client = OpenAI(
                 api_key=api_key,
                 base_url=full_url
@@ -646,6 +652,9 @@ class LLMService:
                 
             clean_base_url = base_url.rstrip('/')
             full_url = f"{clean_base_url}/{model_name}/v1"
+            
+            logger.info(f"[IAKA] Generating response - BaseURL: {base_url}, Model: {model_name}")
+            logger.info(f"[IAKA] Constructed Full URL: {full_url}")
 
             return cls.generate_openai_compatible(api_key, messages, base_url=full_url, model=model_name, **kwargs)
         
@@ -700,7 +709,10 @@ class LLMService:
                      clean_base_url = base_url.rstrip('/')
                      # Assume standardized /v1 or similar if not provided, 
                      # but standard OpenAI client handles this if base_url is correct root.
-                     return LLMService._fetch_openai_models(api_key, base_url=clean_base_url)
+                     logger.info(f"[IAKA] Fetching models - BaseURL: {clean_base_url}")
+                     models = LLMService._fetch_openai_models(api_key, base_url=clean_base_url)
+                     logger.info(f"[IAKA] Models found: {models}")
+                     return models
                  except:
                      return ["mistral-small", "mistral-medium", "mistral-large"] # Fallback
 

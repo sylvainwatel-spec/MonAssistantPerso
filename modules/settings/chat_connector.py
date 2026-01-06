@@ -413,6 +413,17 @@ class ChatConnectorFrame(ctk.CTkFrame):
             **kwargs
         )
         
+        self.add_log(f"Test Call - Provider: {self.selected_provider}, Model: {model}, Kwargs: {kwargs}", "info")
+        print(f"[DEBUG] ChatConnector Test - Provider: {self.selected_provider}, Model: {model}, Kwargs: {kwargs}")  # Debug Console
+        
+        success, msg = LLMService.generate_response(
+            self.selected_provider, 
+            api_key, 
+            [{"role":"user", "content":"Hello"}],
+            model=model,
+            **kwargs
+        )
+        
         if success:
             self.add_log(f"Test réussi: {msg[:50]}...", "success")
             messagebox.showinfo("Succès", f"Connexion OK !\nModèle: {model}")
