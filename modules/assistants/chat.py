@@ -908,13 +908,17 @@ Partie 2 : Synthèse à exporter
             return f"Erreur lors de l'appel à l'API compatible : {str(e)}"
 
     def _call_iaka(self, api_key, base_url, system_prompt, user_message, model_name="mistral-small"):
-        """Appelle le connector IAKA avec le principe du modèle small."""
+        """Appelle le connector IAKA avec support des URLs complètes."""
         from openai import OpenAI
         
-        # Le principe IAKA est d'inclure le CODE_MODEL dans l'URL: {BASE_URL}/{CODE_MODEL}/v1
         code_model = model_name if model_name else "mistral-small"
         clean_base_url = base_url.rstrip('/')
-        full_url = f"{clean_base_url}/{code_model}/v1"
+        
+        # Smart URL logic : respecte l'URL complète si fournie
+        if "/v1" in clean_base_url:
+            full_url = clean_base_url
+        else:
+            full_url = f"{clean_base_url}/{code_model}/v1"
         
         try:
             client = OpenAI(api_key=api_key, base_url=full_url)
@@ -929,7 +933,7 @@ Partie 2 : Synthèse à exporter
             )
             return response.choices[0].message.content
         except Exception as e:
-            return f"Erreur IAKA (Model: {code_model}): {str(e)}"
+            return f"Erreur IAKA (Model: {code_model}, URL: {full_url}): {str(e)}"
 
     def _call_gemini(self, api_key, system_prompt, user_message):
         """Appelle l'API Google Gemini."""

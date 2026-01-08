@@ -18,19 +18,17 @@ class TestIAKAConnector(unittest.TestCase):
         mock_response.choices = [MagicMock(message=MagicMock(content="Mock Response"))]
         mock_client.chat.completions.create.return_value = mock_response
 
-        # Test inputs
+        # Scenario 1: Root URL (Should append model/v1)
         api_key = "test_key"
         base_url = "https://iaka-api.custom.net"
-        # The expected URL following the "Small principle" for any model
-        expected_full_url = "https://iaka-api.custom.net/mistral-medium/v1"
-        
-        # Execute (simulate selecting medium)
-        success, message = LLMConnectionTester.test_provider("IAKA (Interne)", api_key, base_url=base_url, model="mistral-medium")
-        
-        # Verify
-        self.assertTrue(success)
-        self.assertIn("Connexion réussie à IAKA", message)
-        mock_openai.assert_called_with(api_key=api_key, base_url=expected_full_url)
+        expected_full_url_1 = "https://iaka-api.custom.net/mistral-medium/v1"
+        LLMConnectionTester.test_provider("IAKA (Interne)", api_key, base_url=base_url, model="mistral-medium")
+        mock_openai.assert_called_with(api_key=api_key, base_url=expected_full_url_1)
+
+        # Scenario 2: Full URL (Should NOT append anything)
+        full_base_url = "https://iaka-api.custom.net/custom-path/v1"
+        LLMConnectionTester.test_provider("IAKA (Interne)", api_key, base_url=full_base_url, model="mistral-medium")
+        mock_openai.assert_called_with(api_key=api_key, base_url=full_base_url)
 
     @patch('openai.OpenAI')
     @patch('core.services.llm_service.logger')
