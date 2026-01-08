@@ -511,14 +511,14 @@ class LLMService:
             return False, f"Erreur Provider Compatible: {str(e)}"
 
     @staticmethod
-    def test_iaka(api_key: str, base_url: str, model_name: str = "mistral-small") -> Tuple[bool, str]:
+    def test_iaka(api_key: str, base_url: str, code_model: str = "mistral-small") -> Tuple[bool, str]:
         """
         Test de connexion au connector IAKA.
         
         Args:
             api_key: Clé API
             base_url: URL de base de l'API (ex: https://iaka-api...)
-            model_name: Nom du modèle (défaut: mistral-small)
+            code_model: Nom du modèle (défaut: mistral-small)
             
         Returns:
             Tuple (succès: bool, message: str)
@@ -529,28 +529,22 @@ class LLMService:
             if not base_url:
                 return False, "URL de base (Endpoint) manquante."
             
-            # Construction de l'URL spécifique IAKA
-            # Structure : {BASE_URL}/{CODE_MODEL}/v1
-            if not model_name:
-                model_name = "mistral-small"
+            # Principe IAKA : {BASE_URL}/{CODE_MODEL}/v1
+            if not code_model:
+                code_model = "mistral-small"
             
-            # Nettoyage de l'URL de base (retirer le slash final si présent)
             clean_base_url = base_url.rstrip('/')
+            full_url = f"{clean_base_url}/{code_model}/v1"
             
-            # Construction de l'URL complète
-            full_url = f"{clean_base_url}/{model_name}/v1"
-            
-            logger.info(f"[IAKA] Testing connection - BaseURL: {base_url}, Model: {model_name}")
-            logger.info(f"[IAKA] Constructed Full URL: {full_url}")
+            logger.info(f"[IAKA] Testing connection - URL: {full_url}, Model: {code_model}")
             
             client = OpenAI(
                 api_key=api_key,
                 base_url=full_url
             )
             
-            # Requête simple pour tester
             response = client.chat.completions.create(
-                model=model_name,
+                model=code_model,
                 messages=[{"role": "user", "content": "Hello"}],
                 temperature=0.1,
                 top_p=1,
@@ -559,11 +553,10 @@ class LLMService:
             )
             
             content = response.choices[0].message.content if response.choices else ""
-            
-            return True, f"Connexion réussie à IAKA !\nURL: {full_url}\nModèle: {model_name}\nRéponse: {content}"
+            return True, f"Connexion réussie à IAKA !\nURL: {full_url}\nModèle: {code_model}\nRéponse: {content}"
             
         except Exception as e:
-            return False, f"Erreur IAKA: {str(e)}"
+            return False, f"Erreur IAKA (Model: {code_model}): {str(e)}"
 
     @classmethod
     def test_provider(cls, provider_name: str, api_key: str, **kwargs: Any) -> Tuple[bool, str]:
@@ -645,18 +638,17 @@ class LLMService:
         elif "IAKA" in provider_name:
             # Handle IAKA specifically
             base_url = kwargs.pop('base_url', None)
-            model_name = kwargs.pop('model', 'mistral-small')
+            code_model = kwargs.pop('model', 'mistral-small')
             
             if not base_url:
                 return False, "Endpoint manquant pour IAKA"
                 
             clean_base_url = base_url.rstrip('/')
-            full_url = f"{clean_base_url}/{model_name}/v1"
+            # On conserve le principe du modèle small ( /{code_model}/v1 )
+            full_url = f"{clean_base_url}/{code_model}/v1"
             
-            logger.info(f"[IAKA] Generating response - BaseURL: {base_url}, Model: {model_name}")
-            logger.info(f"[IAKA] Constructed Full URL: {full_url}")
-
-            return cls.generate_openai_compatible(api_key, messages, base_url=full_url, model=model_name, **kwargs)
+            logger.info(f"[IAKA] Generating response - URL: {full_url}, Model: {code_model}")
+            return cls.generate_openai_compatible(api_key, messages, base_url=full_url, model=code_model, **kwargs)
         
         return False, f"Provider {provider_name} non supporté pour la génération."
 
@@ -707,14 +699,11 @@ class LLMService:
                  # Try to list models if supported
                  try:
                      clean_base_url = base_url.rstrip('/')
-                     # Assume standardized /v1 or similar if not provided, 
-                     # but standard OpenAI client handles this if base_url is correct root.
-                     logger.info(f"[IAKA] Fetching models - BaseURL: {clean_base_url}")
                      models = LLMService._fetch_openai_models(api_key, base_url=clean_base_url)
-                     logger.info(f"[IAKA] Models found: {models}")
                      return models
                  except:
-                     return ["mistral-small", "mistral-medium", "mistral-large"] # Fallback
+                     # Fallback matching user requirement
+                     return ["mistral-small", "mistral-medium", "mistral-large"]
 
             return ["Modèle par défaut"]
         except Exception as e:

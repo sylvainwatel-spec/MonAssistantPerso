@@ -908,31 +908,28 @@ Partie 2 : Synthèse à exporter
             return f"Erreur lors de l'appel à l'API compatible : {str(e)}"
 
     def _call_iaka(self, api_key, base_url, system_prompt, user_message, model_name="mistral-small"):
-        """Appelle le connector IAKA avec sa configuration spécifique."""
+        """Appelle le connector IAKA avec le principe du modèle small."""
         from openai import OpenAI
         
-        # URL spécifique pour IAKA : {BASE_URL}/{CODE_MODEL}/v1
-        if not model_name:
-            model_name = "mistral-small"
+        # Le principe IAKA est d'inclure le CODE_MODEL dans l'URL: {BASE_URL}/{CODE_MODEL}/v1
+        code_model = model_name if model_name else "mistral-small"
         clean_base_url = base_url.rstrip('/')
-        full_url = f"{clean_base_url}/{model_name}/v1"
+        full_url = f"{clean_base_url}/{code_model}/v1"
         
-        client = OpenAI(
-            api_key=api_key,
-            base_url=full_url
-        )
-        
-        response = client.chat.completions.create(
-            model=model_name,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message}
-            ],
-            temperature=0.7,
-            max_tokens=4000
-        )
-        
-        return response.choices[0].message.content
+        try:
+            client = OpenAI(api_key=api_key, base_url=full_url)
+            response = client.chat.completions.create(
+                model=code_model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message}
+                ],
+                temperature=0.7,
+                max_tokens=4000
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            return f"Erreur IAKA (Model: {code_model}): {str(e)}"
 
     def _call_gemini(self, api_key, system_prompt, user_message):
         """Appelle l'API Google Gemini."""

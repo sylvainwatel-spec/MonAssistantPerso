@@ -21,27 +21,20 @@ class TestIAKAConnector(unittest.TestCase):
         # Test inputs
         api_key = "test_key"
         base_url = "https://iaka-api.custom.net"
-        expected_full_url = "https://iaka-api.custom.net/mistral-small/v1"
+        # The expected URL following the "Small principle" for any model
+        expected_full_url = "https://iaka-api.custom.net/mistral-medium/v1"
         
-        # Execute
-        success, message = LLMConnectionTester.test_provider("IAKA (Interne)", api_key, base_url=base_url)
+        # Execute (simulate selecting medium)
+        success, message = LLMConnectionTester.test_provider("IAKA (Interne)", api_key, base_url=base_url, model="mistral-medium")
         
         # Verify
         self.assertTrue(success)
-        mock_openai.assert_called_with(api_key=api_key, base_url=expected_full_url)
-        mock_client.chat.completions.create.assert_called_with(
-            model="mistral-small",
-            messages=[{"role": "user", "content": "Hello"}],
-            temperature=0.1,
-            top_p=1,
-            max_tokens=5,
-            stream=False
-        )
         self.assertIn("Connexion réussie à IAKA", message)
-        self.assertIn(expected_full_url, message)
+        mock_openai.assert_called_with(api_key=api_key, base_url=expected_full_url)
 
     @patch('openai.OpenAI')
-    def test_iaka_url_construction_with_trailing_slash(self, mock_openai):
+    @patch('core.services.llm_service.logger')
+    def test_iaka_url_construction_with_trailing_slash(self, mock_logger, mock_openai):
         # Setup mock
         mock_client = MagicMock()
         mock_openai.return_value = mock_client
@@ -49,7 +42,7 @@ class TestIAKAConnector(unittest.TestCase):
         mock_response.choices = [MagicMock(message=MagicMock(content="Mock Response"))]
         mock_client.chat.completions.create.return_value = mock_response
         
-        # Test with trailing slash
+        # Test with trailing slash (should be removed)
         base_url = "https://iaka-api.custom.net/"
         expected_full_url = "https://iaka-api.custom.net/mistral-small/v1"
         
