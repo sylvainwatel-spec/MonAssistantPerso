@@ -215,16 +215,29 @@ class ChatConnectorFrame(ctk.CTkFrame):
         self.btn_show_hide = ctk.CTkButton(key_frame, text="👁️", width=40, font=("Arial", 12), fg_color=("gray70", "gray30"), command=self.toggle_key_visibility)
         self.btn_show_hide.pack(side="left", padx=(0, 20))
 
-        # --- Endpoint (IAKA/DeepSeek) --- 
+        # --- Endpoint (IAKA/DeepSeek/OpenAI) --- 
         self.entry_endpoint = None
         if "IAKA" in self.selected_provider or "DeepSeek" in self.selected_provider or "OpenAI" in self.selected_provider: 
-            # Allow base_url override for OpenAI compatible providers too if needed, but mainly IAKA
             ep_frame = ctk.CTkFrame(self.detail_panel)
             ep_frame.pack(fill="x", pady=10)
             ctk.CTkLabel(ep_frame, text="Endpoint URL", font=("Arial", 12, "bold")).pack(anchor="w", padx=20, pady=(15, 5))
             current_ep = self.endpoints.get(self.selected_provider, "")
-            self.entry_endpoint = ctk.CTkEntry(ep_frame, width=400)
-            self.entry_endpoint.insert(0, current_ep)
+            
+            if "IAKA" in self.selected_provider:
+                # Quick-select for IAKA from documentation table
+                iaka_urls = [
+                    "https://iaka-api.apps.ocp4.on-prem.innershift.ssghosting.net/mistral-small/v1",
+                    "https://iaka-api.apps.ocp4.on-prem.innershift.ssghosting.net/mistral-medium/v1",
+                    "https://iaka-api.apps.ocp4.on-prem.innershift.ssghosting.net/mistral-large/v1",
+                    "https://iaka-api.apps.ocp4.on-prem.innershift.ssghosting.net/qwen-3-next-80b/v1",
+                    "https://iaka-api.apps.ocp4.on-prem.innershift.ssghosting.net/embeddings-gte-multilingual-base/v1"
+                ]
+                self.entry_endpoint = ctk.CTkComboBox(ep_frame, width=400, values=iaka_urls)
+                self.entry_endpoint.set(current_ep if current_ep else iaka_urls[0])
+            else:
+                self.entry_endpoint = ctk.CTkEntry(ep_frame, width=400)
+                self.entry_endpoint.insert(0, current_ep)
+                
             self.entry_endpoint.pack(side="left", padx=20, pady=5, fill="x", expand=True)
 
         # --- Model Selector ---
