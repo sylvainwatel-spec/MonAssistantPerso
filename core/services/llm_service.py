@@ -693,7 +693,7 @@ class LLMService:
                  # Try to list models if supported
                  base_url = kwargs.get('base_url', '')
                  if not base_url:
-                     return ["mistral-small", "mistral-medium", "mistral-large"]
+                     return ["mistral-small", "mistral-medium", "mistral-large", "qwen-3-next-80b"]
                  
                  clean_base_url = base_url.rstrip('/')
                  discovery_urls = [clean_base_url, f"{clean_base_url}/v1"]
@@ -709,8 +709,8 @@ class LLMService:
                         logger.warning(f"[IAKA] Discovery failed at {d_url}: {str(e)}")
                         continue
                 
-                 # Fallback matching user requirement + variants to help discovery
-                 return ["mistral-small", "mistral-medium", "mistral-large", "mistral-medium-latest", "mistral-large-latest"]
+                 # Fallback matching exactly the user's documentation table
+                 return ["mistral-small", "mistral-medium", "mistral-large", "qwen-3-next-80b"]
 
             return ["Modèle par défaut"]
         except Exception as e:
