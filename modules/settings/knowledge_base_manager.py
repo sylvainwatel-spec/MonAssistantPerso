@@ -476,14 +476,44 @@ class KnowledgeBaseManagerFrame(ctk.CTkFrame):
             command=self.import_file
         )
         btn_browse_file.pack(anchor="w", padx=20, pady=(0, 15))
+
+        # --- LLM Selection for Summary ---
+        llm_frame = ctk.CTkFrame(
+            self.content_frame,
+            fg_color=("gray95", "gray20"),
+            corner_radius=12
+        )
+        llm_frame.grid(row=4, column=0, sticky="ew", pady=10)
         
+        ctk.CTkLabel(
+            llm_frame,
+            text="🤖 Modèle pour le Résumé Automatique",
+            font=("Arial", 14, "bold")
+        ).pack(anchor="w", padx=20, pady=(15, 5))
+        
+        ctk.CTkLabel(
+            llm_frame,
+            text="Sera utilisé pour générer une description détaillée de chaque document.",
+            font=("Arial", 11),
+            text_color="gray"
+        ).pack(anchor="w", padx=20)
+        
+        self.var_provider = ctk.StringVar(value="")
+        self.combo_provider = ctk.CTkOptionMenu(llm_frame, variable=self.var_provider, values=[])
+        self.combo_provider.pack(anchor="w", padx=20, pady=10, fill="x")
+        self.update_provider_list()
+        
+        # Output info
+        self.lbl_llm_info = ctk.CTkLabel(llm_frame, text="", text_color="orange")
+        self.lbl_llm_info.pack(anchor="w", padx=20, pady=(0, 15))
+
         # Progress frame
         self.progress_frame = ctk.CTkFrame(
             self.content_frame,
             fg_color=("gray95", "gray20"),
             corner_radius=12
         )
-        self.progress_frame.grid(row=4, column=0, sticky="ew", pady=10)
+        self.progress_frame.grid(row=5, column=0, sticky="ew", pady=10)
         
         self.progress_label = ctk.CTkLabel(
             self.progress_frame,
@@ -502,9 +532,54 @@ class KnowledgeBaseManagerFrame(ctk.CTkFrame):
             fg_color=("gray95", "gray20"),
             corner_radius=12
         )
-        self.stats_frame.grid(row=5, column=0, sticky="ew", pady=10)
+        self.stats_frame.grid(row=6, column=0, sticky="ew", pady=10)
         
         self.update_stats_display(kb)
+
+    def update_provider_list(self):
+        # reuse logic from other views or just get keys
+        settings = self.data_manager.get_settings()
+        api_keys = settings.get("api_keys", {})
+        endpoints = settings.get("endpoints", {})
+        
+        OFFICIAL_PROVIDERS = [
+            "OpenAI", "Google Gemini", "Anthropic Claude", "Groq", 
+            "Mistral AI", "Hugging Face", "DeepSeek", "IAKA (Interne)"
+        ]
+        
+        available = []
+        for p in OFFICIAL_PROVIDERS:
+            # Check API Key
+            has_key = p in api_keys and api_keys[p]
+            # Check Endpoint (only relevant for IAKA/OpenAI Compatible usually, or if specific endpoint set)
+            has_endpoint = p in endpoints and endpoints[p]
+            
+            # IAKA typically needs an endpoint. If endpoint exists, we consider it available (key might be optional/shared)
+            if p == "IAKA (Interne)" and has_endpoint:
+                available.append(p)
+            elif has_key:
+                available.append(p)
+                
+        if not available: available = ["Aucun (Pas de résumé)"]
+        
+        self.combo_provider.configure(values=available)
+        
+        # Default
+        if "IAKA (Interne)" in available:
+            self.var_provider.set("IAKA (Interne)")
+        elif "OpenAI" in available:
+            self.var_provider.set("OpenAI")
+        elif available:
+            self.var_provider.set(available[0])
+            
+    def get_selected_provider_info(self):
+        provider = self.var_provider.get()
+        if provider == "Aucun (Pas de résumé)" or not provider:
+            return None, None
+            
+        settings = self.data_manager.get_settings()
+        api_key = settings.get("api_keys", {}).get(provider)
+        return provider, api_key
     
     def update_stats_display(self, kb: dict):
         """Update statistics display."""
@@ -536,9 +611,11 @@ class KnowledgeBaseManagerFrame(ctk.CTkFrame):
             return
         
         # Start ingestion in background thread
+        provider, api_key = self.get_selected_provider_info()
+        
         thread = threading.Thread(
             target=self._ingest_folder_thread,
-            args=(folder_path,),
+            args=(folder_path, provider, api_key),
             daemon=True
         )
         thread.start()
@@ -559,25 +636,45 @@ class KnowledgeBaseManagerFrame(ctk.CTkFrame):
             return
         
         # Start ingestion in background thread
+        provider, api_key = self.get_selected_provider_info()
+        
         thread = threading.Thread(
             target=self._ingest_file_thread,
-            args=(file_path,),
+            args=(file_path, provider, api_key),
             daemon=True
         )
         thread.start()
     
-    def _ingest_folder_thread(self, folder_path: str):
+
+    def _ingest_folder_thread(self, folder_path: str, provider: str, api_key: str):
         """Ingest folder in background thread."""
         def progress_callback(message: str, progress: float):
             self.progress_label.configure(text=message)
             self.progress_bar.set(progress)
         
         try:
+            import datetime
+            import uuid
+            
             result = self.ingestion_service.ingest_folder(
                 self.current_kb_id,
                 folder_path,
-                progress_callback
+                progress_callback,
+                provider=provider,
+                api_key=api_key
             )
+            
+            # Save metadata for each file
+            if result.get("summaries"):
+                for fpath, summary in result["summaries"].items():
+                    fname = os.path.basename(fpath)
+                    doc_meta = {
+                        "id": str(uuid.uuid4()),
+                        "name": fname,
+                        "summary": summary,
+                        "added_at": datetime.datetime.now().isoformat()
+                    }
+                    self.data_manager.add_document_to_kb(self.current_kb_id, doc_meta)
             
             # Update stats
             kb = self.data_manager.get_knowledge_base_by_id(self.current_kb_id)
@@ -606,20 +703,47 @@ class KnowledgeBaseManagerFrame(ctk.CTkFrame):
                     f"Indexation terminée avec des erreurs:\n" + "\n".join(result["errors"][:5])
                 )
         except Exception as e:
-            messagebox.showerror("Erreur", f"Erreur lors de l'indexation: {str(e)}")
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error in folder ingestion: {error_details}")
+            
+            self.progress_label.configure(text=f"Erreur: {str(e)}")
+            self.progress_bar.set(0)
+            
+            # Safe GUI update from thread
+            self.after(0, lambda: messagebox.showerror(
+                "Erreur d'indexation", 
+                f"Une erreur est survenue lors de l'indexation du dossier:\n{str(e)}\n\nConsultez la console pour plus de détails."
+            ))
     
-    def _ingest_file_thread(self, file_path: str):
+    def _ingest_file_thread(self, file_path: str, provider: str, api_key: str):
         """Ingest file in background thread."""
         def progress_callback(message: str, progress: float):
             self.progress_label.configure(text=message)
             self.progress_bar.set(progress)
         
         try:
+            import datetime
+            import uuid
+            
             result = self.ingestion_service.ingest_file(
                 self.current_kb_id,
                 file_path,
-                progress_callback
+                progress_callback,
+                provider=provider,
+                api_key=api_key
             )
+            
+            # Save metadata
+            if result.get("success"):
+                fname = os.path.basename(file_path)
+                doc_meta = {
+                    "id": str(uuid.uuid4()),
+                    "name": fname,
+                    "summary": result.get("summary", ""),
+                    "added_at": datetime.datetime.now().isoformat()
+                }
+                self.data_manager.add_document_to_kb(self.current_kb_id, doc_meta)
             
             # Update stats
             kb = self.data_manager.get_knowledge_base_by_id(self.current_kb_id)
@@ -635,12 +759,39 @@ class KnowledgeBaseManagerFrame(ctk.CTkFrame):
             
             # Refresh display
             kb = self.data_manager.get_knowledge_base_by_id(self.current_kb_id)
+            self.update_stats_display(kb) # Safe? No, update_stats_display touches GUI. Should use after.
+            # Actually update_stats_display uses .pack/destroy which must be in main thread.
+            # My previous code was unsafe! Fixing it now.
+            self.after(0, lambda: self.update_stats_display(kb))
+            
+            if result["success"]:
+                self.after(0, lambda: messagebox.showinfo("Succès", f"Fichier indexé avec succès !\nSummary: {result.get('summary', 'N/A')[:50]}..."))
+                self.progress_label.configure(text="Indexation terminée")
+                self.progress_bar.set(1.0)
+            else:
+                self.after(0, lambda: messagebox.showwarning("Attention", f"Erreur lors de l'indexation:\n{'; '.join(result['errors'])}"))
+                self.progress_label.configure(text="Erreur d'indexation")
+                self.progress_bar.set(0)
+
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error in file ingestion: {error_details}")
+            
+            self.progress_label.configure(text=f"Erreur: {str(e)}")
+            self.progress_bar.set(0)
+            
+            # Safe GUI update
+            self.after(0, lambda: messagebox.showerror(
+                "Erreur d'indexation", 
+                f"Une erreur est survenue lors de l'indexation du fichier:\n{str(e)}"
+            ))
             self.update_stats_display(kb)
             
             if result["success"]:
                 messagebox.showinfo(
                     "Succès",
-                    f"Fichier indexé !\n{result['chunks_created']} chunks créés"
+                    f"Fichier indexé !\n{result['chunks_created']} chunks créés\nRésumé généré."
                 )
             else:
                 messagebox.showerror(

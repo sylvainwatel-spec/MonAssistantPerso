@@ -310,3 +310,23 @@ class DataManager:
         for kb in knowledge_bases:
             if kb["id"] == kb_id: return kb
         return None
+
+    def add_document_to_kb(self, kb_id: str, doc_metadata: Dict[str, Any]) -> None:
+        """
+        Add a document metadata entry to a knowledge base.
+        doc_metadata should contain: id, name, summary, added_at
+        """
+        knowledge_bases = self.get_all_knowledge_bases()
+        found = False
+        for kb in knowledge_bases:
+            if kb["id"] == kb_id:
+                if "documents" not in kb:
+                    kb["documents"] = []
+                kb["documents"].append(doc_metadata)
+                kb["updated_at"] = datetime.datetime.now().isoformat()
+                found = True
+                break
+        
+        if found:
+            with open(self.knowledge_bases_path, 'w', encoding='utf-8') as f:
+                json.dump(knowledge_bases, f, indent=4)

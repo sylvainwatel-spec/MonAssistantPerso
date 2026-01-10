@@ -43,7 +43,9 @@ class DocumentIngestionService:
         self,
         kb_id: str,
         file_path: str,
-        progress_callback: Optional[Callable[[str, float], None]] = None
+        progress_callback: Optional[Callable[[str, float], None]] = None,
+        provider: str = None,
+        api_key: str = None
     ) -> Dict:
         """
         Ingest a single file into a knowledge base.
@@ -51,10 +53,12 @@ class DocumentIngestionService:
         Args:
             kb_id: Knowledge base identifier
             file_path: Path to the file to ingest
-            progress_callback: Optional callback(status_message, progress_percent)
+            progress_callback: Optional callback
+            provider: LLM Provider for summary generation (Optional)
+            api_key: API Key for summary generation (Optional)
             
         Returns:
-            Dict with 'success', 'chunks_created', 'errors'
+            Dict with 'success', 'chunks_created', 'errors', 'summary'
         """
         try:
             if progress_callback:
@@ -70,6 +74,36 @@ class DocumentIngestionService:
                     "chunks_created": 0,
                     "errors": [f"No text content in {file_path}"]
                 }
+
+            # Generate Summary (if provider provided)
+            summary = ""
+            if provider and api_key and text:
+                if progress_callback:
+                    progress_callback(f"Generating summary for {os.path.basename(file_path)}...", 0.2)
+                
+                try:
+                    from core.services.llm_service import LLMService
+                    # Truncate text for summary generation to avoid token limits (e.g., first 15k chars ~ 3-4k tokens)
+                    # We want a detailed summary, so we give enough context.
+                    summary_context = text[:20000] 
+                    
+                    prompt = [
+                        {"role": "system", "content": "Tu es un analyste expert francophone. Ta tâche est de réaliser une EXTRACTION EXHAUSTIVE ET STRUCTURÉE des informations du document suivant, EN FRANÇAIS. \n\nOBJECTIF : Capturer un MAXIMUM de détails (Noms, Dates Chiffrés, Concepts techniques, Décisions, Actions). Ne fais pas de synthèse excessive, privilégie la densité d'information.\n\nSTRUCTURE ATTENDUE :\n1. 📋 MÉTADONNÉES : Titre exact, Auteur/Source, Date, Type de document.\n2. 🔍 ANALYSE APPROFONDIE : Résumé exécutif complet, préservant la chronologie et la logique.\n3. 🗝️ POINTS CLÉS : Liste des arguments, décisions ou faits majeurs.\n4. 💡 CONCEPTS & ENTITÉS : Tous les noms propres, termes techniques, et chiffres importants cités.\n\nATTENTION: TA RÉPONSE DOIT ÊTRE EXCLUSIVEMENT EN FRANÇAIS."},
+                        {"role": "user", "content": f"Voici le début du document :\n\n{summary_context}\n\n---\nGénère l'analyse exhaustive maintenant (en Français)."}
+                    ]
+                    
+                    # We assume standard generation
+                    success, resp = LLMService.generate_response(provider, api_key, prompt)
+                    if success:
+                        summary = resp
+                        logger.info(f"Summary generated for {file_path}")
+                    else:
+                        logger.warning(f"Failed to generate summary: {resp}")
+                        summary = "Résumé non disponible (Erreur génération)"
+                        
+                except Exception as e:
+                    logger.error(f"Error generating summary: {e}")
+                    summary = f"Erreur de génération: {e}"
             
             if progress_callback:
                 progress_callback(f"Chunking {os.path.basename(file_path)}...", 0.3)
@@ -112,7 +146,8 @@ class DocumentIngestionService:
             return {
                 "success": True,
                 "chunks_created": len(chunks),
-                "errors": []
+                "errors": [],
+                "summary": summary
             }
             
         except Exception as e:
@@ -128,7 +163,9 @@ class DocumentIngestionService:
         self,
         kb_id: str,
         folder_path: str,
-        progress_callback: Optional[Callable[[str, float], None]] = None
+        progress_callback: Optional[Callable[[str, float], None]] = None,
+        provider: str = None,
+        api_key: str = None
     ) -> Dict:
         """
         Ingest all supported files in a folder recursively.
@@ -136,10 +173,12 @@ class DocumentIngestionService:
         Args:
             kb_id: Knowledge base identifier
             folder_path: Path to the folder
-            progress_callback: Optional callback(status_message, progress_percent)
+            progress_callback: Optional callback
+            provider: LLM Provider for summary (Optional)
+            api_key: API Key (Optional)
             
         Returns:
-            Dict with 'success', 'files_processed', 'chunks_created', 'errors'
+            Dict with 'success', 'files_processed', 'chunks_created', 'errors', 'summaries'
         """
         supported_extensions = {'.pdf', '.docx', '.txt'}
         
@@ -162,6 +201,7 @@ class DocumentIngestionService:
         
         total_chunks = 0
         errors = []
+        file_summaries = {} # Map file_path -> summary
         
         for i, file_path in enumerate(files_to_process):
             # Update progress
@@ -173,10 +213,11 @@ class DocumentIngestionService:
                 )
             
             # Ingest file
-            result = self.ingest_file(kb_id, file_path)
+            result = self.ingest_file(kb_id, file_path, provider=provider, api_key=api_key)
             
             if result["success"]:
                 total_chunks += result["chunks_created"]
+                file_summaries[file_path] = result.get("summary", "")
             else:
                 errors.extend(result["errors"])
         
@@ -187,7 +228,8 @@ class DocumentIngestionService:
             "success": len(errors) == 0,
             "files_processed": len(files_to_process),
             "chunks_created": total_chunks,
-            "errors": errors
+            "errors": errors,
+            "summaries": file_summaries
         }
     
     def _extract_text(self, file_path: str) -> str:

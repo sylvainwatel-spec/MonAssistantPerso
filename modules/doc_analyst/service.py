@@ -113,10 +113,34 @@ Réponds aux questions de l'utilisateur en te basant UNIQUEMENT sur ces document
         messages.append({"role": "user", "content": user_question})
 
         # Call LLM Service
+        # Call LLM Service
         if kb_id and kb_id != "None":
+            # Fetche KB Global Summary if available
+            global_context = ""
+            try:
+                kb = self.data_manager.get_knowledge_base_by_id(kb_id)
+                if kb and "documents" in kb:
+                    summaries = []
+                    for doc in kb["documents"]:
+                        name = doc.get("name", "Document inconnu")
+                        summary = doc.get("summary", "Pas de résumé disponible")
+                        summaries.append(f"Document : {name}\nRésumé : {summary}")
+                    
+                    if summaries:
+                        global_context = "\n\n".join(summaries)
+            except Exception as e:
+                print(f"Error fetching KB summaries: {e}")
+
             # Use RAG with KB
             # The RAG service will append KB context to the system prompt (which already holds document context)
-            success, response = LLMService.generate_response_with_rag(actual_provider, api_key, messages, kb_id, **kwargs)
+            success, response = LLMService.generate_response_with_rag(
+                actual_provider, 
+                api_key, 
+                messages, 
+                kb_id, 
+                global_context=global_context,
+                **kwargs
+            )
         else:
             # Standard Call
             success, response = LLMService.generate_response(actual_provider, api_key, messages, **kwargs)

@@ -660,6 +660,7 @@ class LLMService:
         messages: List[Dict[str, str]],
         kb_id: str,
         top_k: int = 5,
+        global_context: str = "",
         **kwargs
     ) -> Tuple[bool, str]:
         """
@@ -705,33 +706,41 @@ class LLMService:
             vector_store = VectorStoreService()
             results = vector_store.search(kb_id, query_embedding, top_k=top_k)
             
-            if not results:
+            if not results and not global_context:
                 # No relevant context found, add a note to the system prompt
                 augmented_system = """Tu es un assistant expert. 
                 
 Je n'ai pas trouvé d'informations pertinentes dans la base de connaissances pour cette question.
 Réponds en te basant sur tes connaissances générales, mais précise que tu n'as pas de documentation spécifique sur ce sujet."""
             else:
-                # Build context from retrieved chunks
+                # Build context
                 context_parts = []
-                for i, result in enumerate(results, 1):
-                    source_file = result['metadata'].get('source_file', 'Unknown')
-                    page = result['metadata'].get('page', 'N/A')
-                    text = result['text']
-                    
-                    context_parts.append(
-                        f"[Document {i}: {source_file} (page {page})]\n{text}"
-                    )
+                
+                # Add Global Summary Context (Priority 1)
+                if global_context:
+                    context_parts.append(f"[RÉSUMÉ GLOBAL DES DOCUMENTS]\n{global_context}")
+                
+                # Add Retrieved Chunks (Priority 2)
+                if results:
+                    context_parts.append(f"[EXTRAITS PERTINENTS ({len(results)})]")
+                    for i, result in enumerate(results, 1):
+                        source_file = result['metadata'].get('source_file', 'Unknown')
+                        page = result['metadata'].get('page', 'N/A')
+                        text = result['text']
+                        
+                        context_parts.append(
+                            f"[Extrait {i}: {source_file} (page {page})]\n{text}"
+                        )
                 
                 context = "\n\n".join(context_parts)
                 
                 # Build augmented system prompt
                 augmented_system = f"""Tu es un assistant expert. Utilise UNIQUEMENT les informations suivantes pour répondre à la question de l'utilisateur.
-
+                
 [CONTEXTE DOCUMENTAIRE]
 {context}
 [/CONTEXTE]
-
+                
 Instructions importantes:
 - Base ta réponse UNIQUEMENT sur le contexte fourni ci-dessus
 - Si la réponse n'est pas dans le contexte, dis clairement "Je n'ai pas trouvé cette information dans la documentation disponible"
