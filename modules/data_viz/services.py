@@ -5,6 +5,10 @@ import re
 import sys
 import traceback
 
+# Configure matplotlib backend before importing pyplot
+import matplotlib
+matplotlib.use("Agg")
+
 from core.services.llm_service import LLMService
 
 class DataAnalysisService:
@@ -128,7 +132,7 @@ class DataAnalysisService:
         
         return fig
 
-    def analyze_with_llm(self, provider_override: Optional[str] = None) -> str:
+    def analyze_with_llm(self, provider_override: Optional[str] = None, kb_id: Optional[str] = None) -> str:
         """Send data summary to LLM for qualitative analysis."""
         if self.df is None:
             return "Aucune donnée à analyser."
@@ -173,13 +177,24 @@ class DataAnalysisService:
             {"role": "user", "content": f"Voici les données:\n{stats_summary}"}
         ]
 
-        success, response = LLMService.generate_response(
-            provider_name=provider,
-            api_key=api_key,
-            messages=messages,
-            base_url=settings.get("endpoints", {}).get(provider),
-            model=settings.get("models", {}).get(provider)
-        )
+        # Call LLM Service
+        if kb_id and kb_id != "None":
+             success, response = LLMService.generate_response_with_rag(
+                provider_name=provider,
+                api_key=api_key,
+                messages=messages,
+                kb_id=kb_id,
+                base_url=settings.get("endpoints", {}).get(provider),
+                model=settings.get("models", {}).get(provider)
+            )
+        else:
+            success, response = LLMService.generate_response(
+                provider_name=provider,
+                api_key=api_key,
+                messages=messages,
+                base_url=settings.get("endpoints", {}).get(provider),
+                model=settings.get("models", {}).get(provider)
+            )
 
         if success:
             return response
@@ -188,7 +203,7 @@ class DataAnalysisService:
                 return "Erreur Configuration: L'endpoint IAKA n'est pas configuré.\n\nVeuillez aller dans Administration > Connecteur Chat,\nsélectionner 'IAKA (Interne)' et entrer l'URL de l'endpoint."
             return f"Erreur lors de l'analyse LLM: {response}"
 
-    def generate_code_from_query(self, user_query: str, provider_override: Optional[str] = None) -> Tuple[str, Optional[str]]:
+    def generate_code_from_query(self, user_query: str, provider_override: Optional[str] = None, kb_id: Optional[str] = None) -> Tuple[str, Optional[str]]:
         """
         Step 1: Ask LLM to generate Python code to answer the query.
         Returns (code_str, error_message).
@@ -246,13 +261,23 @@ Instructions:
         
         messages = [{"role": "user", "content": prompt}]
         
-        success, response = LLMService.generate_response(
-            provider_name=provider,
-            api_key=api_key,
-            messages=messages,
-            base_url=settings.get("endpoints", {}).get(provider),
-            model=settings.get("models", {}).get(provider)
-        )
+        if kb_id and kb_id != "None":
+            success, response = LLMService.generate_response_with_rag(
+                provider_name=provider,
+                api_key=api_key,
+                messages=messages,
+                kb_id=kb_id,
+                base_url=settings.get("endpoints", {}).get(provider),
+                model=settings.get("models", {}).get(provider)
+            )
+        else:
+            success, response = LLMService.generate_response(
+                provider_name=provider,
+                api_key=api_key,
+                messages=messages,
+                base_url=settings.get("endpoints", {}).get(provider),
+                model=settings.get("models", {}).get(provider)
+            )
         
         if not success:
             return "", f"Erreur IA: {response}"

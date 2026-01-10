@@ -1,0 +1,26 @@
+{
+  "source_directories": [
+    "."
+  ],
+  "exclude": [
+    "chrome_persistent_profile",
+    "firefox_persistent_profile",
+    ".venv",
+    "venv_scrapegraph",
+    "build",
+    "dist",
+    "__pycache__",
+    "tests",
+    "scripts",
+    "conversations",
+    "vector_databases",
+    "resultats",
+    ".pytest_cache",
+    ".git",
+    "image"
+  ],
+  "ignore_all_errors": [
+    "tests",
+    "scripts"
+  ]
+}

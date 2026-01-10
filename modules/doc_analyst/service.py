@@ -33,10 +33,11 @@ class DocumentAnalysisService:
         except Exception as e:
             return False, f"Erreur de lecture: {str(e)}"
 
-    def chat_with_document(self, document_context: str, user_question: str, history: List[Dict[str, str]], provider: str) -> Tuple[bool, str]:
+    def chat_with_document(self, document_context: str, user_question: str, history: List[Dict[str, str]], provider: str, kb_id: str = None) -> Tuple[bool, str]:
         """
         Send context + history + question to LLM.
         Basic RAG-lite (Context Stuffing).
+        If kb_id is provided, uses RAG with Vector Store as well.
         """
         settings = self.data_manager.get_settings()
         api_keys = settings.get("api_keys", {})
@@ -112,7 +113,13 @@ Réponds aux questions de l'utilisateur en te basant UNIQUEMENT sur ces document
         messages.append({"role": "user", "content": user_question})
 
         # Call LLM Service
-        success, response = LLMService.generate_response(actual_provider, api_key, messages, **kwargs)
+        if kb_id and kb_id != "None":
+            # Use RAG with KB
+            # The RAG service will append KB context to the system prompt (which already holds document context)
+            success, response = LLMService.generate_response_with_rag(actual_provider, api_key, messages, kb_id, **kwargs)
+        else:
+            # Standard Call
+            success, response = LLMService.generate_response(actual_provider, api_key, messages, **kwargs)
 
         # Better Error Handling for Context Issues
         if not success:

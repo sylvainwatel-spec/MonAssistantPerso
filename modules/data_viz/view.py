@@ -98,7 +98,15 @@ class DataVizFrame(ctk.CTkFrame):
         self.var_profile = ctk.StringVar(value="Aucun")
         self.cmb_profile = ctk.CTkOptionMenu(left_panel, variable=self.var_profile, values=["Aucun"], command=self.on_profile_changed)
         self.cmb_profile.pack(pady=(5, 10), padx=20, fill="x")
+        self.cmb_profile.pack(pady=(5, 10), padx=20, fill="x")
         self.update_profile_list()
+
+        # Knowledge Base Selection
+        ctk.CTkLabel(left_panel, text="Base de Connaissances", font=("Arial", 12)).pack(pady=(5, 0))
+        self.var_kb = ctk.StringVar(value="Aucune")
+        self.cmb_kb = ctk.CTkOptionMenu(left_panel, variable=self.var_kb, values=["Aucune"])
+        self.cmb_kb.pack(pady=(5, 10), padx=20, fill="x")
+        self.update_kb_list()
 
         self.btn_analyze = ctk.CTkButton(left_panel, text="🤖 Analyser (IA)", command=self.run_analysis, state="disabled")
         self.btn_analyze.pack(pady=10, padx=20, fill="x")
@@ -159,6 +167,14 @@ class DataVizFrame(ctk.CTkFrame):
             profile = next((p for p in profiles if p["name"] == selected_name), None)
             if profile:
                 self.app.data_manager.set_module_profile("data_viz", profile["id"])
+
+    def update_kb_list(self):
+        """Met à jour la liste des bases de connaissances."""
+        kbs = self.app.data_manager.get_all_knowledge_bases()
+        kb_names = ["Aucune"] + [kb["name"] for kb in kbs]
+        self.kb_map = {kb["name"]: kb["id"] for kb in kbs}
+        self.cmb_kb.configure(values=kb_names)
+        self.var_kb.set("Aucune")
 
     def import_file(self):
         file_path = filedialog.askopenfilename(
@@ -223,7 +239,10 @@ class DataVizFrame(ctk.CTkFrame):
         
         def _target():
             selected_provider = self.cmb_provider.get()
-            result = self.service.analyze_with_llm(provider_override=selected_provider)
+            kb_name = self.var_kb.get()
+            kb_id = self.kb_map.get(kb_name) if hasattr(self, 'kb_map') and kb_name != "Aucune" else None
+            
+            result = self.service.analyze_with_llm(provider_override=selected_provider, kb_id=kb_id)
             self.analysis_result_text = result
             
             def _update():
@@ -297,7 +316,10 @@ class DataVizFrame(ctk.CTkFrame):
             provider = self.cmb_provider.get()
             
             def _thread_gen():
-                code, error = self.service.generate_code_from_query(query, provider_override=provider)
+                kb_name = self.var_kb.get()
+                kb_id = self.kb_map.get(kb_name) if hasattr(self, 'kb_map') and kb_name != "Aucune" else None
+
+                code, error = self.service.generate_code_from_query(query, provider_override=provider, kb_id=kb_id)
                 
                 def _ui_update():
                     btn_generate.configure(state="normal", text="Générer le Code")

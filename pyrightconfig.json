@@ -1,0 +1,35 @@
+{
+    "include": [
+        "main.py",
+        "core",
+        "modules",
+        "utils"
+    ],
+    "exclude": [
+        "**/__pycache__",
+        "**/*.pyc",
+        ".venv",
+        "venv_scrapegraph",
+        "build",
+        "dist",
+        "tests",
+        "scripts",
+        "conversations",
+        "vector_databases",
+        "resultats",
+        "chrome_persistent_profile",
+        "firefox_persistent_profile",
+        ".pytest_cache",
+        ".git",
+        "image"
+    ],
+    "ignore": [
+        "tests/**",
+        "scripts/**"
+    ],
+    "typeCheckingMode": "basic",
+    "reportMissingImports": true,
+    "reportMissingTypeStubs": false,
+    "pythonVersion": "3.11",
+    "pythonPlatform": "Windows"
+}

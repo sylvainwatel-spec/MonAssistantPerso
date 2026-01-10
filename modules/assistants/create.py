@@ -167,6 +167,33 @@ class CreateAssistantFrame(ctk.CTkFrame):
         self.provider_dropdown.grid(row=current_row, column=0, pady=(0, 20), sticky="w")
         current_row += 1
 
+        # Knowledge Base selection
+        ctk.CTkLabel(
+            self.scrollable_frame,
+            text="📚 Base de Connaissances (RAG)",
+            font=("Arial", 14, "bold")
+        ).grid(row=current_row, column=0, pady=(0, 5), sticky="w")
+        current_row += 1
+        
+        # Récupérer les KBs disponibles
+        kbs = self.app.data_manager.get_all_knowledge_bases()
+        kb_names = ["Aucune"] + [kb["name"] for kb in kbs]
+        self.kb_map = {kb["name"]: kb["id"] for kb in kbs}
+        
+        # Trouver la KB actuelle si en mode édition? (Pour l'instant create only, mais on va assumer default)
+        default_kb = "Aucune"
+        # TODO: Si on ajoute le mode édition plus tard, il faudra charger la valeur ici
+        
+        self.kb_var = ctk.StringVar(value=default_kb)
+        self.kb_dropdown = ctk.CTkOptionMenu(
+            self.scrollable_frame,
+            values=kb_names,
+            variable=self.kb_var,
+            width=400
+        )
+        self.kb_dropdown.grid(row=current_row, column=0, pady=(0, 20), sticky="w")
+        current_row += 1
+
         # Scraping Solution selection
         ctk.CTkLabel(
             self.scrollable_frame,
@@ -438,6 +465,10 @@ class CreateAssistantFrame(ctk.CTkFrame):
         url_instructions = self.text_url_instructions.get("1.0", "end-1c").strip()
         provider = self.provider_var.get()
         scraping_solution = self.scraping_solution_var.get()
+        
+        # Knowledge Base ID logic
+        kb_name = self.kb_var.get()
+        knowledge_base_id = self.kb_map.get(kb_name) if kb_name != "Aucune" else None
 
         # Validation
         if not name:
@@ -473,7 +504,8 @@ class CreateAssistantFrame(ctk.CTkFrame):
             provider=provider,
             scraping_solution=scraping_solution,
             profile_id=profile_id,
-            use_profile=use_profile
+            use_profile=use_profile,
+            knowledge_base_id=knowledge_base_id
         )
 
         # Mettre à jour le provider actif

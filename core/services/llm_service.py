@@ -650,6 +650,107 @@ class LLMService:
         
         return False, f"Provider {provider_name} non supporté pour la génération."
 
+    # --- RAG (Retrieval-Augmented Generation) Methods ---
+
+    @classmethod
+    def generate_response_with_rag(
+        cls,
+        provider_name: str,
+        api_key: str,
+        messages: List[Dict[str, str]],
+        kb_id: str,
+        top_k: int = 5,
+        **kwargs
+    ) -> Tuple[bool, str]:
+        """
+        Generate a response using RAG (Retrieval-Augmented Generation).
+        
+        Workflow:
+        1. Extract the user's question from messages
+        2. Search for relevant passages in the knowledge base
+        3. Inject passages into the system prompt as context
+        4. Call generate_response() normally
+        
+        Args:
+            provider_name: Name of the LLM provider
+            api_key: API key
+            messages: List of message dicts with 'role' and 'content'
+            kb_id: Knowledge base identifier
+            top_k: Number of relevant chunks to retrieve (default: 5)
+            **kwargs: Additional arguments for the LLM
+            
+        Returns:
+            Tuple (success: bool, content: str)
+        """
+        try:
+            from core.services.embedding_service import EmbeddingService
+            from core.services.vector_store_service import VectorStoreService
+            
+            # Extract the user's question (last user message)
+            user_question = None
+            for msg in reversed(messages):
+                if msg.get('role') == 'user':
+                    user_question = msg.get('content', '')
+                    break
+            
+            if not user_question:
+                # No user question found, fall back to normal generation
+                return cls.generate_response(provider_name, api_key, messages, **kwargs)
+            
+            # Generate embedding for the question
+            embedding_service = EmbeddingService()
+            query_embedding = embedding_service.embed_text(user_question)
+            
+            # Search in the knowledge base
+            vector_store = VectorStoreService()
+            results = vector_store.search(kb_id, query_embedding, top_k=top_k)
+            
+            if not results:
+                # No relevant context found, add a note to the system prompt
+                augmented_system = """Tu es un assistant expert. 
+                
+Je n'ai pas trouvé d'informations pertinentes dans la base de connaissances pour cette question.
+Réponds en te basant sur tes connaissances générales, mais précise que tu n'as pas de documentation spécifique sur ce sujet."""
+            else:
+                # Build context from retrieved chunks
+                context_parts = []
+                for i, result in enumerate(results, 1):
+                    source_file = result['metadata'].get('source_file', 'Unknown')
+                    page = result['metadata'].get('page', 'N/A')
+                    text = result['text']
+                    
+                    context_parts.append(
+                        f"[Document {i}: {source_file} (page {page})]\n{text}"
+                    )
+                
+                context = "\n\n".join(context_parts)
+                
+                # Build augmented system prompt
+                augmented_system = f"""Tu es un assistant expert. Utilise UNIQUEMENT les informations suivantes pour répondre à la question de l'utilisateur.
+
+[CONTEXTE DOCUMENTAIRE]
+{context}
+[/CONTEXTE]
+
+Instructions importantes:
+- Base ta réponse UNIQUEMENT sur le contexte fourni ci-dessus
+- Si la réponse n'est pas dans le contexte, dis clairement "Je n'ai pas trouvé cette information dans la documentation disponible"
+- Cite les sources (nom du document) quand tu utilises une information
+- Sois précis et factuel"""
+            
+            # Prepare augmented messages
+            # Remove existing system messages and add our augmented one
+            filtered_messages = [msg for msg in messages if msg.get('role') != 'system']
+            augmented_messages = [{"role": "system", "content": augmented_system}] + filtered_messages
+            
+            # Call normal generation with augmented context
+            return cls.generate_response(provider_name, api_key, augmented_messages, **kwargs)
+            
+        except Exception as e:
+            logger.error(f"Error in RAG generation: {e}")
+            # Fall back to normal generation on error
+            return cls.generate_response(provider_name, api_key, messages, **kwargs)
+
     # --- Model Fetching Methods ---
 
     @staticmethod

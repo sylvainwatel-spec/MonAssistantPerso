@@ -1,5 +1,4 @@
 from typing import Optional, Dict, Any, List, Union
-from playwright.sync_api import sync_playwright, Page, Browser, BrowserContext, Playwright
 from bs4 import BeautifulSoup
 import logging
 import time
@@ -26,8 +25,11 @@ class WebScraper:
         Returns:
             BeautifulSoup object du contenu ou None en cas d'erreur.
         """
-        playwright: Optional[Playwright] = None
-        browser: Optional[Browser] = None
+        # Lazy import playwright only when needed
+        from playwright.sync_api import sync_playwright
+        
+        playwright = None
+        browser = None
         
         try:
             playwright = sync_playwright().start()
@@ -120,6 +122,9 @@ class WebScraper:
             except Exception as e:
                 self.logger.error(f"Erreur lors du parsing des instructions: {e}")
                 parsed_instructions = {}
+        
+        # Lazy import playwright only when needed
+        from playwright.sync_api import sync_playwright, Browser, Playwright
         
         playwright: Optional[Playwright] = None
         browser: Optional[Browser] = None
@@ -231,7 +236,7 @@ class WebScraper:
             if playwright:
                 playwright.stop()
     
-    def _find_search_input(self, page: Page) -> Any:
+    def _find_search_input(self, page: Any) -> Any:
         """
         Détection automatique du champ de recherche.
         """
@@ -269,7 +274,7 @@ class WebScraper:
             
         return None
     
-    def _execute_action(self, page: Page, action: Dict[str, Any]) -> None:
+    def _execute_action(self, page: Any, action: Dict[str, Any]) -> None:
         """Exécute une action Playwright."""
         action_type = action.get('type')
         

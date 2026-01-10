@@ -1,0 +1,34 @@
+[
+    {
+        "id": "a53af406-832e-4727-b203-fa2e6e1cf1ec",
+        "title": "Nouvelle conversation",
+        "updated_at": "2026-01-09 22:19:17.833917",
+        "messages": [
+            {
+                "role": "Syst\u00e8me",
+                "content": "Connexion \u00e0 Test...",
+                "timestamp": "2026-01-09 22:19:14.512823"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "Description : C'est un test simple",
+                "timestamp": "2026-01-09 22:19:14.540213"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "\ud83d\udd0d Test de connexion au LLM Chat (Meta Llama 3 (via Groq))...",
+                "timestamp": "2026-01-09 22:19:14.723297"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "\u2705 LLM Chat: Connexion r\u00e9ussie \u00e0 Meta Llama 3 (via Groq)",
+                "timestamp": "2026-01-09 22:19:17.791143"
+            },
+            {
+                "role": "Syst\u00e8me",
+                "content": "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501",
+                "timestamp": "2026-01-09 22:19:17.833296"
+            }
+        ]
+    }
+]

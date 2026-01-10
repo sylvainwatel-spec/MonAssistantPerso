@@ -13,8 +13,6 @@ except Exception:
     except Exception:
         pass
 
-import matplotlib
-matplotlib.use("Agg")
 import customtkinter as ctk
 import webbrowser
 from PIL import Image
@@ -24,41 +22,32 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from utils.data_manager import DataManager
 from utils.resource_handler import resource_path
-from modules.assistants.home import HomeFrame
-from modules.assistants.create import CreateAssistantFrame
-from modules.assistants.list import ListAssistantsFrame
-from modules.settings.view import AdminFrame
-from modules.assistants.detail import AssistantDetailFrame
-from modules.assistants.chat import ChatFrame
-from modules.settings.chat_connector import ChatConnectorFrame
-from modules.settings.scraping_connector import ScrapeGraphConnectorFrame
 from utils.plugin_manager import manager
-from modules.image_gen.view import ImageGenFrame
-from modules.doc_analyst.view import DocAnalystFrame
-from modules.data_viz.view import DataVizFrame
-from modules.financial.view import FinancialAnalysisFrame
-from modules.scraping.view import ScrapingFrame
-from modules.profiles.list import ListProfilesFrame
-from modules.profiles.create import CreateProfileFrame
-from modules.profiles.detail import ProfileDetailFrame
 
-# Register pages with PluginManager
+# Core frames that are always needed (home, settings)
+from modules.assistants.home import HomeFrame
+from modules.settings.view import AdminFrame
+
+# Register core pages (always loaded)
 manager.register('home', HomeFrame)
-manager.register('create', CreateAssistantFrame)
-manager.register('list', ListAssistantsFrame)
 manager.register('admin', AdminFrame)
-manager.register('detail', AssistantDetailFrame)
-manager.register('chat', ChatFrame)
-manager.register('connector', ChatConnectorFrame)
-manager.register('scrapegraph', ScrapeGraphConnectorFrame)
-manager.register('image_gen', ImageGenFrame)
-manager.register('doc_analyst', DocAnalystFrame)
-manager.register('data_viz', DataVizFrame)
-manager.register('financial', FinancialAnalysisFrame)
-manager.register('scraping', ScrapingFrame)
-manager.register('profiles_list', ListProfilesFrame)
-manager.register('profiles_create', CreateProfileFrame)
-manager.register('profiles_detail', ProfileDetailFrame)
+
+# Register other pages with lazy loading
+manager.register('create', lambda: __import__('modules.assistants.create', fromlist=['CreateAssistantFrame']).CreateAssistantFrame)
+manager.register('list', lambda: __import__('modules.assistants.list', fromlist=['ListAssistantsFrame']).ListAssistantsFrame)
+manager.register('detail', lambda: __import__('modules.assistants.detail', fromlist=['AssistantDetailFrame']).AssistantDetailFrame)
+manager.register('chat', lambda: __import__('modules.assistants.chat', fromlist=['ChatFrame']).ChatFrame)
+manager.register('connector', lambda: __import__('modules.settings.chat_connector', fromlist=['ChatConnectorFrame']).ChatConnectorFrame)
+manager.register('scrapegraph', lambda: __import__('modules.settings.scraping_connector', fromlist=['ScrapeGraphConnectorFrame']).ScrapeGraphConnectorFrame)
+manager.register('image_gen', lambda: __import__('modules.image_gen.view', fromlist=['ImageGenFrame']).ImageGenFrame)
+manager.register('doc_analyst', lambda: __import__('modules.doc_analyst.view', fromlist=['DocAnalystFrame']).DocAnalystFrame)
+manager.register('data_viz', lambda: __import__('modules.data_viz.view', fromlist=['DataVizFrame']).DataVizFrame)
+manager.register('financial', lambda: __import__('modules.financial.view', fromlist=['FinancialAnalysisFrame']).FinancialAnalysisFrame)
+manager.register('scraping', lambda: __import__('modules.scraping.view', fromlist=['ScrapingFrame']).ScrapingFrame)
+manager.register('profiles_list', lambda: __import__('modules.profiles.list', fromlist=['ListProfilesFrame']).ListProfilesFrame)
+manager.register('profiles_create', lambda: __import__('modules.profiles.create', fromlist=['CreateProfileFrame']).CreateProfileFrame)
+manager.register('profiles_detail', lambda: __import__('modules.profiles.detail', fromlist=['ProfileDetailFrame']).ProfileDetailFrame)
+manager.register('knowledge_base_manager', lambda: __import__('modules.settings.knowledge_base_manager', fromlist=['KnowledgeBaseManagerFrame']).KnowledgeBaseManagerFrame)
 
 # Configuration du thème
 ctk.set_appearance_mode("System")
@@ -241,6 +230,9 @@ class App(ctk.CTk):
     
     def show_profile_detail(self, profile_data: Any) -> None:
         self.switch_frame(manager.get('profiles_detail'), profile_data=profile_data)
+    
+    def show_knowledge_base_manager(self) -> None:
+        self.switch_frame(manager.get('knowledge_base_manager'))
 
     def open_url(self, url: str) -> None:
         """Opens a URL in the default web browser."""

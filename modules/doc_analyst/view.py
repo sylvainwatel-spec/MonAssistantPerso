@@ -154,6 +154,18 @@ class DocAnalystFrame(ctk.CTkFrame):
         self.combo_profile.pack(pady=5, padx=20, fill="x")
         self.update_profile_list()
 
+        # Knowledge Base Selection (RAG)
+        ctk.CTkLabel(controls_panel, text="Base de Connaissances", font=("Arial", 12)).pack(pady=(10, 0))
+        
+        self.var_kb = ctk.StringVar(value="Aucune")
+        self.combo_kb = ctk.CTkOptionMenu(
+            controls_panel,
+            variable=self.var_kb,
+            values=["Aucune"]
+        )
+        self.combo_kb.pack(pady=5, padx=20, fill="x")
+        self.update_kb_list()
+
         # Export Button at Bottom
         self.btn_export = ctk.CTkButton(
             controls_panel, 
@@ -227,6 +239,14 @@ class DocAnalystFrame(ctk.CTkFrame):
             profile = next((p for p in profiles if p["name"] == selected_name), None)
             if profile:
                 self.app.data_manager.set_module_profile("doc_analyst", profile["id"])
+            
+    def update_kb_list(self):
+        """Met à jour la liste des bases de connaissances."""
+        kbs = self.app.data_manager.get_all_knowledge_bases()
+        kb_names = ["Aucune"] + [kb["name"] for kb in kbs]
+        self.kb_map = {kb["name"]: kb["id"] for kb in kbs}
+        self.combo_kb.configure(values=kb_names)
+        self.var_kb.set("Aucune")
             
             
     # --- Conversation Management ---
@@ -458,11 +478,14 @@ class DocAnalystFrame(ctk.CTkFrame):
         # self._save_current_state() # wait for response to save complete pair?
 
         # Threaded call
-        thread = threading.Thread(target=self._chat_thread, args=(msg, provider))
+        kb_name = self.var_kb.get()
+        kb_id = self.kb_map.get(kb_name) if hasattr(self, 'kb_map') and kb_name != "Aucune" else None
+        
+        thread = threading.Thread(target=self._chat_thread, args=(msg, provider, kb_id))
         thread.daemon = True
         thread.start()
 
-    def _chat_thread(self, msg, provider):
+    def _chat_thread(self, msg, provider, kb_id=None):
         # Combine all documents
         full_context = ""
         for doc in self.documents:
@@ -474,7 +497,8 @@ class DocAnalystFrame(ctk.CTkFrame):
             full_context,
             msg,
             self.chat_history,
-            provider
+            provider,
+            kb_id=kb_id
         )
         self.after(0, lambda: self._on_response(success, response, msg))
 

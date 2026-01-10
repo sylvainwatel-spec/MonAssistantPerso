@@ -41,4 +41,5 @@ settings.json
 
 # Runtime Data
 chrome_persistent_profile/
+firefox_persistent_profile/
 resultats/

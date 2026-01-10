@@ -1,0 +1,49 @@
+# Data files
+*.json
+*.txt
+*.log
+
+# Documentation
+*.md
+
+# Build artifacts
+*.spec
+*.pyc
+*.pyo
+*.pyd
+
+# Secrets
+.secret.key
+
+# Browser profiles
+chrome_persistent_profile/
+firefox_persistent_profile/
+
+# Vector databases
+vector_databases/
+
+# Results
+resultats/
+conversations/
+
+# Tests and scripts
+tests/
+scripts/
+
+# Cache
+__pycache__/
+.pytest_cache/
+
+# Virtual environments
+.venv/
+venv_scrapegraph/
+
+# Build
+build/
+dist/
+
+# Git
+.git/
+
+# Images
+image/

@@ -107,6 +107,13 @@ class AdminFrame(ctk.CTkFrame):
         # Separator
         separator_fin = ctk.CTkFrame(self.content_frame, height=2, fg_color=("gray80", "gray30"))
         separator_fin.grid(row=11, column=0, sticky="ew", pady=30)
+        
+        # Knowledge Base Section
+        self.create_knowledge_base_section()
+        
+        # Separator
+        separator_kb = ctk.CTkFrame(self.content_frame, height=2, fg_color=("gray80", "gray30"))
+        separator_kb.grid(row=13, column=0, sticky="ew", pady=30)
  
         self.create_system_info_section()
 
@@ -399,11 +406,51 @@ class AdminFrame(ctk.CTkFrame):
             doc_analyst_provider=self.settings.get("doc_analyst_provider", "OpenAI GPT-4o mini")
         )
 
+    def create_knowledge_base_section(self):
+        """Section pour les bases de connaissances (RAG)."""
+        kb_frame = ctk.CTkFrame(self.content_frame, fg_color=("gray95", "gray20"), corner_radius=12)
+        kb_frame.grid(row=12, column=0, sticky="ew", pady=10)
+        kb_frame.grid_columnconfigure(1, weight=1)
+        
+        # Icon and title
+        icon_label = ctk.CTkLabel(kb_frame, text="📚", font=("Arial", 32))
+        icon_label.grid(row=0, column=0, rowspan=3, padx=20, pady=20)
+        
+        title_label = ctk.CTkLabel(
+            kb_frame,
+            text="Bases de Connaissances (RAG)",
+            font=("Arial", 16, "bold")
+        )
+        title_label.grid(row=0, column=1, sticky="w", pady=(20, 5))
+        
+        # Description
+        desc_label = ctk.CTkLabel(
+            kb_frame,
+            text="Gérez vos bases de connaissances pour enrichir les réponses\navec vos propres documents (100% local)",
+            font=("Arial", 12),
+            text_color=("gray30", "gray70"),
+            justify="left"
+        )
+        desc_label.grid(row=1, column=1, sticky="w", pady=(0, 20))
+        
+        # Manage button
+        btn_manage = ctk.CTkButton(
+            kb_frame,
+            text="📚 Gérer les Bases de Connaissances",
+            width=260,
+            height=40,
+            fg_color=("#3B8ED0", "#1F6AA5"),
+            hover_color=("#36719F", "#144870"),
+            font=("Arial", 12, "bold"),
+            command=self.app.show_knowledge_base_manager
+        )
+        btn_manage.grid(row=0, column=2, rowspan=3, padx=20, pady=20)
+
 
     def create_system_info_section(self):
         """Section d'informations système."""
         info_frame = ctk.CTkFrame(self.content_frame, fg_color=("gray95", "gray20"), corner_radius=12)
-        info_frame.grid(row=12, column=0, sticky="ew", pady=10)
+        info_frame.grid(row=14, column=0, sticky="ew", pady=10)
 
         title_label = ctk.CTkLabel(
             info_frame,

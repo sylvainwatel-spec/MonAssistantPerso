@@ -42,34 +42,19 @@
         ]
     },
     {
-        "id": "20287b21-4d39-4a1a-ab84-7b695ff30192",
+        "id": "56080184-bbd5-4c36-84a3-3682f42e2be4",
         "title": "Nouvelle conversation",
-        "updated_at": "2026-01-04 19:22:57.228184",
+        "updated_at": "2026-01-09 22:18:31.588119",
         "messages": [
             {
                 "role": "Syst\u00e8me",
                 "content": "Connexion \u00e0 Test...",
-                "timestamp": "2026-01-04 19:22:55.106278"
+                "timestamp": "2026-01-09 22:18:31.506057"
             },
             {
                 "role": "Syst\u00e8me",
                 "content": "Description : test avec profil g\u00e9n\u00e9rique",
-                "timestamp": "2026-01-04 19:22:55.165500"
-            },
-            {
-                "role": "Syst\u00e8me",
-                "content": "\ud83d\udd0d Test de connexion au LLM Chat (Hugging Face (Mistral/Mixtral))...",
-                "timestamp": "2026-01-04 19:22:55.432151"
-            },
-            {
-                "role": "Syst\u00e8me",
-                "content": "\u2705 LLM Chat: Connexion r\u00e9ussie \u00e0 Hugging Face (Mistral/Mixtral)",
-                "timestamp": "2026-01-04 19:22:57.160839"
-            },
-            {
-                "role": "Syst\u00e8me",
-                "content": "\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501",
-                "timestamp": "2026-01-04 19:22:57.226547"
+                "timestamp": "2026-01-09 22:18:31.588119"
             }
         ]
     }
